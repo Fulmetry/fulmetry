@@ -236,6 +236,7 @@ describe("release workflow memory isolation", () => {
           stdin: "ignore",
           stdout: "pipe",
           stderr: "pipe",
+          env: { ...process.env, CI: "false" },
         });
         expect(child.exitCode, name).not.toBe(0);
         expect(new TextDecoder().decode(child.stderr), name).toContain(
