@@ -165,6 +165,9 @@ jobs:
           sudo mkdir -p /Applications/KiCad
           sudo ditto "$RUNNER_TEMP/kicad-mount/KiCad/KiCad.app" /Applications/KiCad/KiCad.app
           hdiutil detach "$RUNNER_TEMP/kicad-mount"
+          mkdir "$RUNNER_TEMP/kicad-preflight-home"
+          HOME="$RUNNER_TEMP/kicad-preflight-home" TMPDIR="$RUNNER_TEMP/kicad-preflight-home" LC_ALL=C LANG=C \
+            /Applications/KiCad/KiCad.app/Contents/MacOS/kicad-cli version
       - name: Run live two- and four-layer KiCad qualification
         run: bun run test:live:kicad
       - name: Upload exact live KiCad evidence

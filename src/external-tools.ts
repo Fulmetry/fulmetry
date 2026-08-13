@@ -126,6 +126,8 @@ export async function probeExternalTool(options: {
   readonly outputLimit?: number;
   readonly executableBytesLimit?: number;
   readonly signal?: AbortSignal;
+  /** Exact minimal environment for tools that require a private HOME. */
+  readonly env?: Readonly<Record<string, string>>;
   /** @internal Deterministic path-replacement test hook after the executable handle is opened. */
   readonly afterExecutableOpen?: (resolvedPath: string) => void | Promise<void>;
 }): Promise<Readonly<ExternalToolProbe>> {
@@ -172,7 +174,7 @@ export async function probeExternalTool(options: {
   try {
     subprocess = await spawnContainedProcess({
       command: [resolvedExecutable, ...(options.versionArguments ?? ["--version"])],
-      env: { PATH: process.env.PATH ?? "" },
+      env: options.env ?? { PATH: process.env.PATH ?? "" },
     });
   } catch (error) {
     return Object.freeze({

@@ -6,8 +6,14 @@ import { NGSPICE_EXECUTABLE_BYTES_LIMIT, type ExternalToolProbe } from "../exter
 import { hashBoundedRegularFile, readBoundedRegularFile } from "../internal/bounded-file";
 import { throwIfPcbooCancelled } from "../internal/cancellation";
 import { spawnContainedProcess } from "../internal/contained-process";
+import {
+  isNgspiceDcSweepAxisName,
+  isNgspiceFrequencyAxisName,
+  isSemanticallyRealFrequencySample,
+  parseNgspiceRawVariableDeclaration,
+} from "./ngspice-raw-variable";
 
-export const NGSPICE_QUALIFIER_VERSION = "1";
+export const NGSPICE_QUALIFIER_VERSION = "2";
 export const NGSPICE_QUALIFICATION_CASE_TIMEOUT_MS = 2_000;
 export const NGSPICE_QUALIFICATION_TOTAL_TIMEOUT_MS = 10_000;
 export const NGSPICE_QUALIFICATION_RAW_LIMIT = 1024 * 1024;
@@ -165,7 +171,7 @@ function sha256(value: Uint8Array | string): string {
 const QUALIFIER_IMPLEMENTATION_SHA256 = sha256(JSON.stringify({
   cases: CASES,
   oracle: "op-divider-5v-half;rc-1k-1u-charge-discharge;rc-100hz-lowpass-mag-phase;dc-divider-half-v1",
-  parser: "pcboo-ngspice-ascii-raw-v1",
+  parser: "pcboo-ngspice-ascii-raw-v2",
 }));
 
 function boundedFailure(error: unknown): string {
@@ -244,16 +250,23 @@ function parseRaw(bytes: Uint8Array): ParsedQualificationRaw {
   ) throw new Error("Qualification raw cardinality is invalid");
   const variables = lines.slice(variablesAt + 1, valuesAt)
     .filter((line) => line.trim())
-    .map((line) => {
-      const match = /^\s*(\d+)\s+(\S+)\s+(\S+)\s*$/u.exec(line);
-      if (match === null) throw new Error("Qualification raw variable is malformed");
-      return { index: Number(match[1]), name: match[2]!.toLowerCase() };
-    });
+    .map((line) => parseNgspiceRawVariableDeclaration(
+      line,
+      "Qualification raw variable is malformed",
+    ))
+    .map(({ index, name, type, grid }) => ({ index, name: name.toLowerCase(), type, grid }));
   if (
     variables.length !== variableCount ||
     variables.some(({ index }, position) => index !== position) ||
     new Set(variables.map(({ name }) => name)).size !== variables.length
   ) throw new Error("Qualification raw variables are missing or duplicated");
+  for (const variable of variables) {
+    const expectedGrid = header.plotname?.toLowerCase() === "ac analysis" &&
+      isNgspiceFrequencyAxisName(variable.name) ? 3 : null;
+    if (variable.grid !== expectedGrid) {
+      throw new Error("Qualification raw variable grid metadata is invalid");
+    }
+  }
   const rows = lines.slice(valuesAt + 1).filter((line) => line.trim());
   const samples = variables.map(() => [] as QualificationSample[]);
   let row = 0;
@@ -318,13 +331,16 @@ function validateCase(
     close(out[0]!.imaginary, 0, 1e-12, "Divider imaginary output");
     return Object.freeze([out[0]!.real]);
   }
-  const axisName = testCase.id === "rc-transient"
-    ? "time"
-    : testCase.id === "rc-ac" ? "frequency" : "v-sweep";
+  const axisName = testCase.id === "rc-transient" ? "time"
+    : testCase.id === "rc-ac" ? "frequency"
+    : parsed.names.find(isNgspiceDcSweepAxisName) ?? "v-sweep";
   const axis = parsed.values[axisName];
   if (axis === undefined || parsed.names.length !== 2 || axis.length !== out.length) {
     throw new Error(`${testCase.id} qualification has unexpected vectors`);
   }
+  if (testCase.id === "rc-ac" && axis.some(({ real, imaginary }) =>
+    !isSemanticallyRealFrequencySample(real, imaginary)
+  )) throw new Error("RC AC qualification frequency axis is materially complex");
   if (testCase.id === "rc-transient") {
     const at1 = nearest(axis, out, 0.001, 0.000075).real;
     const at4 = nearest(axis, out, 0.004, 0.000075).real;
@@ -525,7 +541,6 @@ export async function qualifyCapturedNgspice(options: {
       }));
       await assertExecutableIdentity();
       throwIfPcbooCancelled(options.signal, "ngspice qualification was cancelled");
-      if (cases.at(-1)?.status !== "passed") break;
     }
   } finally {
     if (options.retainCaseArtifacts !== true) {

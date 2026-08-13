@@ -17,6 +17,11 @@ import {
   throwIfPcbooCancelled,
 } from "../internal/cancellation";
 import { spawnContainedProcess } from "../internal/contained-process";
+import {
+  isNgspiceDcSweepAxisName,
+  isSemanticallyRealFrequencySample,
+  parseNgspiceRawVariableDeclaration,
+} from "./ngspice-raw-variable";
 import { assuranceStatus } from "../status";
 import { requireSupportedBunRuntime } from "../runtime";
 import {
@@ -121,7 +126,7 @@ export function authenticateFunctionalSimulationAuthority(
   return authority.evidence;
 }
 
-export const NGSPICE_ADAPTER_VERSION = "2";
+export const NGSPICE_ADAPTER_VERSION = "3";
 export const NGSPICE_OUTPUT_LIMIT = 8 * 1024 * 1024;
 export const NGSPICE_STDIO_LIMIT = 1024 * 1024;
 
@@ -450,9 +455,10 @@ export function parseNgspiceAsciiRaw(bytes: Uint8Array, definition: SimulationDe
   if (!Number.isSafeInteger(points) || points < 1 || points > MAX_SIMULATION_SAMPLES_PER_VECTOR) throw new Error("ngspice raw point count is invalid");
   if (count * points > MAX_SIMULATION_TOTAL_SAMPLES + points) throw new Error("ngspice raw sample count exceeds the bounded result schema");
   const variables = lines.slice(variablesAt + 1, valuesAt).filter((line) => line.trim()).map((line) => {
-    const match = /^\s*(\d+)\s+(\S+)\s+(\S+)\s*$/.exec(line);
-    if (match === null) throw new Error("ngspice raw variable declaration is malformed");
-    return { index: Number(match[1]), name: match[2]!, type: match[3]! };
+    return parseNgspiceRawVariableDeclaration(
+      line,
+      "ngspice raw variable declaration is malformed",
+    );
   });
   if (variables.length !== count || variables.some(({ index }, i) => index !== i)) throw new Error("ngspice raw variables are missing, duplicated, or out of order");
   if (new Set(variables.map(({ name }) => name.toLowerCase())).size !== variables.length) throw new Error("ngspice raw output contains duplicate vector names");
@@ -478,7 +484,11 @@ export function parseNgspiceAsciiRaw(bytes: Uint8Array, definition: SimulationDe
   if (lineIndex !== valueLines.length) throw new Error("ngspice raw output contains trailing sample data");
   const expected = operands(definition);
   const axisExpected = definition.analysis.kind === "operating-point" ? null : definition.analysis.kind === "ac" ? "frequency" : definition.analysis.kind === "transient" ? "time" : "v-sweep";
-  const axisIndex = axisExpected === null ? -1 : variables.findIndex(({ name }) => name.toLowerCase() === axisExpected);
+  const axisIndex = axisExpected === null ? -1 : variables.findIndex(({ name }) =>
+    definition.analysis.kind === "dc-sweep"
+      ? isNgspiceDcSweepAxisName(name)
+      : name.toLowerCase() === axisExpected
+  );
   if (axisExpected !== null && axisIndex < 0) throw new Error(`ngspice raw output lacks ${axisExpected} axis`);
   const expectedNames = new Set(expected.map(({ vector }) => vector.toLowerCase()));
   const dataVariables = variables.filter((_, index) => index !== axisIndex);
@@ -494,11 +504,23 @@ export function parseNgspiceAsciiRaw(bytes: Uint8Array, definition: SimulationDe
     const expectedAxisType = definition.analysis.kind === "ac" ? "frequency" : definition.analysis.kind === "transient" ? "time" : "voltage";
     if (variables[axisIndex]!.type.toLowerCase() !== expectedAxisType) throw new Error(`ngspice raw axis has wrong type ${variables[axisIndex]!.type}`);
   }
+  for (let index = 0; index < variables.length; index += 1) {
+    const variable = variables[index]!;
+    const expectedGrid = definition.analysis.kind === "ac" && index === axisIndex
+      ? definition.analysis.scale === "linear" ? 1 : 3
+      : null;
+    if (variable.grid !== expectedGrid) {
+      throw new Error("ngspice raw variable grid metadata does not match the requested analysis");
+    }
+  }
   const axis = axisIndex < 0 ? null : (() => {
     const values = samples[axisIndex]!.map((sample) => {
       if (typeof sample === "number") return sample;
-      if (definition.analysis.kind === "ac" && sample.imaginary === 0) return sample.real;
-      throw new Error("ngspice axis must be real (or zero-imaginary frequency data)");
+      if (
+        definition.analysis.kind === "ac" &&
+        isSemanticallyRealFrequencySample(sample.real, sample.imaginary)
+      ) return sample.real;
+      throw new Error("ngspice frequency axis must be semantically real");
     });
     return Object.freeze({
       name: definition.analysis.kind === "dc-sweep" ? definition.analysis.sourceId : axisExpected!,

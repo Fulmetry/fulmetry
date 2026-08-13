@@ -267,11 +267,11 @@ function acRaw(samples: readonly Readonly<{ real: number; imaginary: number }>[]
     "No. Variables: 2",
     `No. Points: ${samples.length}`,
     "Variables:",
-    "  0 frequency frequency",
+    "  0 frequency frequency grid=3",
     "  1 v(vout) voltage",
     "Values:",
     ...samples.flatMap((sample, index) => [
-      `${index} ${frequencies[index]},0`,
+      `${index} ${frequencies[index]},2.205150681906361e-314`,
       `  ${sample.real},${sample.imaginary}`,
     ]),
     "",
@@ -379,9 +379,9 @@ function rlcAcRaw(samples: readonly Readonly<{ real: number; imaginary: number }
   return [
     "Title: PCBoo analytical RLC fixture", "Date: ignored", "Plotname: AC Analysis", "Flags: complex",
     "No. Variables: 2", `No. Points: ${samples.length}`, "Variables:",
-    "  0 frequency frequency", "  1 v(vout) voltage", "Values:",
+    "  0 frequency frequency grid=3", "  1 v(vout) voltage", "Values:",
     ...samples.flatMap((sample, index) => [
-      `${index} ${RLC_AC_FREQUENCIES[index]},0`, `  ${sample.real},${sample.imaginary}`,
+      `${index} ${RLC_AC_FREQUENCIES[index]},2.205150681906361e-314`, `  ${sample.real},${sample.imaginary}`,
     ]),
     "",
   ].join("\n");
@@ -407,7 +407,7 @@ function dcSweepRaw(voutSamples: readonly number[]): string {
     "Title: PCBoo analytical divider sweep", "Date: ignored",
     "Plotname: DC transfer characteristic", "Flags: real",
     "No. Variables: 3", `No. Points: ${voutSamples.length}`, "Variables:",
-    "  0 v-sweep voltage", "  1 v(vin) voltage", "  2 v(vout) voltage", "Values:",
+    "  0 v(v-sweep) voltage", "  1 v(vin) voltage", "  2 v(vout) voltage", "Values:",
     ...voutSamples.flatMap((vout, index) => [
       `${index} ${DIVIDER_DC_AXIS[index]}`, `  ${DIVIDER_DC_AXIS[index]}`, `  ${vout}`,
     ]),
@@ -771,7 +771,31 @@ describe("qualified ngspice adapter", () => {
       operatingPointRaw().replace("0 2.5000", "1 2.5000"),
       `${operatingPointRaw()}0 999\n`,
       operatingPointRaw().replace("Values:", "Binary:"),
+      operatingPointRaw().replace("v(vout) voltage", "v(vout) voltage grid=3"),
+      operatingPointRaw().replace("v(vout) voltage", "v(vout) voltage color=red"),
+      operatingPointRaw().replace("v(vout) voltage", "v(vout) voltage grid=3 grid=3"),
     ]) expect(() => parseNgspiceAsciiRaw(new TextEncoder().encode(hostile), definition)).toThrow();
+
+    const acDefinition = parseSimulationDefinition(rcAcDefinition({
+      resistorDigest: sha256(RC_MODEL_BYTES.resistor),
+      capacitorDigest: sha256(RC_MODEL_BYTES.capacitor),
+    }));
+    const acceptedV46 = acRaw(RC_AC_100_HZ_CUTOFF_SAMPLES);
+    expect(parseNgspiceAsciiRaw(new TextEncoder().encode(acceptedV46), acDefinition).axis?.values)
+      .toEqual([10, 100, 1_000]);
+    expect(() => parseNgspiceAsciiRaw(
+      new TextEncoder().encode(acceptedV46.replace("10,2.205150681906361e-314", "10,0.001")),
+      acDefinition,
+    )).toThrow("frequency");
+
+    const dcDefinition = parseSimulationDefinition(dividerDcSweepDefinition(sha256("model")));
+    const acceptedDc = dcSweepRaw(DIVIDER_HALF_SAMPLES);
+    expect(parseNgspiceAsciiRaw(new TextEncoder().encode(acceptedDc), dcDefinition).axis?.values)
+      .toEqual(DIVIDER_DC_AXIS);
+    expect(() => parseNgspiceAsciiRaw(
+      new TextEncoder().encode(acceptedDc.replace("v(v-sweep)", "v(v-sweep-extra)")),
+      dcDefinition,
+    )).toThrow("lacks v-sweep axis");
   });
 
   test("derives raw evidence units from ngspice vector type even for a forged structural definition", () => {

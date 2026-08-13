@@ -226,6 +226,7 @@ async function runKicadCommand(options: {
     env: {
       PATH: "/usr/bin:/bin:/usr/sbin:/sbin",
       HOME: options.home,
+      TMPDIR: options.home,
       LC_ALL: "C",
       LANG: "C",
     },
@@ -1064,10 +1065,19 @@ export async function validateKicadHandoffLive(
     });
   }
 
+  const qualificationHomeDirectory = join(validationDirectory, "home");
+  await mkdir(qualificationHomeDirectory);
   const probe = await probeExternalTool({
     tool: "kicad-cli",
     ...(options.executable === undefined ? {} : { executable: options.executable }),
     versionArguments: ["version"],
+    env: {
+      PATH: "/usr/bin:/bin:/usr/sbin:/sbin",
+      HOME: qualificationHomeDirectory,
+      TMPDIR: qualificationHomeDirectory,
+      LC_ALL: "C",
+      LANG: "C",
+    },
     ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
     ...(options.outputLimit === undefined ? {} : { outputLimit: options.outputLimit }),
     ...(options.signal === undefined ? {} : { signal: options.signal }),
@@ -1149,8 +1159,6 @@ export async function validateKicadHandoffLive(
   options.beforeQualificationCheck?.();
   const qualificationOutputDirectory = join(validationDirectory, "qualification-output");
   await mkdir(qualificationOutputDirectory);
-  const qualificationHomeDirectory = join(validationDirectory, "home");
-  await mkdir(qualificationHomeDirectory);
   const qualificationOutputIdentity = await captureDirectoryIdentity(
     qualificationOutputDirectory,
     "KiCad qualification output directory",

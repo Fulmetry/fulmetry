@@ -88,7 +88,7 @@ describe("required live ngspice compatibility", () => {
       tool,
       retainCaseArtifacts: true,
     });
-    expect(qualification.evidence.cases).toHaveLength(4);
+    expect(qualification.evidence.cases, JSON.stringify(qualification.evidence.cases, null, 2)).toHaveLength(4);
     expect(qualification.evidence.cases.every(({ status }) => status === "passed"),
       JSON.stringify(qualification.evidence.cases, null, 2)).toBeTrue();
     expect(qualification.evidence.qualified).toBeTrue();
