@@ -2,3 +2,4 @@
 *.png binary
 *.tgz binary
 *.zip binary
+test/fixtures/canonical/**/manufacturing/** binary
