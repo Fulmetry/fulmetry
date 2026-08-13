@@ -867,6 +867,9 @@ export async function runQualifiedNgspice(options: {
     }
     const message = error instanceof Error ? error.message : String(error);
     const id = /[Mm]odel(?: | artifacts)/.test(message) ? "SIM_MODEL_ASSET_INVALID_001" : /Primitive |Subcircuit |Selected |Port |reference net|SPICE|Component token|Net token/.test(message) ? "SIM_NETLIST_UNSUPPORTED_001" : "SIM_OUTPUT_INVALID_001";
+    if (id === "SIM_MODEL_ASSET_INVALID_001") {
+      await rm(simulationDirectory, { recursive: true, force: true }).catch(() => undefined);
+    }
     return id === "SIM_NETLIST_UNSUPPORTED_001" ? incomplete(id, message, definition.name, firstProbe) : failed(id, message, definition.name, firstProbe);
   }
 }
