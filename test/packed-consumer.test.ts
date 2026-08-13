@@ -59,14 +59,14 @@ async function fixture(): Promise<Readonly<{ root: string; lock: Record<string, 
     },
     dependencies: { pcboo: "file:../../packages/pcboo-0.0.0.tgz", tscircuit: "0.0.2261" },
     devDependencies: { "@types/bun": "1.3.14" },
-    overrides: { "@tscircuit/cli": "0.1.1858" },
+    overrides: { "@tscircuit/cli": "0.1.1858", "bun-match-svg": "0.0.15" },
   };
   await writeFile(join(root, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
   await cp(join(repositoryRoot, "test", "fixtures", "canonical", "led-2layer", "pcboo.lock"), join(root, "pcboo.lock"));
   const lock: Record<string, unknown> = {
     lockfileVersion: 1,
     configVersion: 1,
-    overrides: { "@tscircuit/cli": "0.1.1858" },
+    overrides: { "@tscircuit/cli": "0.1.1858", "bun-match-svg": "0.0.15" },
     workspaces: { "": { name: "board", dependencies: manifest.dependencies, devDependencies: manifest.devDependencies } },
     packages: {
       pcboo: ["pcboo@../../packages/pcboo-0.0.0.tgz", { peerDependencies: { tscircuit: "0.0.2261" } }, sri(tarballBytes)],
@@ -126,6 +126,19 @@ test("rejects a missing, wrong-version, or wrong-integrity qualified CLI tuple",
     await writeFile(join(value.root, "bun.lock"), `${JSON.stringify(value.lock)}\n`);
     await expect(inspect(value.root)).rejects.toThrow("qualified tscircuit CLI tuple");
   }
+});
+
+test("rejects changed scaffold dependency overrides in the manifest or lock", async () => {
+  const manifestChanged = await fixture();
+  const manifest = await Bun.file(join(manifestChanged.root, "package.json")).json();
+  manifest.overrides["bun-match-svg"] = "0.0.16";
+  await writeFile(join(manifestChanged.root, "package.json"), `${JSON.stringify(manifest)}\n`);
+  await expect(inspect(manifestChanged.root)).rejects.toThrow("dependency overrides are not qualified");
+
+  const lockChanged = await fixture();
+  (lockChanged.lock.overrides as Record<string, string>)["bun-match-svg"] = "0.0.16";
+  await writeFile(join(lockChanged.root, "bun.lock"), `${JSON.stringify(lockChanged.lock)}\n`);
+  await expect(inspect(lockChanged.root)).rejects.toThrow("lock overrides are not qualified");
 });
 
 test("rejects a symlinked tscircuit CLI package slot", async () => {

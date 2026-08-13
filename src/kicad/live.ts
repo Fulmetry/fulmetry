@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 PCBoo contributors
 // SPDX-License-Identifier: MIT
-import { lstat, mkdir, opendir, realpath, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, opendir, realpath, writeFile } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   EXTERNAL_TOOL_EXECUTABLE_BYTES_LIMIT,
@@ -1156,6 +1156,11 @@ export async function validateKicadHandoffLive(
       tool,
     });
   }
+  // KiCad may otherwise create a project-local .kicad_prl sidecar while
+  // reading the handoff. The live input authority is immutable: commands may
+  // write only to the separately captured output and HOME directories.
+  await chmod(inputDirectory, 0o500);
+  await assertLiveDirectoryAuthority(directoryAuthority);
   options.beforeQualificationCheck?.();
   const qualificationOutputDirectory = join(validationDirectory, "qualification-output");
   await mkdir(qualificationOutputDirectory);

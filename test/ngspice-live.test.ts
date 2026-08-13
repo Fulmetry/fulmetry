@@ -79,8 +79,9 @@ describe("required live ngspice compatibility", () => {
     const tool = await probeNgspice({ executable });
     expect(tool.state, tool.reason).toBe("detected");
 
-    const qualificationRoot = await mkdtemp(join(tmpdir(), "pcboo-live-ngspice-"));
-    roots.push(qualificationRoot);
+    const createdQualificationRoot = await mkdtemp(join(tmpdir(), "pcboo-live-ngspice-"));
+    roots.push(createdQualificationRoot);
+    const qualificationRoot = await realpath(createdQualificationRoot);
     const qualificationDirectory = join(qualificationRoot, "qualification");
     const qualification = await qualifyCapturedNgspice({
       executable: tool.executable!,

@@ -11,6 +11,7 @@ const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:
 const SRI = /^sha512-([A-Za-z0-9+/]+={0,2})$/u;
 const QUALIFIED_TSCIRCUIT_CLI_VERSION = "0.1.1858";
 const QUALIFIED_TSCIRCUIT_CLI_INTEGRITY = "sha512-FPrP/p1BqGHTOKXiKHv1CCe95jE2fuOKLBjA52GdrlWy9QB9VMY8rgjr8JHj8OjU2R3WzX7rWQ//+NO2qsisoA==";
+const QUALIFIED_BUN_MATCH_SVG_VERSION = "0.0.15";
 
 export interface InspectPackedConsumerOptions {
   readonly root: string;
@@ -333,9 +334,12 @@ export async function inspectPackedConsumer(
     manifest.dependencies.tscircuit !== options.expectedVersion
   ) throw new TypeError("Packed consumer dependencies are not the exact qualified inputs");
   record(manifest.overrides, "Packed consumer overrides");
-  keys(manifest.overrides, ["@tscircuit/cli"], "Packed consumer overrides");
-  if (manifest.overrides["@tscircuit/cli"] !== QUALIFIED_TSCIRCUIT_CLI_VERSION) {
-    throw new TypeError("Packed consumer tscircuit CLI override is not qualified");
+  keys(manifest.overrides, ["@tscircuit/cli", "bun-match-svg"], "Packed consumer overrides");
+  if (
+    manifest.overrides["@tscircuit/cli"] !== QUALIFIED_TSCIRCUIT_CLI_VERSION ||
+    manifest.overrides["bun-match-svg"] !== QUALIFIED_BUN_MATCH_SVG_VERSION
+  ) {
+    throw new TypeError("Packed consumer dependency overrides are not qualified");
   }
   const pcbooTarball = join(dirname(dirname(root)), "packages", `pcboo-${options.expectedPcbooVersion}.tgz`);
   const pcbooTarballRead = await regularFileBytes(pcbooTarball, "Packed PCBoo tarball", 64 * 1024 * 1024);
@@ -357,8 +361,11 @@ export async function inspectPackedConsumer(
   record(lock, "Packed consumer bun.lock");
   keys(lock, ["configVersion", "lockfileVersion", "overrides", "packages", "workspaces"], "Packed consumer bun.lock");
   record(lock.overrides, "Packed consumer lock overrides");
-  keys(lock.overrides, ["@tscircuit/cli"], "Packed consumer lock overrides");
-  if (lock.overrides["@tscircuit/cli"] !== QUALIFIED_TSCIRCUIT_CLI_VERSION) throw new TypeError("Packed consumer lock override is not qualified");
+  keys(lock.overrides, ["@tscircuit/cli", "bun-match-svg"], "Packed consumer lock overrides");
+  if (
+    lock.overrides["@tscircuit/cli"] !== QUALIFIED_TSCIRCUIT_CLI_VERSION ||
+    lock.overrides["bun-match-svg"] !== QUALIFIED_BUN_MATCH_SVG_VERSION
+  ) throw new TypeError("Packed consumer lock overrides are not qualified");
   if (lock.lockfileVersion !== 1 || lock.configVersion !== 1) throw new TypeError("Packed consumer lock format is unsupported");
   record(lock.workspaces, "Packed consumer lock workspaces");
   keys(lock.workspaces, [""], "Packed consumer lock workspaces");
