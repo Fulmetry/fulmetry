@@ -368,7 +368,7 @@ await refreshCanonicalGoldens({
     })).rejects.toThrow("groundNet MISSING");
   });
 
-  test("manifest and input identity mutations are rejected", async () => {
+  test("a canonical manufacturing file-count mutation is rejected", async () => {
     const fixture = await loadCanonicalFixture("led-2layer");
     const validate = (manifest: typeof fixture.manifest) => validateCanonicalManifest({
       name: "led-2layer", root: fixture.root, manifest, circuitJson: fixture.circuitJson,
@@ -377,23 +377,50 @@ await refreshCanonicalGoldens({
     const badCount = structuredClone(fixture.manifest);
     (badCount.manufacturing as { fileCount: number }).fileCount = 999;
     await expect(validate(badCount)).rejects.toThrow("manufacturing.fileCount");
+  }, 30_000);
 
+  test("a canonical manufacturing-directory mutation is rejected", async () => {
+    const fixture = await loadCanonicalFixture("led-2layer");
+    const validate = (manifest: typeof fixture.manifest) => validateCanonicalManifest({
+      name: "led-2layer", root: fixture.root, manifest, circuitJson: fixture.circuitJson,
+    });
     const badDirectory = structuredClone(fixture.manifest);
     (badDirectory.manufacturing as { directory: string }).directory = "elsewhere";
     await expect(validate(badDirectory)).rejects.toThrow();
+  }, 30_000);
 
+  test("a canonical input-set digest mutation is rejected", async () => {
+    const fixture = await loadCanonicalFixture("led-2layer");
+    const validate = (manifest: typeof fixture.manifest) => validateCanonicalManifest({
+      name: "led-2layer", root: fixture.root, manifest, circuitJson: fixture.circuitJson,
+    });
     const badInputDigest = structuredClone(fixture.manifest);
     (badInputDigest.inputs as { setSha256: string }).setSha256 = "0".repeat(64);
     await expect(validate(badInputDigest)).rejects.toThrow("inputs.setSha256");
+  }, 30_000);
 
+  test("a canonical input-file digest mutation is rejected", async () => {
+    const fixture = await loadCanonicalFixture("led-2layer");
+    const validate = (manifest: typeof fixture.manifest) => validateCanonicalManifest({
+      name: "led-2layer", root: fixture.root, manifest, circuitJson: fixture.circuitJson,
+    });
     const badInputRecord = structuredClone(fixture.manifest);
     (badInputRecord.inputs.files[0] as { sha256: string }).sha256 = "f".repeat(64);
     await expect(validate(badInputRecord)).rejects.toThrow("inputs.files");
+  }, 30_000);
 
+  test("a canonical adapter identity mutation is rejected", async () => {
+    const fixture = await loadCanonicalFixture("led-2layer");
+    const validate = (manifest: typeof fixture.manifest) => validateCanonicalManifest({
+      name: "led-2layer", root: fixture.root, manifest, circuitJson: fixture.circuitJson,
+    });
     const badAdapter = structuredClone(fixture.manifest);
     (badAdapter.adapters as Record<string, string>).gerber = "tampered@0.0.0";
     await expect(validate(badAdapter)).rejects.toThrow("adapters");
+  }, 30_000);
 
+  test("a canonical authored source-input mutation is rejected", async () => {
+    const fixture = await loadCanonicalFixture("led-2layer");
     const copiedParent = await mkdtemp(join(fixture.root, "..", ".input-tamper-"));
     temporaryRoots.push(copiedParent);
     const copiedRoot = join(copiedParent, "led-2layer");
