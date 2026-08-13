@@ -1,0 +1,62 @@
+---
+title: Project structure
+description: Learn how PCBoo projects split circuit source, configuration, simulations, waivers, and generated evidence.
+---
+
+# Project structure
+
+A PCBoo project is intentionally made of ordinary files. Agents use the filesystem for authoring and the CLI for derived work; there is no required MCP server for normal project operations.
+
+```text
+my-board/
+├── circuit/
+│   ├── board.ts
+│   └── components/
+│       └── power-indicator.ts
+├── simulations/
+│   └── power-rail.testbench.ts
+├── tests/
+│   └── board.test.ts
+├── waivers/
+│   └── reviewed-exception.json
+├── pcboo.config.ts
+├── pcboo.lock
+└── package.json
+```
+
+## Authored source
+
+`circuit/` contains the board entry point and composable circuit modules. PCBoo expects exactly one linked source board, PCB board, and root assembly group in the compiled result. Multiple boards are outside the current product contract.
+
+## Configuration
+
+`pcboo.config.ts` names the entry file, output directory, active profiles, and optional board revision. Resolved configuration is part of project authority; changing a meaningful configuration value changes the project identity.
+
+```ts
+import { defineConfig } from "pcboo";
+
+export default defineConfig({
+  entry: "circuit/board.ts",
+  outputDirectory: ".pcboo",
+  profiles: ["pcboo-baseline-2-4layer"],
+  boardRevision: "A",
+});
+```
+
+## Lock authority
+
+`pcboo.lock` fixes PCBoo's accepted engine and compatibility authority. It is not a general package-manager lockfile and should be reviewed like source.
+
+## Tests and simulations
+
+- Ordinary project tests use Bun's test runner and produce an independent functional result.
+- Named simulation definitions live under `simulations/` and may use qualified local ngspice execution.
+- Authoritative project tests must not invoke subprocess APIs directly; use PCBoo's bounded actions instead.
+
+## Waivers
+
+Scoped waivers live in source-controlled `waivers/*.json` files. A valid waiver identifies one exact eligible rule occurrence and includes a justification. Identity, connectivity, unsupported-construct, resource-limit, and artifact-integrity findings are not waivable.
+
+## Generated evidence
+
+PCBoo writes generated work beneath `.pcboo/` by default. Each finite command gets a fresh run directory with a complete `report.json`. Generated output is derived evidence, not authored circuit source, and the browser never edits source files.

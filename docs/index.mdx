@@ -1,0 +1,48 @@
+---
+title: PCBoo documentation
+description: Build circuit boards with coding agents, composable TypeScript, and reviewable evidence.
+---
+
+# Build circuits with your coding agent
+
+PCBoo is an experimental, Bun-first framework for authoring one circuit board as composable TypeScript files. Your project folder is the interface: a coding agent or human edits normal source files, runs deterministic commands, reads compact diagnostics or JSON, and opens a fixed local inspection server.
+
+<Info>
+PCBoo is under active development. The initial release targets Apple Silicon macOS and exactly Bun 1.3.14. The `pcboo` and `create-pcboo` registry packages have not been published yet.
+</Info>
+
+## What PCBoo provides
+
+- **Composable circuit source** — divide a board into small, named TypeScript modules.
+- **Agent-friendly operations** — use stable commands and versioned JSON instead of automating a visual editor.
+- **Human inspection** — open schematic, PCB, and layer views in a local browser without making the browser authoritative.
+- **Independent evidence** — keep fabrication, electrical, functional, standards, and sourcing results separate.
+- **Tool handoff** — run qualified local simulation and manufacturing workflows or export a detached KiCad project.
+- **Local by default** — no telemetry or project-data upload is implemented.
+
+## What PCBoo is not
+
+PCBoo is not a visual editor, a coding agent, a certification service, or a replacement for engineering judgment. It reuses the supported [tscircuit](https://github.com/tscircuit/tscircuit) implementation for circuit authoring and compilation, then adds a project contract, operational commands, inspection, and evidence boundaries.
+
+## The core loop
+
+<Steps>
+  <Step title="Describe the change">
+    Ask your existing coding agent to add or modify a small circuit module.
+  </Step>
+  <Step title="Build and check">
+    Run PCBoo's deterministic commands and give the resulting diagnostics back to the agent.
+  </Step>
+  <Step title="Inspect visually">
+    Open the local inspection server when a human needs to review geometry, connectivity, or layers.
+  </Step>
+  <Step title="Produce evidence">
+    Run the required simulation, tool qualification, and manufacturing-verification steps before treating output as production evidence.
+  </Step>
+</Steps>
+
+Continue with [Getting started](/getting-started) or learn how PCBoo exposes these docs to agents in [Agent access](/agent-access).
+
+<Warning>
+“Checked against a profile” is evidence about implemented rules. It is not certification, legal advice, or a guarantee that a board is safe to manufacture.
+</Warning>

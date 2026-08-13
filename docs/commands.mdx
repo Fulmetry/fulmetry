@@ -1,0 +1,55 @@
+---
+title: Commands
+description: Use PCBoo's finite commands and local inspection server from a project repository.
+---
+
+# Commands
+
+Run PCBoo commands from a project containing `pcboo.config.ts` and `pcboo.lock`. Add `--json` when a coding agent will consume the result.
+
+## Core commands
+
+| Command | Purpose |
+| --- | --- |
+| `pcboo build` | Compile twice and emit normalized Circuit JSON. |
+| `pcboo check` | Evaluate the implemented electrical and fabrication checks. |
+| `pcboo test` | Run eligible Bun tests and reconcile their result. |
+| `pcboo inspect` | Return bounded geometry, connectivity, status, or rule information. |
+| `pcboo dev` | Start the fixed local inspection server. |
+| `pcboo simulate [name]` | Run a named simulation through a qualified solver. |
+| `pcboo export kicad` | Create and validate a detached KiCad handoff. |
+| `pcboo export gerbers` | Emit an unmistakably draft manufacturing set. |
+| `pcboo verify manufacturing` | Independently parse and reconcile manufacturing artifacts. |
+
+## Typical agent loop
+
+```sh
+bun run pcboo build --json
+bun run pcboo check --json
+bun run pcboo inspect --status fabrication --json
+bun run test
+```
+
+The compact terminal output is for humans. Versioned JSON is the stable automation surface.
+
+## Local inspection server
+
+```sh
+bun run pcboo dev --port 0 --json
+```
+
+The server binds to `127.0.0.1` by default. On loopback it can expose same-origin, token-protected actions for build, check, and named simulation work. Those actions can write derived `.pcboo` output but cannot edit authored circuit source or configuration.
+
+Binding to a non-loopback host is explicit, produces a warning, and disables browser actions.
+
+## Offline policy
+
+Finite commands accept `--offline` and record the selected network policy. PCBoo currently implements no network-backed resolver, so its own managed work remains local under both policies.
+
+<Warning>
+`--offline` is not a general operating-system sandbox for trusted project code. Circuit source or configuration that deliberately performs its own network access is outside that flag's claim.
+</Warning>
+
+## Run evidence
+
+Every finite command writes its complete report to a fresh `.pcboo/runs/<run-id>/report.json`. A command failure may leave isolated evidence for diagnosis, but incomplete or cancelled work cannot become authoritative browser state or a verified bundle.

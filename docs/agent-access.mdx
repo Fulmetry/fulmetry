@@ -1,0 +1,53 @@
+---
+title: Agent access
+description: Give coding agents efficient access to PCBoo project files, command results, and public documentation.
+---
+
+# Agent access
+
+PCBoo separates project operations from documentation discovery.
+
+## Project operations use the filesystem
+
+An agent authors a PCBoo project by reading and editing its normal TypeScript, configuration, tests, simulations, and waiver files. It runs the CLI for derived work and reads text or versioned JSON results.
+
+PCBoo does not require an MCP server for these operations. This keeps the local project model close to frameworks such as Next.js: source files are the interface, and commands provide build and inspection tools.
+
+## Public docs use docs.page
+
+docs.page exposes these public documentation files through three useful surfaces:
+
+| Surface | URL |
+| --- | --- |
+| Human documentation | `https://docs.page/pcboo-dev/pcboo` |
+| LLM catalog | `https://docs.page/pcboo-dev/pcboo/llms.txt` |
+| Read-only MCP | `https://docs.page/pcboo-dev/pcboo/mcp` |
+
+The MCP endpoint can list documentation files and return their raw MDX. It has no write access to the PCBoo repository.
+
+## Example MCP configuration
+
+```json title=".cursor/mcp.json"
+{
+  "mcpServers": {
+    "pcboo-docs": {
+      "url": "https://docs.page/pcboo-dev/pcboo/mcp"
+    }
+  }
+}
+```
+
+Use the docs MCP when an agent needs a focused piece of PCBoo guidance without loading the entire documentation set. Use `llms.txt` when one fetch of the documentation catalog is more convenient.
+
+## Browser inspection is not circuit authority
+
+The local PCBoo browser presents schematic, PCB, layer, selection, measurement, and status views. Browser actions can request bounded derived work on loopback, but browser state never changes the authored circuit. An agent that wants to modify the board edits the files and rebuilds.
+
+## Recommended agent sequence
+
+1. Read `pcboo.config.ts`, `pcboo.lock`, and the relevant circuit modules.
+2. Load only the documentation pages needed for the requested change.
+3. Make a small source edit.
+4. Run `build --json` and the relevant independent checks.
+5. Read diagnostics and inspect bounded geometry or connectivity when needed.
+6. Repeat until the requested evidence is satisfied or a limitation is explicit.

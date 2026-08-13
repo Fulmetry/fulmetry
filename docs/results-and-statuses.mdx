@@ -1,0 +1,49 @@
+---
+title: Results and statuses
+description: Interpret PCBoo's independent validation dimensions, diagnostics, waivers, and artifact levels.
+---
+
+# Results and statuses
+
+PCBoo deliberately prevents one kind of success from implying another. Every result preserves five independent dimensions.
+
+| Dimension | What it describes |
+| --- | --- |
+| Fabrication | Geometry and implemented manufacturing-profile evidence. |
+| Electrical | Connectivity and implemented electrical-rule evidence. |
+| Functional | Project tests and qualified simulation evidence. |
+| Standards | Checks against an explicitly named local profile. |
+| Sourcing | Recorded selection or authenticated provider evidence. |
+
+Passing fabrication cannot imply a passing simulation, current stock, or standards evidence.
+
+## Status meanings
+
+- `passed` means the implemented requirements for that exact result were satisfied.
+- `failed` means authoritative evidence found a violation.
+- `incomplete` means some required work has not been performed or cannot yet establish passage.
+- `unavailable` means the required capability or trusted tool is absent.
+- `unsupported` means the project uses a construct outside the current qualified surface.
+- `passed-with-waivers` remains explicit when eligible findings were accepted through valid, scoped declarations.
+
+Do not collapse `incomplete`, `unavailable`, or `unsupported` into success.
+
+## Diagnostics
+
+Diagnostics carry stable codes, severity, status dimension, object or region scope when available, and source locations when PCBoo can map a generated object back to an honest literal name in composed TypeScript.
+
+Use concise text while editing interactively and JSON for agent automation.
+
+## Draft and verified artifacts
+
+`export gerbers` creates only a fresh, non-overwriting draft set. It exits nonzero and cannot create a verified manifest. A separate verifier parses and reconciles the exact artifact bytes.
+
+Only the production-promotion boundary can create a verified manifest, and publication writes the manifest last so a partial directory cannot appear complete. Published bundles must be reverified using the manifest digest returned out of band.
+
+## Waivers
+
+Waivers are source-controlled and exact. They cannot hide capability, connectivity, ownership, identity, unsupported-construct, resource-limit, or artifact-integrity failures. Unused, expired, duplicate, partial, or mismatched declarations do not convert a failing result into a pass.
+
+<Warning>
+PCBoo statuses describe implemented and captured evidence. They do not provide regulatory certification, legal advice, component authenticity, or a universal guarantee of manufacturability.
+</Warning>

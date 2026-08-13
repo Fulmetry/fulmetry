@@ -1,0 +1,94 @@
+{
+  "$schema": "https://docs.page/schema.json",
+  "name": "PCBoo",
+  "description": "Build circuits with your coding agent using composable TypeScript and reviewable evidence.",
+  "socialPreview": false,
+  "theme": {
+    "defaultTheme": "dark",
+    "primary": "#199b61",
+    "primaryLight": "#0f6f48",
+    "primaryDark": "#62b78d",
+    "backgroundLight": "#f4f7f5",
+    "backgroundDark": "#050706"
+  },
+  "header": {
+    "showName": true,
+    "showThemeToggle": true,
+    "showGitHubCard": true,
+    "links": [
+      {
+        "title": "Website",
+        "href": "https://pcboo-dev.github.io/"
+      },
+      {
+        "title": "GitHub",
+        "href": "https://github.com/pcboo-dev/pcboo",
+        "cta": true
+      }
+    ]
+  },
+  "anchors": [
+    {
+      "icon": "github",
+      "title": "Source code",
+      "href": "https://github.com/pcboo-dev/pcboo"
+    },
+    {
+      "icon": "globe",
+      "title": "PCBoo website",
+      "href": "https://pcboo-dev.github.io/"
+    }
+  ],
+  "sidebar": [
+    {
+      "group": "Start here",
+      "pages": [
+        { "title": "Introduction", "href": "/" },
+        { "title": "Getting started", "href": "/getting-started" },
+        { "title": "Project structure", "href": "/project-structure" }
+      ]
+    },
+    {
+      "group": "Build with PCBoo",
+      "pages": [
+        { "title": "Author circuits", "href": "/authoring" },
+        { "title": "Commands", "href": "/commands" },
+        { "title": "Results and statuses", "href": "/results-and-statuses" }
+      ]
+    },
+    {
+      "group": "Tools and agents",
+      "pages": [
+        { "title": "External tools", "href": "/external-tools" },
+        { "title": "Agent access", "href": "/agent-access" }
+      ]
+    },
+    {
+      "group": "Project",
+      "pages": [
+        { "title": "Current limitations", "href": "/limitations" },
+        { "title": "Product requirements", "href": "https://github.com/pcboo-dev/pcboo/blob/main/PRODUCT_REQUIREMENTS.md" }
+      ]
+    }
+  ],
+  "content": {
+    "headerDepth": 3,
+    "zoomImages": false,
+    "automaticallyInferNextPrevious": true,
+    "showPageTitle": true,
+    "showPageImage": false
+  },
+  "seo": {
+    "noindex": false
+  },
+  "social": {
+    "website": "https://pcboo-dev.github.io/",
+    "github": "https://github.com/pcboo-dev"
+  },
+  "og": {
+    "github": true
+  },
+  "mcp": {
+    "enabled": true
+  }
+}
