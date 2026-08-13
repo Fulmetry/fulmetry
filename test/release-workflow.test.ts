@@ -308,7 +308,7 @@ describe("release workflow memory isolation", () => {
     expect(workflowEntries.sort()).toEqual(["ci.yml"]);
     const workflowSource = await readFile(join(root, ".github/workflows/ci.yml"), "utf8");
     expect(new Bun.CryptoHasher("sha256").update(workflowSource).digest("hex")).toBe(
-      "c591822abff63dbb1be0a6abdd22ff1c297f4baef4bcb25bbd28fa2e7ae73ae3",
+      "c8e9277c816fef67e2c20c5bfe26a4baacd5bfd7e7299ff345bc40c5c0bd324c",
     );
     const workflow = Bun.YAML.parse(workflowSource) as {
       jobs: Record<string, {
@@ -365,6 +365,15 @@ describe("release workflow memory isolation", () => {
       "package-distribution": Object.freeze([checkoutStep(), setupBunStep()]),
       "runtime-evidence": Object.freeze([
         checkoutStep(), setupBunStep(), {
+          name: "Upload packed-consumer resolution diagnostic",
+          if: "always()",
+          uses: uploadArtifact,
+          with: {
+            name: "packed-consumer-resolution-darwin-arm64",
+            path: ".pcboo-ci/packed-consumer-diagnostic",
+            "if-no-files-found": "error",
+          },
+        }, {
           name: "Upload exact runtime evidence",
           uses: uploadArtifact,
           with: {

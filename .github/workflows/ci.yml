@@ -111,7 +111,17 @@ jobs:
         run: |
           packed_root="$(cat "$RUNNER_TEMP/pcboo-packed-root.txt")"
           mkdir -p .pcboo-ci
+          mkdir -p .pcboo-ci/packed-consumer-diagnostic
+          cp "$packed_root/package.json" .pcboo-ci/packed-consumer-diagnostic/package.json
+          cp "$packed_root/bun.lock" .pcboo-ci/packed-consumer-diagnostic/bun.lock
           bun run qualify:tscircuit-runtime --repository-root "$GITHUB_WORKSPACE" --packed-consumer-root "$packed_root" --output .pcboo-ci/tscircuit-runtime-darwin-arm64.json
+      - name: Upload packed-consumer resolution diagnostic
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: packed-consumer-resolution-darwin-arm64
+          path: .pcboo-ci/packed-consumer-diagnostic
+          if-no-files-found: error
       - name: Upload exact runtime evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
