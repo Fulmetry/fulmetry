@@ -36,6 +36,9 @@ describe("create-pcboo scaffold", () => {
     const result = await scaffoldPcbooProject({ cwd: parent, directory: "agent-board", install: false });
     expect(result.files).toContain("circuit/components/power-indicator.ts");
     expect(result.files).toContain("AGENTS.md");
+    expect(await readFile(join(result.root, "bunfig.toml"), "utf8").then((text) => text.trim())).toBe(
+      '[install]\nlinker = "hoisted"\nbackend = "copyfile"',
+    );
     expect(await Bun.file(join(result.root, ".pcboo")).exists()).toBeFalse();
     const generatedLock = await loadPcbooLock(result.root);
     expect(generatedLock.tscircuit.version).toBe(SUPPORTED_TSCIRCUIT_VERSION);
@@ -50,7 +53,7 @@ describe("create-pcboo scaffold", () => {
       packageManager: "bun@1.3.14",
       engines: { bun: "1.3.14" },
       scripts: { "export:gerbers": "pcboo export gerbers" },
-      dependencies: { pcboo: "npm:@pcboo/pcboo@0.1.0", tscircuit: SUPPORTED_TSCIRCUIT_VERSION },
+      dependencies: { pcboo: "npm:@pcboo/pcboo@0.1.1", tscircuit: SUPPORTED_TSCIRCUIT_VERSION },
       devDependencies: { "@types/bun": "1.3.14", "@types/node": "24.13.3" },
       overrides: { "@tscircuit/cli": "0.1.1858", "bun-match-svg": "0.0.15" },
     });

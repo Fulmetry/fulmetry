@@ -63,6 +63,7 @@ async function projectFiles(options: ScaffoldOptions): Promise<Readonly<Record<s
   const pcboo = options.pcbooPackageSpecifier ?? `npm:@pcboo/pcboo@${ownPackage.version}`;
   const tscircuit = options.tscircuitPackageSpecifier ?? "0.0.2261";
   return Object.freeze({
+    "bunfig.toml": `[install]\nlinker = "hoisted"\nbackend = "copyfile"\n`,
     "package.json": `${JSON.stringify({
       name: packageName(options.directory),
       version: "0.0.0",

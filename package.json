@@ -1,6 +1,6 @@
 {
   "name": "@pcboo/pcboo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Bun-first circuit project framework built on tscircuit",
   "repository": {
     "type": "git",
