@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "fixtureName": "led-2layer",
+  "tscircuit": {
+    "version": "0.0.2261",
+    "integrity": "sha512-pwJzfkh5UFE7lFRaKQE5tUDdMd7A1bl+NhX2dG+BY2EEfvaMFVQDJJc+BcT/zM6BvkMepxZCNOCAJFzqhxiEUw==",
+    "contentSha256": "c0880767e6967a6b7f8423604882ba6989d9a58108355b3835f48309f09cf487"
+  },
+  "adapters": {
+    "gerber": "circuit-json-to-gerber@0.0.90",
+    "bom": "circuit-json-to-bom-csv@0.0.14",
+    "pickAndPlace": "circuit-json-to-pnp-csv@0.0.9",
+    "independentParser": "gerber-parser@4.2.7"
+  },
+  "inputs": {
+    "fileCount": 7,
+    "setSha256": "0ad20a8477e99d91b37af4c9e6d12c8596fe63a5350084faa5c67edfcf82018f",
+    "files": [
+      {
+        "path": "circuit/board.ts",
+        "size": 730,
+        "sha256": "0ed41b3508cdf74429e8694b821b0aac55b0979910d35da853ac4c742e762e35"
+      },
+      {
+        "path": "circuit/components.ts",
+        "size": 897,
+        "sha256": "40ba8d88a82ec36360c50853c6ed3d27961354684f73b354462ceb0fb4b4f0a8"
+      },
+      {
+        "path": "circuit/routing.ts",
+        "size": 1259,
+        "sha256": "bb67e9a4a8e44dd34c3a4a3c6014f48b9d819a47cdc6f796e209e6feda7515d1"
+      },
+      {
+        "path": "circuit/source-compatibility.ts",
+        "size": 575,
+        "sha256": "6feb10810de50f0eab145e47dfb1b548427842bd3dc2fd6e6067694fd1462c92"
+      },
+      {
+        "path": "expectation.json",
+        "size": 2987,
+        "sha256": "1044f2fe4b8720f94245117a956d911cc925d0f7dc2bc78b0784fe3073bb05c8"
+      },
+      {
+        "path": "pcboo.config.ts",
+        "size": 90,
+        "sha256": "3cae5972fedebad0b21aea5a59bc03dda2e914c189ffba3ec1584d147a846b1a"
+      },
+      {
+        "path": "pcboo.lock",
+        "size": 594,
+        "sha256": "fd7bb474c503d18bd4bacd0ea2c0922ebf393da0e568e74ae55f89c60d95e4bd"
+      }
+    ]
+  },
+  "circuit": {
+    "path": "circuit.json",
+    "size": 29391,
+    "sha256": "9a06c041b5c09ecc2091464c140dc589e0492e5c820bebddf53612c42f5479da",
+    "semanticSha256": "3115ae80ff331151e8b4c57b5d9edd1ec993a33330aa9c6b369b294346e5e1b5"
+  },
+  "manufacturing": {
+    "directory": "manufacturing",
+    "fileCount": 14,
+    "setSha256": "d22d2665efa411858dce43093b44bb4485d839a130fcb65ae8660c4fc1eacf8b",
+    "files": [
+      {
+        "path": "assembly/bom.csv",
+        "size": 415,
+        "sha256": "3b72391ecab13ee7b9c86c7177c2683450e2ac6032a6747dfc44af3bb3dbb939"
+      },
+      {
+        "path": "assembly/positions.csv",
+        "size": 133,
+        "sha256": "613d6685c604e79c0ca4cfdfa3ae1ef4c2b01651525e8210fee7687604a439b4"
+      },
+      {
+        "path": "drills/drill-L1-L2.drl",
+        "size": 377,
+        "sha256": "79dcb341948b2ed2b9a5fd34f350a7f9e6e8c6eeda35f39f5a3691e832627e68"
+      },
+      {
+        "path": "drills/drill_npth.drl",
+        "size": 239,
+        "sha256": "d3bd7ff0d7fc71cb3bbf713927a2f7f8e6dd9df1a3d6bc4975fa859f8943f67a"
+      },
+      {
+        "path": "fabrication/metadata.json",
+        "size": 530,
+        "sha256": "e7eaaa1cf71231c4716733efbe4d67ee535576002b991c9cbbff391b4cdc7b4f"
+      },
+      {
+        "path": "gerbers/led-2layer-B_Cu.gbr",
+        "size": 2231,
+        "sha256": "d9af7f7b10917685e126cf0c1e82220b5cd0f28343724682a3ad40b7d53e266b"
+      },
+      {
+        "path": "gerbers/led-2layer-B_Mask.gbr",
+        "size": 1836,
+        "sha256": "3ed72f9f59fde00c0fdb44a9e54f3199dc2055c98ec488ca9611c84a07794643"
+      },
+      {
+        "path": "gerbers/led-2layer-B_Paste.gbr",
+        "size": 1782,
+        "sha256": "b86ed796cde3379417e6704c965b39faf36bbcfea05a11734c58e7c6a6973026"
+      },
+      {
+        "path": "gerbers/led-2layer-B_SilkScreen.gbr",
+        "size": 1603,
+        "sha256": "94c1d84687f1d1af47edd84900fb4010faacd6329f528a10daadeed7b63d7f7f"
+      },
+      {
+        "path": "gerbers/led-2layer-Edge_Cuts.gbr",
+        "size": 382,
+        "sha256": "2b1a55173b79cc62b98ff3f4749c3e7baa04c764ef585bb7face68f78a383575"
+      },
+      {
+        "path": "gerbers/led-2layer-F_Cu.gbr",
+        "size": 2451,
+        "sha256": "cd9cf07e7711b49733fca87080f9612b4849b44d9f33b500b404eb5b5c6b9253"
+      },
+      {
+        "path": "gerbers/led-2layer-F_Mask.gbr",
+        "size": 1836,
+        "sha256": "4d559eb87319db7446427195502a908cdf25090f1eeb5f2ee8300a43d02bcf51"
+      },
+      {
+        "path": "gerbers/led-2layer-F_Paste.gbr",
+        "size": 1782,
+        "sha256": "a84ebeb273aedb13de8b152e803dea0a480bb858c77f81705465ce6dd129a74c"
+      },
+      {
+        "path": "gerbers/led-2layer-F_SilkScreen.gbr",
+        "size": 1603,
+        "sha256": "f7d2b1f65b3400c8ec09f4db813107ec88a3d1a3aeddeceb81ac3edc0e324017"
+      }
+    ]
+  }
+}

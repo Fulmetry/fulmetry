@@ -1,0 +1,7 @@
+node_modules/
+.pcboo/
+.pcboo-ci/
+dist/
+coverage/
+*.tsbuildinfo
+Codex Image *.png

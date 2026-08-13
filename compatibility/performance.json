@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "baselineVersion": "2026-08-12",
+  "bunVersion": "1.3.14",
+  "workloads": [
+    "cold-build",
+    "incremental-rebuild",
+    "inspection-query",
+    "pcb-render",
+    "check-drc",
+    "detached-export"
+  ],
+  "fixtures": {
+    "small": { "components": 5, "pads": 5, "traces": 2, "layers": 2 },
+    "medium": { "components": 50, "pads": 50, "traces": 25, "layers": 4 },
+    "large": { "components": 250, "pads": 250, "traces": 125, "layers": 4 }
+  },
+  "environments": {
+    "darwin-arm64": {
+      "small": { "maxElapsedMilliseconds": 20000, "maxPeakRssBytes": 2684354560 },
+      "medium": { "maxElapsedMilliseconds": 30000, "maxPeakRssBytes": 3221225472 },
+      "large": { "maxElapsedMilliseconds": 45000, "maxPeakRssBytes": 3758096384 }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+%TF.GenerationSoftware,tscircuit,circuit-json-to-gerber,0.0.90*%
+%TF.SameCoordinates,Original*%
+%TF.FileFunction,Profile,NP*%
+%FSLAX46Y46*%
+%MOMM*%
+G04 Gerber Fmt 4.6, Leading zero omitted, Abs format (unit mm)*
+G01*
+%LPD*%
+G75*
+%ADD10C,0.050000*%
+D10*
+X-10000000Y-07500000D02*
+X010000000Y-07500000D01*
+X010000000Y007500000D01*
+X-10000000Y007500000D01*
+X-10000000Y-07500000D01*
+M02*

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "boardName": "led-2layer",
+  "units": "mm",
+  "board": {
+    "center": {
+      "x": 0,
+      "y": 0
+    },
+    "width": 20,
+    "height": 15,
+    "thickness": 1.4,
+    "material": "fr4"
+  },
+  "layerStack": [
+    "top",
+    "bottom"
+  ],
+  "coordinates": {
+    "origin": "pcb-board-center",
+    "xAxis": "right",
+    "yAxis": "up"
+  },
+  "placement": {
+    "units": "mm",
+    "coordinates": "absolute-board",
+    "rotation": "counterclockwise-degrees",
+    "bottomSide": "as-authored-not-mirrored"
+  }
+}

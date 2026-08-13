@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "fixtureName": "plated-hole-4layer",
+  "tscircuit": {
+    "version": "0.0.2261",
+    "integrity": "sha512-pwJzfkh5UFE7lFRaKQE5tUDdMd7A1bl+NhX2dG+BY2EEfvaMFVQDJJc+BcT/zM6BvkMepxZCNOCAJFzqhxiEUw==",
+    "contentSha256": "c0880767e6967a6b7f8423604882ba6989d9a58108355b3835f48309f09cf487"
+  },
+  "adapters": {
+    "gerber": "circuit-json-to-gerber@0.0.90",
+    "bom": "circuit-json-to-bom-csv@0.0.14",
+    "pickAndPlace": "circuit-json-to-pnp-csv@0.0.9",
+    "independentParser": "gerber-parser@4.2.7"
+  },
+  "inputs": {
+    "fileCount": 8,
+    "setSha256": "9e4caa56de6850a7874c0037bbfae60a76299c761c38270ff0db44354eff257b",
+    "files": [
+      {
+        "path": "circuit/board.ts",
+        "size": 870,
+        "sha256": "07e9bddaf92245a8b4a7f39e00804c83caf5ad9a7e707323135711ce2be24c11"
+      },
+      {
+        "path": "circuit/components.ts",
+        "size": 897,
+        "sha256": "40ba8d88a82ec36360c50853c6ed3d27961354684f73b354462ceb0fb4b4f0a8"
+      },
+      {
+        "path": "circuit/inner-layer-compatibility.ts",
+        "size": 5455,
+        "sha256": "fa67adddbaa42ca79c1a8979e22eba4068e9075feb0de2ad0967065c8c4159b3"
+      },
+      {
+        "path": "circuit/routing.ts",
+        "size": 1259,
+        "sha256": "bb67e9a4a8e44dd34c3a4a3c6014f48b9d819a47cdc6f796e209e6feda7515d1"
+      },
+      {
+        "path": "circuit/source-compatibility.ts",
+        "size": 575,
+        "sha256": "6feb10810de50f0eab145e47dfb1b548427842bd3dc2fd6e6067694fd1462c92"
+      },
+      {
+        "path": "expectation.json",
+        "size": 4091,
+        "sha256": "dec3a90e80f26b1a8a67edafbdbc92d94fff7ab14e9ba307be616b7e7a31e5b1"
+      },
+      {
+        "path": "pcboo.config.ts",
+        "size": 90,
+        "sha256": "3cae5972fedebad0b21aea5a59bc03dda2e914c189ffba3ec1584d147a846b1a"
+      },
+      {
+        "path": "pcboo.lock",
+        "size": 594,
+        "sha256": "fd7bb474c503d18bd4bacd0ea2c0922ebf393da0e568e74ae55f89c60d95e4bd"
+      }
+    ]
+  },
+  "circuit": {
+    "path": "circuit.json",
+    "size": 31825,
+    "sha256": "0dce1166deb7233e421c3ded9531f6a017f2d8158cac76cb95a86b2b2f2baa01",
+    "semanticSha256": "1a49944be6e598f0c8962ced38a1505ca8a4b19e550de7767a3bf6b7e6796668"
+  },
+  "manufacturing": {
+    "directory": "manufacturing",
+    "fileCount": 16,
+    "setSha256": "610f864665da4bf957b73901ffb4e5a1a5f2e6e9ce8f5166d29d3cf578e8559e",
+    "files": [
+      {
+        "path": "assembly/bom.csv",
+        "size": 415,
+        "sha256": "3b72391ecab13ee7b9c86c7177c2683450e2ac6032a6747dfc44af3bb3dbb939"
+      },
+      {
+        "path": "assembly/positions.csv",
+        "size": 133,
+        "sha256": "613d6685c604e79c0ca4cfdfa3ae1ef4c2b01651525e8210fee7687604a439b4"
+      },
+      {
+        "path": "drills/drill-L1-L4.drl",
+        "size": 410,
+        "sha256": "28f5fe025269a61440ea7f0d2fffc1c180fab56a954afe7e368fdf38d566a8bd"
+      },
+      {
+        "path": "drills/drill_npth.drl",
+        "size": 239,
+        "sha256": "c35f415351f9b559ed4554a18b7c2facaabdc7e735df002da1482c0a380140e7"
+      },
+      {
+        "path": "fabrication/metadata.json",
+        "size": 566,
+        "sha256": "46425d478e2149a8a3b37a2b69126c2fc36c6064b43e6c185c53b96e12a3be1b"
+      },
+      {
+        "path": "gerbers/plated-hole-4layer-B_Cu.gbr",
+        "size": 2456,
+        "sha256": "834b09134c87b0c2a2fac87e9ce6b3ec8c46ff85292fee0935a0ff0cb372f9c6"
+      },
+      {
+        "path": "gerbers/plated-hole-4layer-B_Mask.gbr",
+        "size": 1836,
+        "sha256": "3ed72f9f59fde00c0fdb44a9e54f3199dc2055c98ec488ca9611c84a07794643"
+      },
+      {
+        "path": "gerbers/plated-hole-4layer-B_Paste.gbr",
+        "size": 1782,
+        "sha256": "b86ed796cde3379417e6704c965b39faf36bbcfea05a11734c58e7c6a6973026"
+      },
+      {
+        "path": "gerbers/plated-hole-4layer-B_SilkScreen.gbr",
+        "size": 1603,
+        "sha256": "94c1d84687f1d1af47edd84900fb4010faacd6329f528a10daadeed7b63d7f7f"
+      },
+      {
+        "path": "gerbers/plated-hole-4layer-Edge_Cuts.gbr",
+        "size": 382,
+        "sha256": "2b1a55173b79cc62b98ff3f4749c3e7baa04c764ef585bb7face68f78a383575"
+      },
+      {
+        "path": "gerbers/plated-hole-4layer-F_Cu.gbr",
+        "size": 2676,
+        "sha256": "03fe432c41cbddaa5b36298df9cb954584153f2d9bbaf0abf97789ef469fd967"
+      },
+      {
+        "path": "gerbers/plated-hole-4layer-F_Mask.gbr",
+        "size": 1836,
+        "sha256": "4d559eb87319db7446427195502a908cdf25090f1eeb5f2ee8300a43d02bcf51"
+      },
+      {
+        "path": "gerbers/plated-hole-4layer-F_Paste.gbr",
+        "size": 1782,
+        "sha256": "a84ebeb273aedb13de8b152e803dea0a480bb858c77f81705465ce6dd129a74c"
+      },
+      {
+        "path": "gerbers/plated-hole-4layer-F_SilkScreen.gbr",
+        "size": 1603,
+        "sha256": "f7d2b1f65b3400c8ec09f4db813107ec88a3d1a3aeddeceb81ac3edc0e324017"
+      },
+      {
+        "path": "gerbers/plated-hole-4layer-In1_Cu.gbr",
+        "size": 1955,
+        "sha256": "726c0b505b57d97580d244e8f9ae1768cd23a6ce7af8dd8363d13efb6cd70764"
+      },
+      {
+        "path": "gerbers/plated-hole-4layer-In2_Cu.gbr",
+        "size": 1955,
+        "sha256": "ca2c38cd9ea1c96ccd192303efcc6cd7c9becd8bc8cbd906ab0418356a4563bf"
+      }
+    ]
+  }
+}

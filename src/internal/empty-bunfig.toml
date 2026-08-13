@@ -1,0 +1,4 @@
+# SPDX-FileCopyrightText: 2026 PCBoo contributors
+# SPDX-License-Identifier: MIT
+# Intentionally empty. Security-sensitive child resolvers select this file so
+# consumer-controlled bunfig.toml preloads and macros are never inherited.

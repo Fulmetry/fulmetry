@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "tscircuit": {
+    "version": "0.0.2261",
+    "integrity": "sha512-pwJzfkh5UFE7lFRaKQE5tUDdMd7A1bl+NhX2dG+BY2EEfvaMFVQDJJc+BcT/zM6BvkMepxZCNOCAJFzqhxiEUw=="
+  },
+  "adapters": {
+    "gerber": "circuit-json-to-gerber@0.0.90",
+    "bom": "circuit-json-to-bom-csv@0.0.14",
+    "pickAndPlace": "circuit-json-to-pnp-csv@0.0.9",
+    "independentParser": "gerber-parser@4.2.7"
+  },
+  "profiles": {
+    "pcboo-baseline-2-4layer": {
+      "version": "1.2.0",
+      "digest": "sha256:22d9153319a6f38b50c920fb1866b10b1d2661b435f4b6aca221a1003ef31c02"
+    }
+  },
+  "assets": {}
+}

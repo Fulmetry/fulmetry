@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 3,
+  "accepted": {
+    "version": "0.0.2261",
+    "integrity": "sha512-pwJzfkh5UFE7lFRaKQE5tUDdMd7A1bl+NhX2dG+BY2EEfvaMFVQDJJc+BcT/zM6BvkMepxZCNOCAJFzqhxiEUw==",
+    "contentSha256": "c0880767e6967a6b7f8423604882ba6989d9a58108355b3835f48309f09cf487"
+  },
+  "runtimeClosures": {
+    "darwin-arm64": {
+      "repository": "0c4762a529ffaba93fab3e5ddfe0ec881f861524c2749c33b6574810ad92e56c",
+      "packedConsumer": "7472b7e21c32a43418be8d2b56429f46fc5e2a12e7413efa9a847cc0240008fb"
+    }
+  },
+  "acceptedUpgradeReview": null
+}

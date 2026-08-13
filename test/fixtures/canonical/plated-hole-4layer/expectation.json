@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "fixtureName": "plated-hole-4layer",
+  "boardName": "plated-hole-4layer",
+  "manufacturingExpectationSha256": "bba532095a18f462b3f8364af3a826481ef77a5206b01fc34e676940508aa369",
+  "expectedFiles": [
+    "assembly/bom.csv",
+    "assembly/positions.csv",
+    "drills/drill-L1-L4.drl",
+    "drills/drill_npth.drl",
+    "fabrication/metadata.json",
+    "gerbers/plated-hole-4layer-B_Cu.gbr",
+    "gerbers/plated-hole-4layer-B_Mask.gbr",
+    "gerbers/plated-hole-4layer-B_Paste.gbr",
+    "gerbers/plated-hole-4layer-B_SilkScreen.gbr",
+    "gerbers/plated-hole-4layer-Edge_Cuts.gbr",
+    "gerbers/plated-hole-4layer-F_Cu.gbr",
+    "gerbers/plated-hole-4layer-F_Mask.gbr",
+    "gerbers/plated-hole-4layer-F_Paste.gbr",
+    "gerbers/plated-hole-4layer-F_SilkScreen.gbr",
+    "gerbers/plated-hole-4layer-In1_Cu.gbr",
+    "gerbers/plated-hole-4layer-In2_Cu.gbr"
+  ],
+  "board": { "layerCount": 4, "widthMm": 20, "heightMm": 15 },
+  "components": {
+    "B1": { "kind": "simple_power_source", "xMm": -6.9, "yMm": -4, "side": "top", "widthMm": 4.04, "heightMm": 1.5, "smtPadCount": 0, "platedHoleCount": 2 },
+    "D1": { "kind": "simple_led", "xMm": 3, "yMm": 2, "side": "bottom", "widthMm": 0.8, "heightMm": 2.6, "smtPadCount": 2, "platedHoleCount": 0 },
+    "J1": { "kind": "simple_pin_header", "xMm": 0, "yMm": -2, "side": "top", "widthMm": 4.04, "heightMm": 1.5, "smtPadCount": 0, "platedHoleCount": 2 },
+    "R1": { "kind": "simple_resistor", "xMm": -3, "yMm": 2, "side": "top", "widthMm": 2.45, "heightMm": 0.95, "smtPadCount": 2, "platedHoleCount": 0 }
+  },
+  "connectivity": [
+    { "trace": "GND1", "endpoints": ["J1.pin1", "net.GND"] },
+    { "trace": "GND2", "endpoints": ["J1.pin2", "net.GND"] },
+    { "trace": "LED_DRIVE", "endpoints": ["D1.pin1", "R1.pin2"] },
+    { "trace": "LED_RETURN", "endpoints": ["B1.pin2", "D1.pin2"] },
+    { "trace": "LED_SUPPLY", "endpoints": ["B1.pin1", "R1.pin1"] }
+  ],
+  "platedHoleSpans": [
+    { "component": "B1", "xMm": -8.17, "yMm": -4, "layers": ["top", "bottom", "inner1", "inner2"] },
+    { "component": "B1", "xMm": -5.63, "yMm": -4, "layers": ["top", "bottom", "inner1", "inner2"] },
+    { "component": "J1", "xMm": -1.27, "yMm": -2, "layers": ["top", "bottom", "inner1", "inner2"] },
+    { "component": "J1", "xMm": 1.27, "yMm": -2, "layers": ["top", "bottom", "inner1", "inner2"] }
+  ],
+  "vias": [
+    { "xMm": 0, "yMm": 2, "fromLayer": "top", "toLayer": "bottom" },
+    { "xMm": 1, "yMm": 0, "fromLayer": "bottom", "toLayer": "top" },
+    { "xMm": -0.4, "yMm": -2, "fromLayer": "top", "toLayer": "bottom" },
+    { "xMm": 0.4, "yMm": -2, "fromLayer": "bottom", "toLayer": "top" }
+  ],
+  "features": {
+    "copperLayers": ["top", "inner1", "inner2", "bottom"],
+    "smtDesignators": ["D1", "R1"],
+    "throughHoleDesignators": ["B1", "J1"],
+    "bottomDesignators": ["D1"],
+    "nonPlatedHoleCount": 1
+  },
+  "compatibility": {
+    "batteryVoltageBackfill": {
+      "implementation": "circuit/source-compatibility.ts",
+      "engineVersion": "0.0.2261",
+      "component": "B1",
+      "voltageV": 5
+    },
+    "routeIntent": {
+      "implementation": "circuit/routing.ts",
+      "engineVersion": "0.0.2261",
+      "requiredViaCount": 4,
+      "requiredTransitions": [
+        { "trace": "GND1", "fromLayer": "top", "toLayer": "bottom" },
+        { "trace": "GND1", "fromLayer": "bottom", "toLayer": "top" },
+        { "trace": "LED_DRIVE", "fromLayer": "top", "toLayer": "bottom" },
+        { "trace": "LED_RETURN", "fromLayer": "bottom", "toLayer": "top" }
+      ]
+    },
+    "innerLayerRouting": {
+      "implementation": "circuit/inner-layer-compatibility.ts",
+      "engineVersion": "0.0.2261",
+      "groundComponent": "J1",
+      "groundNet": "GND",
+      "groundLayers": ["inner1", "inner2"],
+      "viaConnections": [
+        { "net": "GND", "layer": "inner1", "xMm": -0.4, "yMm": -2 },
+        { "net": "GND", "layer": "inner2", "xMm": -0.4, "yMm": -2 },
+        { "net": "GND", "layer": "inner1", "xMm": 0.4, "yMm": -2 },
+        { "net": "GND", "layer": "inner2", "xMm": 0.4, "yMm": -2 }
+      ]
+    }
+  }
+}

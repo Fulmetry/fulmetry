@@ -1,0 +1,22 @@
+M48
+; FORMAT={-:-/ absolute / metric / decimal}
+; #@! TF.GenerationSoftware,tscircuit
+; #@! TF.FileFunction,Plated,1,2,PTH
+FMAT,2
+METRIC
+; #@! TA.AperFunction,Plated,PTH,ComponentDrill
+T10C1.000000
+; #@! TA.AperFunction,Plated,PTH,ComponentDrill
+T11C0.200000
+%
+G90
+G05
+T10
+X-8.1700Y-4.0000
+X-5.6300Y-4.0000
+X-1.2700Y-2.0000
+X1.2700Y-2.0000
+T11
+X0.0000Y2.0000
+X1.0000Y0.0000
+M30
