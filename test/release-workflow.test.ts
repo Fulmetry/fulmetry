@@ -308,7 +308,7 @@ describe("release workflow memory isolation", () => {
     expect(workflowEntries.sort()).toEqual(["ci.yml"]);
     const workflowSource = await readFile(join(root, ".github/workflows/ci.yml"), "utf8");
     expect(new Bun.CryptoHasher("sha256").update(workflowSource).digest("hex")).toBe(
-      "74e61cb4d3f153fd6c9c838fc01d25d76832f6df871acd6a7363f894a145c85d",
+      "c591822abff63dbb1be0a6abdd22ff1c297f4baef4bcb25bbd28fa2e7ae73ae3",
     );
     const workflow = Bun.YAML.parse(workflowSource) as {
       jobs: Record<string, {
@@ -381,7 +381,7 @@ describe("release workflow memory isolation", () => {
           uses: uploadArtifact,
           with: {
             name: "ngspice-live-${{ runner.os }}-${{ runner.arch }}",
-            path: ".pcboo-ci/ngspice-live-*",
+            path: ".pcboo-ci/ngspice-live-darwin-arm64",
             "if-no-files-found": "error",
           },
         },
@@ -429,7 +429,7 @@ describe("release workflow memory isolation", () => {
     const liveSteps = workflow.jobs["ngspice-live"]!.steps;
     expect(liveSteps.some(({ run }) => run?.includes("bun run test:live:ngspice"))).toBeTrue();
     expect(liveSteps.find(({ name }) => name === "Upload exact live qualification evidence")?.with?.path)
-      .toBe(".pcboo-ci/ngspice-live-*");
+      .toBe(".pcboo-ci/ngspice-live-darwin-arm64");
     const kicadSteps = workflow.jobs["kicad-live"]!.steps;
     const installKicad = kicadSteps.find(({ name }) =>
       name === "Install exact official KiCad 10.0.5 distribution"
