@@ -1,10 +1,19 @@
 {
   "name": "create-pcboo",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Create a composable Bun-first PCBoo circuit project",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pcboo-dev/pcboo.git",
+    "directory": "packages/create-pcboo"
+  },
+  "homepage": "https://github.com/pcboo-dev/pcboo#readme",
+  "bugs": {
+    "url": "https://github.com/pcboo-dev/pcboo/issues"
+  },
   "type": "module",
   "bin": {
-    "create-pcboo": "./src/cli.ts"
+    "create-pcboo": "src/create-pcboo.js"
   },
   "files": [
     "src",
@@ -13,6 +22,9 @@
   ],
   "scripts": {
     "prepack": "bun ../../scripts/validate-package-boundary.ts"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "os": ["darwin"],
   "cpu": ["arm64"],

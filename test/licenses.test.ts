@@ -53,13 +53,17 @@ describe("distribution licensing and attribution", () => {
     })).resolves.toBeUndefined();
 
     const rootManifest = await Bun.file(join(root, "package.json")).json() as {
+      bin?: Record<string, string>;
       scripts?: Record<string, string>;
     };
     const creatorManifest = await Bun.file(join(root, "packages/create-pcboo/package.json")).json() as {
+      bin?: Record<string, string>;
       scripts?: Record<string, string>;
     };
     expect(rootManifest.scripts?.prepack).toBe("bun ./scripts/validate-package-boundary.ts");
     expect(creatorManifest.scripts?.prepack).toBe("bun ../../scripts/validate-package-boundary.ts");
+    expect(rootManifest.bin).toEqual({ pcboo: "src/cli/pcboo.js" });
+    expect(creatorManifest.bin).toEqual({ "create-pcboo": "src/create-pcboo.js" });
   });
 
   test("rejects unqualified optional dependencies at both registry package boundaries", async () => {

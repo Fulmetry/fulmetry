@@ -18,17 +18,23 @@ export function parseCreateArguments(argv: readonly string[]): Readonly<{ direct
 
 export const CREATE_PCBOO_HELP = `create-pcboo [directory] [--no-install]\n\nCreate one composable PCBoo TypeScript project.\n`;
 
-if (import.meta.main) {
+export async function main(
+  argv: readonly string[] = process.argv.slice(2),
+  cwd: string = process.cwd(),
+): Promise<number> {
   try {
-    const parsed = parseCreateArguments(process.argv.slice(2));
-    const result = await scaffoldPcbooProject({ cwd: process.cwd(), ...parsed });
+    const parsed = parseCreateArguments(argv);
+    const result = await scaffoldPcbooProject({ cwd, ...parsed });
     process.stdout.write(`Created PCBoo project at ${result.root}\n${result.installed ? "Dependencies installed." : "Run bun install before building."}\n`);
+    return 0;
   } catch (error) {
     if (error instanceof Error && error.message === "help") {
       process.stdout.write(CREATE_PCBOO_HELP);
-      process.exit(0);
+      return 0;
     }
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-    process.exit(1);
+    return 1;
   }
 }
+
+if (import.meta.main) process.exitCode = await main();

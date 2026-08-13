@@ -1,11 +1,19 @@
 {
   "name": "pcboo",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A Bun-first circuit project framework built on tscircuit",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pcboo-dev/pcboo.git"
+  },
+  "homepage": "https://github.com/pcboo-dev/pcboo#readme",
+  "bugs": {
+    "url": "https://github.com/pcboo-dev/pcboo/issues"
+  },
   "type": "module",
   "packageManager": "bun@1.3.14",
   "bin": {
-    "pcboo": "./src/cli/bin.ts"
+    "pcboo": "src/cli/pcboo.js"
   },
   "files": [
     "src",

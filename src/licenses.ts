@@ -453,6 +453,7 @@ function importedPackageNames(source: string, relativePath: string): readonly st
 async function requireQualifiedPackagedSourceTree(
   sourceRoot: string,
   declaredPackages: ReadonlySet<string>,
+  qualifiedJavaScriptLaunchers: ReadonlySet<string>,
 ): Promise<void> {
   let fileCount = 0;
   let totalBytes = 0;
@@ -495,7 +496,11 @@ async function requireQualifiedPackagedSourceTree(
       }
       const qualifiedPowerShell = relativePath === "internal/windows-job-runner.ps1";
       const qualifiedBunConfig = relativePath === "internal/empty-bunfig.toml";
-      if (!stat.isFile() || (!name.endsWith(".ts") && !qualifiedPowerShell && !qualifiedBunConfig)) {
+      const qualifiedJavaScriptLauncher = qualifiedJavaScriptLaunchers.has(relativePath);
+      if (
+        !stat.isFile() ||
+        (!name.endsWith(".ts") && !qualifiedPowerShell && !qualifiedBunConfig && !qualifiedJavaScriptLauncher)
+      ) {
         throw new Error(`pcboo packaged source contains an unqualified non-TypeScript asset ${relativePath}`);
       }
       fileCount += 1;
@@ -589,7 +594,11 @@ export async function requireDistributionPackageReady(options: {
     ) {
       throw new Error("create-pcboo distribution dependencies require an explicit notice policy");
     }
-    await requireQualifiedPackagedSourceTree(join(packageRoot, "src"), new Set());
+    await requireQualifiedPackagedSourceTree(
+      join(packageRoot, "src"),
+      new Set(),
+      new Set(["create-pcboo.js"]),
+    );
     return;
   }
 
@@ -615,6 +624,7 @@ export async function requireDistributionPackageReady(options: {
   await requireQualifiedPackagedSourceTree(
     join(packageRoot, "src"),
     new Set(Object.keys(declared)),
+    new Set(["cli/pcboo.js"]),
   );
   const checkedNotice = await boundedText(
     join(packageRoot, "THIRD_PARTY_NOTICES.md"),

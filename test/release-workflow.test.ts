@@ -52,7 +52,8 @@ interface WorkflowStep {
   readonly name?: string;
   readonly run?: string;
   readonly uses?: string;
-  readonly with?: Record<string, string>;
+  readonly with?: Record<string, string | boolean>;
+  readonly "working-directory"?: string;
 }
 
 describe("release workflow memory isolation", () => {
@@ -306,7 +307,7 @@ describe("release workflow memory isolation", () => {
       expect(entry.isFile()).toBeTrue();
       workflowEntries.push(entry.name);
     }
-    expect(workflowEntries.sort()).toEqual(["ci.yml"]);
+    expect(workflowEntries.sort()).toEqual(["ci.yml", "publish.yml"]);
     const workflowSource = await readFile(join(root, ".github/workflows/ci.yml"), "utf8");
     expect(new Bun.CryptoHasher("sha256").update(workflowSource).digest("hex")).toBe(
       "c8e9277c816fef67e2c20c5bfe26a4baacd5bfd7e7299ff345bc40c5c0bd324c",
@@ -456,6 +457,43 @@ describe("release workflow memory isolation", () => {
       .filter((run): run is string => run !== undefined);
     expect(distributionRuns[0]).toBe("bun install --frozen-lockfile");
     expect(distributionRuns.at(-1)).toBe("bun run test:packed");
+
+    const publishSource = await readFile(join(root, ".github/workflows/publish.yml"), "utf8");
+    expect(publishSource).not.toContain("NPM_TOKEN");
+    const publishWorkflow = Bun.YAML.parse(publishSource) as {
+      permissions?: Record<string, string>;
+      jobs: Record<string, {
+        "runs-on"?: string;
+        steps: WorkflowStep[];
+      }>;
+    };
+    expect(publishWorkflow.permissions).toEqual({ contents: "read", "id-token": "write" });
+    const publishJob = publishWorkflow.jobs.publish!;
+    expect(publishJob["runs-on"]).toBe("macos-15");
+    expect(publishJob.steps.filter(({ uses }) => uses !== undefined)).toEqual([
+      { uses: "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803" },
+      {
+        uses: "actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+        with: {
+          "node-version": "24",
+          "registry-url": "https://registry.npmjs.org",
+          "package-manager-cache": false,
+        },
+      },
+      {
+        uses: setupBun,
+        with: { "bun-version": "1.3.14" },
+      },
+    ]);
+    const publishSteps = publishJob.steps.filter(({ run }) => run?.includes("npm publish"));
+    expect(publishSteps).toEqual([
+      { name: "Publish framework with OIDC provenance", run: "npm publish --access public --provenance" },
+      {
+        name: "Publish initializer with OIDC provenance",
+        "working-directory": "packages/create-pcboo",
+        run: "npm publish --access public --provenance",
+      },
+    ]);
 
   });
 });

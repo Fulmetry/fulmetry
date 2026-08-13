@@ -12,6 +12,7 @@ import {
 } from "./repository-test-contract";
 
 export const REPOSITORY_TEST_PROCESS_TIMEOUT_MS = 10 * 60_000;
+export const PRODUCTION_PROMOTION_TEST_PROCESS_TIMEOUT_MS = 15 * 60_000;
 export const SERVER_TEST_PROCESS_TIMEOUT_MS = 19 * 60_000;
 const repositoryRoot = join(import.meta.dir, "..");
 const policyPreload = join(import.meta.dir, "repository-test-policy-preload.ts");
@@ -49,6 +50,8 @@ export async function runRepositoryTestGate(files: readonly string[]): Promise<v
   const directory = await mkdtemp(join(tmpdir(), "pcboo-repository-test-"));
   const processTimeoutMilliseconds = files.length === 1 && files[0] === "./test/server.test.ts"
     ? SERVER_TEST_PROCESS_TIMEOUT_MS
+    : files.length === 1 && files[0] === "./test/production-promotion.test.ts"
+    ? PRODUCTION_PROMOTION_TEST_PROCESS_TIMEOUT_MS
     : REPOSITORY_TEST_PROCESS_TIMEOUT_MS;
   const junitPath = join(directory, "junit.xml");
   const child = Bun.spawn([
