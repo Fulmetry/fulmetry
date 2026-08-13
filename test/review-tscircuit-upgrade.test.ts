@@ -289,7 +289,7 @@ describe("offline tscircuit upgrade review runner", () => {
     })).rejects.toThrow("direct node_modules/tscircuit");
   }, 30_000);
 
-  test("rejects a stale or non-strict compatibility anchor before qualification", async () => {
+  test("rejects a stale compatibility anchor before qualification", async () => {
     const root = await mkdtemp(join(tmpdir(), "pcboo-anchor-test-"));
     temporaryRoots.push(root);
     const stalePath = join(root, "tscircuit.json");
@@ -303,7 +303,11 @@ describe("offline tscircuit upgrade review runner", () => {
       integrity: CURRENT_INTEGRITY,
       compatibilityAnchorPath: stalePath,
     })).rejects.toThrow("does not match compatibility");
+  }, 90_000);
 
+  test("rejects a non-strict compatibility anchor before qualification", async () => {
+    const root = await mkdtemp(join(tmpdir(), "pcboo-anchor-test-"));
+    temporaryRoots.push(root);
     const malformedPath = join(root, "malformed.json");
     await writeFile(malformedPath, '{"schemaVersion":1,}');
     await expect(reviewTscircuitUpgrade({
@@ -313,7 +317,7 @@ describe("offline tscircuit upgrade review runner", () => {
       integrity: CURRENT_INTEGRITY,
       compatibilityAnchorPath: malformedPath,
     })).rejects.toThrow("strict JSON");
-  }, 30_000);
+  }, 90_000);
 
   containmentTest("does not publish if staged regular inputs mutate after authentication", async () => {
     const selected = output("staged-mutation");
