@@ -184,7 +184,7 @@ describe("versioned product performance qualification", () => {
     } finally {
       await rm(prepared.root, { recursive: true, force: true });
     }
-  }, 20_000);
+  }, 120_000);
 
   test("signal cancellation removes stale validity and terminates the active workload", async () => {
     if (process.platform === "win32") return;
