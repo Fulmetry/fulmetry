@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import * as pcboo from "pcboo/authoring";
+import * as pcboo from "@pcboo/pcboo/authoring";
 import * as upstream from "tscircuit";
 
 const CURATED_AUTHORING_VALUES = [

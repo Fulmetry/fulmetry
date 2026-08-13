@@ -5,6 +5,7 @@ import { lstat, open, readFile, realpath } from "node:fs/promises";
 import { dirname, extname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
+import { PCBOO_PACKAGE_NAME } from "../version";
 import {
   assertProjectInputFileSize,
   assertProjectInputTotalSize,
@@ -265,7 +266,7 @@ async function findPackageRoot(start: string, packageName: string): Promise<stri
   }
 }
 
-const runtimePcbooRoot = findPackageRoot(fileURLToPath(import.meta.url), "pcboo");
+const runtimePcbooRoot = findPackageRoot(fileURLToPath(import.meta.url), PCBOO_PACKAGE_NAME);
 
 async function resolveLocalImport(
   projectRoot: string,
@@ -320,7 +321,7 @@ async function resolveLocalImport(
     : specifier.split("/")[0]!;
   if (canonical.split(sep).includes("node_modules")) {
     if (bare && packageName === "pcboo") {
-      const importedRoot = await findPackageRoot(canonical, "pcboo");
+      const importedRoot = await findPackageRoot(canonical, PCBOO_PACKAGE_NAME);
       if (importedRoot !== await runtimePcbooRoot) {
         throw new Error("Verified source resolved pcboo to a different physical package");
       }
@@ -337,7 +338,7 @@ async function resolveLocalImport(
       );
     }
     if (bare && packageName === "pcboo") {
-      const importedRoot = await findPackageRoot(canonical, "pcboo");
+      const importedRoot = await findPackageRoot(canonical, PCBOO_PACKAGE_NAME);
       if (importedRoot !== await runtimePcbooRoot) {
         throw new Error("Verified source resolved pcboo to a different physical package");
       }

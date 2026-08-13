@@ -13,6 +13,7 @@ import {
 } from "./internal/contained-process";
 import { PROJECT_INPUT_DEPTH_LIMIT, PROJECT_INPUT_ENTRY_LIMIT } from "./project/input-limits";
 import { requireSupportedBunRuntime } from "./runtime";
+import { PCBOO_PACKAGE_NAME } from "./version";
 
 export const PROJECT_TEST_TIMEOUT_MS = 120_000;
 export const PROJECT_TEST_OUTPUT_LIMIT = 1024 * 1024;
@@ -558,7 +559,7 @@ async function discoverTestSourceGraph(
         ? imported.path.split("/").slice(0, 2).join("/")
         : imported.path.split("/")[0]!;
       if (bare && packageName === "pcboo") {
-        if (await owningPackageRoot(canonical, "pcboo") !== await runtimePcbooRoot) {
+        if (await owningPackageRoot(canonical, PCBOO_PACKAGE_NAME) !== await runtimePcbooRoot) {
           throw new Error("Project test resolved pcboo to a different physical package");
         }
         if (isInside(root, canonical)) {

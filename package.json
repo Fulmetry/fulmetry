@@ -1,5 +1,5 @@
 {
-  "name": "pcboo",
+  "name": "@pcboo/pcboo",
   "version": "0.1.0",
   "description": "A Bun-first circuit project framework built on tscircuit",
   "repository": {

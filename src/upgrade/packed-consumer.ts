@@ -141,7 +141,7 @@ async function inspectPackageTarball(bytes: Uint8Array): Promise<Readonly<{
   }
   const value = parseJsonWithoutDuplicateKeys(await manifestFile.text(), "Packed PCBoo tarball manifest");
   record(value, "Packed PCBoo tarball manifest");
-  if (value.name !== "pcboo" || typeof value.version !== "string" || !SEMVER.test(value.version)) {
+  if (value.name !== "@pcboo/pcboo" || typeof value.version !== "string" || !SEMVER.test(value.version)) {
     throw new TypeError("Packed PCBoo tarball identity is invalid");
   }
   return Object.freeze({

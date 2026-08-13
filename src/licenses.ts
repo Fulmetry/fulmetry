@@ -566,7 +566,7 @@ export async function requireDistributionPackageReady(options: {
     MAX_PACKAGE_METADATA_BYTES,
     "distribution package metadata",
   )) as DistributionPackageMetadata;
-  if (metadata.name !== "pcboo" && metadata.name !== "create-pcboo") {
+  if (metadata.name !== "@pcboo/pcboo" && metadata.name !== "create-pcboo") {
     throw new Error(`Unsupported distribution package ${String(metadata.name)}`);
   }
   const packageName = metadata.name;

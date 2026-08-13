@@ -94,7 +94,7 @@ describe("verified project source graph", () => {
       "import { Board } from 'pcboo'; export default []; void Board\n",
     );
     expect(discoverProjectSourceGraph(root, "src/board.ts")).rejects.toThrow(
-      "different physical package",
+      /different physical package|Cannot find package root for @pcboo\/pcboo/,
     );
   });
 

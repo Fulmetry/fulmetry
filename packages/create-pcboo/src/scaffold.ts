@@ -60,7 +60,7 @@ async function projectFiles(options: ScaffoldOptions): Promise<Readonly<Record<s
   if (typeof ownPackage.version !== "string" || !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(ownPackage.version)) {
     throw new Error("create-pcboo package version is invalid");
   }
-  const pcboo = options.pcbooPackageSpecifier ?? ownPackage.version;
+  const pcboo = options.pcbooPackageSpecifier ?? `npm:@pcboo/pcboo@${ownPackage.version}`;
   const tscircuit = options.tscircuitPackageSpecifier ?? "0.0.2261";
   return Object.freeze({
     "package.json": `${JSON.stringify({

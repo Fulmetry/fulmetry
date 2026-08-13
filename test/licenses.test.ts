@@ -69,17 +69,17 @@ describe("distribution licensing and attribution", () => {
   test("rejects unqualified optional dependencies at both registry package boundaries", async () => {
     const repositoryRoot = join(import.meta.dir, "..");
     for (const [packageName, sourceRoot] of [
-      ["pcboo", repositoryRoot],
+      ["@pcboo/pcboo", repositoryRoot],
       ["create-pcboo", join(repositoryRoot, "packages/create-pcboo")],
     ] as const) {
-      const root = await mkdtemp(join(tmpdir(), `pcboo-optional-${packageName}-`));
+      const root = await mkdtemp(join(tmpdir(), `pcboo-optional-${packageName.replaceAll("/", "-")}-`));
       try {
         const manifest = await Bun.file(join(sourceRoot, "package.json")).json() as Record<string, unknown>;
         manifest.optionalDependencies = { "unreviewed-optional-package": "1.0.0" };
         await Bun.write(join(root, "package.json"), `${JSON.stringify(manifest)}\n`);
         await Bun.write(join(root, "LICENSE"), await Bun.file(join(sourceRoot, "LICENSE")).text());
         await Bun.write(join(root, "README.md"), "fixture\n");
-        if (packageName === "pcboo") {
+        if (packageName === "@pcboo/pcboo") {
           await Bun.write(
             join(root, "THIRD_PARTY_NOTICES.md"),
             await Bun.file(join(repositoryRoot, "THIRD_PARTY_NOTICES.md")).text(),
@@ -95,7 +95,7 @@ describe("distribution licensing and attribution", () => {
           packageRoot: root,
           nodeModulesRoot: join(repositoryRoot, "node_modules"),
         }), packageName).rejects.toThrow(
-          packageName === "pcboo"
+          packageName === "@pcboo/pcboo"
             ? "qualified notice graph"
             : "explicit notice policy",
         );

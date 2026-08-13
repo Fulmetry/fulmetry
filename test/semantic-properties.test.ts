@@ -30,7 +30,7 @@ import {
   Resistor,
   Trace,
   VoltageSource,
-} from "pcboo/authoring";
+} from "@pcboo/pcboo/authoring";
 import { deriveAuthoritativeConnectivity } from "../src/authoritative-connectivity";
 import { canonicalCircuitJson } from "../src/circuit-json";
 import { assessCircuitElectrical } from "../src/electrical";

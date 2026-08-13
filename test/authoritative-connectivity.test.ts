@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { AnyCircuitElement } from "pcboo/authoring";
+import type { AnyCircuitElement } from "@pcboo/pcboo/authoring";
 import { deriveAuthoritativeConnectivity } from "../src/authoritative-connectivity";
 import { manufacturingFixture } from "./fixtures/manufacturing";
 

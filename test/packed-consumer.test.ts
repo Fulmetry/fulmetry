@@ -27,7 +27,7 @@ async function fixture(): Promise<Readonly<{ root: string; lock: Record<string, 
   await mkdir(cliRoot, { recursive: true });
   await mkdir(packages);
   const pcbooPackage = {
-    name: "pcboo", version: "0.0.0", type: "module", main: "src/index.ts",
+    name: "@pcboo/pcboo", version: "0.0.0", type: "module", main: "src/index.ts",
     peerDependencies: { tscircuit: "0.0.2261" },
     os: ["darwin"], cpu: ["arm64"],
   };

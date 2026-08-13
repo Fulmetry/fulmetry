@@ -100,7 +100,7 @@ try {
   const creatorTarball = join(packages, `create-pcboo-${creatorVersion}.tgz`);
   const harnessPcbooReference = `file:../packages/pcboo-${frameworkVersion}.tgz`;
   const creatorTarballReference = `file:../packages/create-pcboo-${creatorVersion}.tgz`;
-  await run({ command: [process.execPath, "pm", "pack", "--destination", packages, "--quiet"], cwd: repositoryRoot });
+  await run({ command: [process.execPath, "pm", "pack", "--filename", pcbooTarball, "--quiet"], cwd: repositoryRoot });
   await run({ command: [process.execPath, "pm", "pack", "--destination", packages, "--quiet"], cwd: join(repositoryRoot, "packages/create-pcboo") });
 
   const harness = join(temporaryRoot, "harness");

@@ -50,7 +50,7 @@ describe("create-pcboo scaffold", () => {
       packageManager: "bun@1.3.14",
       engines: { bun: "1.3.14" },
       scripts: { "export:gerbers": "pcboo export gerbers" },
-      dependencies: { pcboo: "0.1.0", tscircuit: SUPPORTED_TSCIRCUIT_VERSION },
+      dependencies: { pcboo: "npm:@pcboo/pcboo@0.1.0", tscircuit: SUPPORTED_TSCIRCUIT_VERSION },
       devDependencies: { "@types/bun": "1.3.14", "@types/node": "24.13.3" },
       overrides: { "@tscircuit/cli": "0.1.1858", "bun-match-svg": "0.0.15" },
     });

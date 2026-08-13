@@ -7,7 +7,7 @@ import {
   Resistor,
   Trace,
   type AnyCircuitElement,
-} from "pcboo/authoring";
+} from "@pcboo/pcboo/authoring";
 
 /** A small, manufactured voltage divider shared by live simulation and release evidence. */
 export async function liveFunctionalFixture(): Promise<AnyCircuitElement[]> {

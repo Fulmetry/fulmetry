@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { AnyCircuitElement } from "pcboo/authoring";
+import type { AnyCircuitElement } from "@pcboo/pcboo/authoring";
 import {
   MAX_FABRICATION_PAIRWISE_FEATURES,
   MAX_FABRICATION_LOGICAL_REFERENCES,

@@ -7,7 +7,7 @@ import {
   Resistor,
   Trace,
   type AnyCircuitElement,
-} from "pcboo/authoring";
+} from "@pcboo/pcboo/authoring";
 
 export async function manufacturingFixture(
   layers: 2 | 4,
