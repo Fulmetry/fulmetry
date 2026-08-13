@@ -414,13 +414,15 @@ describe("PCBoo CLI", () => {
     expect(JSON.parse(await Bun.file(run.reportPath!).text())).toEqual(run.result);
   }, 120_000);
 
-  test("never passes absent, focused, skipped, or failed project tests", async () => {
+  test("never passes absent project tests", async () => {
     const noTests = await createProject([], "no project tests");
     const absent = await runCli({ argv: ["test"], cwd: noTests.root, runId: "test-absent" });
     expect(absent.exitCode).toBe(3);
     expect(absent.result?.statuses.functional.state).toBe("incomplete");
     expect(absent.result?.diagnostics.map(({ id }) => String(id))).toEqual(["TEST_NO_TEST_FILES_001"]);
+  }, 120_000);
 
+  test("never passes statically focused project tests", async () => {
     const focused = await createProject([], "focused project tests");
     await mkdir(join(focused.root, "tests"));
     await Bun.write(
@@ -439,7 +441,9 @@ describe("PCBoo CLI", () => {
     ]);
     const focusedSummary = focusedRun.result?.artifacts.find(({ kind }) => kind === "project-test-summary");
     expect(JSON.parse(await Bun.file(join(focused.root, focusedSummary!.path)).text()).focusedDeclarations).toHaveLength(3);
+  }, 120_000);
 
+  test("never passes runtime-focused project tests", async () => {
     const runtimeFocused = await createProject([], "runtime focused project tests");
     await mkdir(join(runtimeFocused.root, "tests"));
     await Bun.write(
@@ -457,23 +461,32 @@ describe("PCBoo CLI", () => {
       focusSentinelsExpected: 0,
       focusSentinelsObserved: 0,
     });
+  }, 120_000);
 
-    for (const attack of ["skip", "fail"] as const) {
-      const project = await createProject([], `${attack} project tests`);
-      await mkdir(join(project.root, "tests"));
-      await Bun.write(
-        join(project.root, "tests", `${attack}.test.ts`),
-        attack === "skip"
-          ? `import { test } from "bun:test";\ntest.skip("required behavior", () => {});\n`
-          : `import { expect, test } from "bun:test";\ntest("required behavior", () => expect(1).toBe(2));\n`,
-      );
-      const run = await runCli({ argv: ["test"], cwd: project.root, runId: `test-${attack}` });
-      expect(run.exitCode, attack).not.toBe(0);
-      expect(run.result?.statuses.functional.state, attack).toBe(attack === "skip" ? "incomplete" : "failed");
-      expect(run.result?.diagnostics.map(({ id }) => String(id)), attack).toEqual([
-        attack === "skip" ? "TEST_SKIPPED_001" : "TEST_FAILED_001",
-      ]);
-    }
+  test("never passes skipped project tests", async () => {
+    const project = await createProject([], "skip project tests");
+    await mkdir(join(project.root, "tests"));
+    await Bun.write(
+      join(project.root, "tests", "skip.test.ts"),
+      `import { test } from "bun:test";\ntest.skip("required behavior", () => {});\n`,
+    );
+    const run = await runCli({ argv: ["test"], cwd: project.root, runId: "test-skip" });
+    expect(run.exitCode).not.toBe(0);
+    expect(run.result?.statuses.functional.state).toBe("incomplete");
+    expect(run.result?.diagnostics.map(({ id }) => String(id))).toEqual(["TEST_SKIPPED_001"]);
+  }, 120_000);
+
+  test("never passes failed project tests", async () => {
+    const project = await createProject([], "fail project tests");
+    await mkdir(join(project.root, "tests"));
+    await Bun.write(
+      join(project.root, "tests", "fail.test.ts"),
+      `import { expect, test } from "bun:test";\ntest("required behavior", () => expect(1).toBe(2));\n`,
+    );
+    const run = await runCli({ argv: ["test"], cwd: project.root, runId: "test-fail" });
+    expect(run.exitCode).not.toBe(0);
+    expect(run.result?.statuses.functional.state).toBe("failed");
+    expect(run.result?.diagnostics.map(({ id }) => String(id))).toEqual(["TEST_FAILED_001"]);
   }, 120_000);
 
   test.skipIf(process.platform === "win32")("bounds project test output, timeout, and cancellation", async () => {
