@@ -823,6 +823,13 @@ export async function runQualifiedNgspice(options: {
         throw new Error("Simulation build-input snapshot changed during execution");
       }
     }
+    for (const model of verifiedModels) {
+      const source = join(projectRoot, ...model.path.split("/"));
+      const currentBytes = await readBoundedRegularFile(source, MAX_SIMULATION_MODEL_BYTES);
+      if (sha256(currentBytes) !== model.digest) {
+        throw new Error(`Model ${model.id} changed during simulation`);
+      }
+    }
     const artifact = (kind: string, name: string, bytes: Uint8Array | string) => Object.freeze({ kind, path: `simulation/${name}`, digest: sha256(bytes) });
     const artifacts = Object.freeze([
       artifact("simulation-netlist", "input.cir", netlistBytes), artifact("simulation-raw", "result.raw", raw),
