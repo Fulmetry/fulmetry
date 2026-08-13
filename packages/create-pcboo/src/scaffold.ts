@@ -90,6 +90,9 @@ async function projectFiles(options: ScaffoldOptions): Promise<Readonly<Record<s
         "@tscircuit/cli": "0.1.1858",
         "bun-match-svg": "0.0.15",
       },
+      // Dependency install scripts can mutate authenticated package bytes.
+      // PCBoo's qualified closure therefore runs with none trusted by default.
+      trustedDependencies: [],
     }, null, 2)}\n`,
     "pcboo.config.ts": `import { defineConfig } from "pcboo";\n\nexport default defineConfig({\n  entry: "circuit/board.ts",\n  outputDirectory: ".pcboo",\n  profiles: ["pcboo-baseline-2-4layer"],\n  boardRevision: "A",\n});\n`,
     "pcboo.lock": lockfile(),

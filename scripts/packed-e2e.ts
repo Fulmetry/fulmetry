@@ -127,7 +127,7 @@ try {
   projectPackage.dependencies.pcboo = `file:../../packages/pcboo-${frameworkVersion}.tgz`;
   await writeFile(join(project, "package.json"), `${JSON.stringify(projectPackage, null, 2)}\n`);
   await run({ command: [
-    process.execPath, "--no-env-file", "install", "--ignore-scripts",
+    process.execPath, "--no-env-file", "install",
   ], cwd: project });
   if (process.env.PCBOO_PACKED_CONSUMER_ROOT_OUTPUT !== undefined) {
     // Qualification retains the real generated PCBoo project, not the outer
