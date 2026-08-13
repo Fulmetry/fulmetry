@@ -51,6 +51,7 @@ describe("create-pcboo scaffold", () => {
       engines: { bun: "1.3.14" },
       scripts: { "export:gerbers": "pcboo export gerbers" },
       dependencies: { pcboo: "0.0.0", tscircuit: SUPPORTED_TSCIRCUIT_VERSION },
+      devDependencies: { "@types/bun": "1.3.14", "@types/node": "24.13.3" },
       overrides: { "@tscircuit/cli": "0.1.1858", "bun-match-svg": "0.0.15" },
     });
     await expect(scaffoldPcbooProject({ cwd: parent, directory: "agent-board", install: false })).rejects.toThrow("Refusing to overwrite");

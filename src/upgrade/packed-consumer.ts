@@ -324,8 +324,11 @@ export async function inspectPackedConsumer(
     "export:gerbers": "pcboo export gerbers",
   })) throw new TypeError("Packed consumer scripts differ from the qualified scaffold");
   record(manifest.devDependencies, "Packed consumer devDependencies");
-  keys(manifest.devDependencies, ["@types/bun"], "Packed consumer devDependencies");
-  if (manifest.devDependencies["@types/bun"] !== "1.3.14") throw new TypeError("Packed consumer Bun types are invalid");
+  keys(manifest.devDependencies, ["@types/bun", "@types/node"], "Packed consumer devDependencies");
+  if (
+    manifest.devDependencies["@types/bun"] !== "1.3.14" ||
+    manifest.devDependencies["@types/node"] !== "24.13.3"
+  ) throw new TypeError("Packed consumer runtime type dependencies are invalid");
   record(manifest.dependencies, "Packed consumer dependencies");
   keys(manifest.dependencies, ["pcboo", "tscircuit"], "Packed consumer dependencies");
   const pcbooReference = `file:../../packages/pcboo-${options.expectedPcbooVersion}.tgz`;
