@@ -170,10 +170,10 @@ describe("required live ngspice compatibility", () => {
         { path: testbenchPath, role: "test" },
       ],
     });
-    // Generated solver evidence is an output authority, never project input.
-    // Keep it physically outside the immutable synthetic project snapshot.
-    const outputRoot = join(qualificationRoot, "simulation-output");
-    const runDirectory = join(outputRoot, "run");
+    // Generated solver evidence belongs under PCBoo's project-contained output
+    // authority, which the immutable project-input inventory excludes.
+    const outputRoot = join(projectRoot, ".pcboo");
+    const runDirectory = join(outputRoot, "runs", "live-ngspice");
     await mkdir(runDirectory, { recursive: true });
     const run = await runQualifiedNgspice({
       projectRoot,

@@ -80,10 +80,13 @@ async function projectFiles(options: ScaffoldOptions): Promise<Readonly<Record<s
       },
       dependencies: { pcboo, tscircuit },
       devDependencies: { "@types/bun": "1.3.14" },
-      // tscircuit 0.0.2261 declares this runtime dependency with a caret. The
-      // qualified PCBoo graph pins the reviewed version so a fresh project
-      // cannot silently select a newer CLI implementation.
-      overrides: { "@tscircuit/cli": "0.1.1858" },
+      // tscircuit's runtime closure contains open ranges for both packages.
+      // Pin the exact graph PCBoo qualified so registry publication cannot
+      // silently alter a newly scaffolded project's executable engine.
+      overrides: {
+        "@tscircuit/cli": "0.1.1858",
+        "bun-match-svg": "0.0.15",
+      },
     }, null, 2)}\n`,
     "pcboo.config.ts": `import { defineConfig } from "pcboo";\n\nexport default defineConfig({\n  entry: "circuit/board.ts",\n  outputDirectory: ".pcboo",\n  profiles: ["pcboo-baseline-2-4layer"],\n  boardRevision: "A",\n});\n`,
     "pcboo.lock": lockfile(),

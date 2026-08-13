@@ -51,6 +51,7 @@ describe("create-pcboo scaffold", () => {
       engines: { bun: "1.3.14" },
       scripts: { "export:gerbers": "pcboo export gerbers" },
       dependencies: { pcboo: "0.0.0", tscircuit: SUPPORTED_TSCIRCUIT_VERSION },
+      overrides: { "@tscircuit/cli": "0.1.1858", "bun-match-svg": "0.0.15" },
     });
     await expect(scaffoldPcbooProject({ cwd: parent, directory: "agent-board", install: false })).rejects.toThrow("Refusing to overwrite");
   });
@@ -65,7 +66,7 @@ describe("create-pcboo scaffold", () => {
     await symlink(join(import.meta.dir, ".."), join(nodeModules, "pcboo"), directoryLinkType);
     await symlink(join(import.meta.dir, "../node_modules/tscircuit"), join(nodeModules, "tscircuit"), directoryLinkType);
     const run = await runCli({ argv: ["build"], cwd: result.root, runId: "scaffold-build" });
-    expect(run.exitCode).toBe(0);
+    expect(run.exitCode, JSON.stringify(run.result?.diagnostics, null, 2)).toBe(0);
     const circuit = JSON.parse(await Bun.file(join(run.runDirectory!, "circuit.json")).text()) as Array<{ type: string }>;
     expect(circuit.filter(({ type }) => type === "pcb_board")).toHaveLength(1);
     const checked = await runCli({ argv: ["check"], cwd: result.root, runId: "scaffold-check" });
@@ -93,7 +94,7 @@ describe("create-pcboo scaffold", () => {
     await symlink(join(import.meta.dir, ".."), join(nodeModules, "pcboo"), directoryLinkType);
     await symlink(join(import.meta.dir, "../node_modules/tscircuit"), join(nodeModules, "tscircuit"), directoryLinkType);
     const tested = await runCli({ argv: ["test"], cwd: result.root, runId: "scaffold-test" });
-    expect(tested.exitCode).toBe(0);
+    expect(tested.exitCode, JSON.stringify(tested.result?.diagnostics, null, 2)).toBe(0);
     expect(tested.result?.statuses.functional.state).toBe("passed");
     expect(tested.result?.artifacts.map(({ kind }) => kind).sort()).toEqual([
       "project-test-junit",

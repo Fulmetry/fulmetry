@@ -1222,7 +1222,10 @@ export async function validateKicadHandoffLive(
         ...(options.signal === undefined ? {} : { signal: options.signal }),
       });
       commands.push(evidence);
-      if (evidence.exitCode !== 0) {
+      const ruleCheckReportedViolations =
+        (spec.name === "schematic-erc" || spec.name === "pcb-drc") &&
+        evidence.exitCode === 5;
+      if (evidence.exitCode !== 0 && !ruleCheckReportedViolations) {
         throw new Error(`KiCad ${spec.name} exited ${evidence.exitCode}`);
       }
       const produced = await lstat(join(qualificationOutputDirectory, spec.requiredOutput));

@@ -144,7 +144,7 @@ jobs:
           if-no-files-found: error
 
   kicad-live:
-    name: Live KiCad 10 qualification / macOS Apple Silicon
+    name: Live KiCad 10 compatibility and fail-closed rules / macOS Apple Silicon
     runs-on: macos-15
     timeout-minutes: 20
     steps:
@@ -168,7 +168,7 @@ jobs:
           mkdir "$RUNNER_TEMP/kicad-preflight-home"
           HOME="$RUNNER_TEMP/kicad-preflight-home" TMPDIR="$RUNNER_TEMP/kicad-preflight-home" LC_ALL=C LANG=C \
             /Applications/KiCad/KiCad.app/Contents/MacOS/kicad-cli version
-      - name: Run live two- and four-layer KiCad qualification
+      - name: Run live two- and four-layer KiCad compatibility and fail-closed rule checks
         run: bun run test:live:kicad
       - name: Upload exact live KiCad evidence
         if: always()

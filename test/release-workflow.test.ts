@@ -308,7 +308,7 @@ describe("release workflow memory isolation", () => {
     expect(workflowEntries.sort()).toEqual(["ci.yml"]);
     const workflowSource = await readFile(join(root, ".github/workflows/ci.yml"), "utf8");
     expect(new Bun.CryptoHasher("sha256").update(workflowSource).digest("hex")).toBe(
-      "cb87499a96d952b3e7df1c9f78990185f0dbb21599dd31658e40ab74a51b72d6",
+      "74e61cb4d3f153fd6c9c838fc01d25d76832f6df871acd6a7363f894a145c85d",
     );
     const workflow = Bun.YAML.parse(workflowSource) as {
       jobs: Record<string, {

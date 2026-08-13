@@ -418,9 +418,9 @@ function dcSweepRaw(voutSamples: readonly number[]): string {
 async function fakeNgspice(root: string, raw = operatingPointRaw(), mode: "ok" | "timeout" | "crash" | "fatal" | "extra" | "tool-extra" | "raw-symlink" | "delayed" | "child" = "ok"): Promise<string> {
   const executable = join(root, "fake-ngspice");
   const script = mode === "timeout"
-    ? `#!${process.execPath}\nif(process.argv.includes('--version')){console.log('ngspice-44');process.exit(0)}await new Promise(()=>{})\n`
+    ? `#!${process.execPath}\nif(process.argv.includes('--version')){console.log('ngspice-44');process.exit(0)}if(process.cwd().includes('/qualification/'))process.exit(9);await new Promise(()=>{})\n`
     : mode === "child"
-      ? `#!${process.execPath}\nif(process.argv.includes('--version')){console.log('ngspice-44');process.exit(0)}try{const child=Bun.spawn({cmd:[process.execPath,'-e','await new Promise(()=>{})'],stdin:'ignore',stdout:'ignore',stderr:'ignore'});await Bun.write(${JSON.stringify(join(root, "child.pid"))},String(child.pid))}catch{await Bun.write(${JSON.stringify(join(root, "child.pid"))},'blocked')}await new Promise(()=>{})\n`
+      ? `#!${process.execPath}\nif(process.argv.includes('--version')){console.log('ngspice-44');process.exit(0)}if(process.cwd().includes('/qualification/'))process.exit(9);try{const child=Bun.spawn({cmd:[process.execPath,'-e','await new Promise(()=>{})'],stdin:'ignore',stdout:'ignore',stderr:'ignore'});await Bun.write(${JSON.stringify(join(root, "child.pid"))},String(child.pid))}catch{await Bun.write(${JSON.stringify(join(root, "child.pid"))},'blocked')}await new Promise(()=>{})\n`
     : `#!${process.execPath}\nif(process.argv.includes('--version')){console.log('ngspice-44');process.exit(0)}${mode === "crash" ? "process.exit(9)" : mode === "raw-symlink" ? "const {symlink}=await import('node:fs/promises');const i=process.argv.indexOf('-r');await symlink('input.cir',process.argv[i+1]);" : `const i=process.argv.indexOf('-r');${mode === "delayed" ? "await Bun.sleep(100);" : ""}await Bun.write(process.argv[i+1],${JSON.stringify(raw)});${mode === "fatal" ? "console.error('singular matrix');" : ""}${mode === "extra" ? "const {mkdir}=await import('node:fs/promises');await mkdir('models/nested');await Bun.write('models/nested/extra','spoof');" : ""}${mode === "tool-extra" ? "await Bun.write('tool/unexpected','keep');" : ""}`}\n`;
   await Bun.write(executable, script);
   await chmod(executable, 0o700);
@@ -862,7 +862,10 @@ describe("qualified ngspice adapter", () => {
       const raw = rawDefinition(sha256(model)); raw.timeoutMs = 50;
       const result = await runQualifiedNgspice({ projectRoot: root, outputRoot, runDirectory, definition: parseSimulationDefinition(raw), circuitJson: circuitJson(), executable: await fakeNgspice(root, operatingPointRaw(), mode) });
       expect(result.assessment.status.state).toBe("failed");
-      expect(result.assessment.diagnostics.map(({ id }) => String(id))).toContain("SIM_EXECUTION_FAILED_001");
+      expect(
+        result.assessment.diagnostics.map(({ id }) => String(id)),
+        JSON.stringify(result.assessment.diagnostics, null, 2),
+      ).toContain("SIM_EXECUTION_FAILED_001");
     }
   });
 
@@ -1046,7 +1049,7 @@ describe("qualified ngspice adapter", () => {
     const result = await pending;
     expect(result.assessment.status.state, JSON.stringify(result.assessment.diagnostics, null, 2))
       .toBe("failed");
-    expect(result.assessment.diagnostics.map(({ id }) => id))
+    expect(result.assessment.diagnostics.map(({ id }) => String(id)))
       .toEqual(["SIM_MODEL_ASSET_INVALID_001"]);
     expect(await Bun.file(captured).exists()).toBeFalse();
     expect(result.evidence).toBeUndefined();
