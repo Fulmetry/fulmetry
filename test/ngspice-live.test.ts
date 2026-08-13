@@ -170,7 +170,9 @@ describe("required live ngspice compatibility", () => {
         { path: testbenchPath, role: "test" },
       ],
     });
-    const outputRoot = join(projectRoot, "output");
+    // Generated solver evidence is an output authority, never project input.
+    // Keep it physically outside the immutable synthetic project snapshot.
+    const outputRoot = join(qualificationRoot, "simulation-output");
     const runDirectory = join(outputRoot, "run");
     await mkdir(runDirectory, { recursive: true });
     const run = await runQualifiedNgspice({

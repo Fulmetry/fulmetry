@@ -171,7 +171,7 @@ jobs:
       - name: Run live two- and four-layer KiCad qualification
         run: bun run test:live:kicad
       - name: Upload exact live KiCad evidence
-        if: success()
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: kicad-live-${{ runner.os }}-${{ runner.arch }}

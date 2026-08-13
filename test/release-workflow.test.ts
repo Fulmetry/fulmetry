@@ -308,7 +308,7 @@ describe("release workflow memory isolation", () => {
     expect(workflowEntries.sort()).toEqual(["ci.yml"]);
     const workflowSource = await readFile(join(root, ".github/workflows/ci.yml"), "utf8");
     expect(new Bun.CryptoHasher("sha256").update(workflowSource).digest("hex")).toBe(
-      "378b175b8bc78da104f8b253a0dc5bb244731c2fc15d15e90eb631b788f45d56",
+      "cb87499a96d952b3e7df1c9f78990185f0dbb21599dd31658e40ab74a51b72d6",
     );
     const workflow = Bun.YAML.parse(workflowSource) as {
       jobs: Record<string, {
@@ -389,7 +389,7 @@ describe("release workflow memory isolation", () => {
       "kicad-live": Object.freeze([
         checkoutStep(), setupBunStep(), {
           name: "Upload exact live KiCad evidence",
-          if: "success()",
+          if: "always()",
           uses: uploadArtifact,
           with: {
             name: "kicad-live-${{ runner.os }}-${{ runner.arch }}",

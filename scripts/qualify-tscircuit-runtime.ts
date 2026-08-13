@@ -130,7 +130,13 @@ if (reviewReport === undefined) {
     acceptedClosures === undefined ||
     repository.runtimeClosureSha256 !== acceptedClosures.repository ||
     packed.runtimeClosureSha256 !== acceptedClosures.packedConsumer
-  ) throw new TypeError("Accepted-mode runtime qualification differs from the compatibility anchor closures");
+  ) throw new TypeError(`Accepted-mode runtime qualification differs from the compatibility anchor closures: ${JSON.stringify({
+    expected: acceptedClosures ?? null,
+    observed: {
+      repository: repository.runtimeClosureSha256,
+      packedConsumer: packed.runtimeClosureSha256,
+    },
+  })}`);
 }
 
 const repositoryLock = await inspectTscircuitDependencyLock({

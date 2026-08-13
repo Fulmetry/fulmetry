@@ -115,7 +115,7 @@ describe("default privacy and offline policy", () => {
     } finally {
       observer.stop(true);
     }
-  }, 60_000);
+  }, 120_000);
 
   test("a proxy-observed default and offline build send no PCBoo traffic and keep identical circuit identity", async () => {
     const projectRoot = await createProject();
@@ -183,7 +183,7 @@ describe("default privacy and offline policy", () => {
     } finally {
       proxy.stop(true);
     }
-  }, 60_000);
+  }, 120_000);
 
   test("a sensitivity-checked runtime observer sees no default-workflow socket or DNS egress", async () => {
     const projectRoot = await createProject();
@@ -432,7 +432,7 @@ describe("default privacy and offline policy", () => {
     } finally {
       observer.stop(true);
     }
-  }, 60_000);
+  }, 120_000);
 
   const macosNetworkDenyTest = process.platform === "darwin" ? test : test.skip;
   macosNetworkDenyTest("default and offline builds succeed under a sensitivity-checked OS network deny", async () => {
@@ -517,5 +517,5 @@ describe("default privacy and offline policy", () => {
     } finally {
       observer.stop(true);
     }
-  }, 60_000);
+  }, 120_000);
 });

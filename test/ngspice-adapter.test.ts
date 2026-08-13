@@ -839,7 +839,8 @@ describe("qualified ngspice adapter", () => {
     const definition = parseSimulationDefinition(rawDefinition(sha256(model)));
     const executable = await fakeNgspice(root);
     const result = await runQualifiedNgspice({ projectRoot: root, outputRoot, runDirectory, definition, circuitJson: circuitJson(), executable });
-    expect(result.assessment.status.state).toBe("incomplete");
+    expect(result.assessment.status.state, JSON.stringify(result.assessment.diagnostics, null, 2))
+      .toBe("incomplete");
     expect(result.assessment.diagnostics.map(({ id }) => String(id))).toEqual(["SIM_NGSPICE_LIVE_QUALIFICATION_UNAVAILABLE_001"]);
     expect(result.evidence?.tool).toMatchObject({ name: "ngspice", version: "44" });
     expect(result.evidence?.execution.rawOutputSha256).toBe(sha256(operatingPointRaw()));
@@ -1033,7 +1034,7 @@ describe("qualified ngspice adapter", () => {
     expect(alive).toBeFalse();
   });
 
-  test("uses captured model bytes when the project model changes during solver execution", async () => {
+  test("rejects project model changes and removes unpublished solver evidence", async () => {
     const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-model-snapshot-")); roots.push(root);
     const outputRoot = join(root, "output"); const runDirectory = join(outputRoot, "run");
     await mkdir(join(root, "models")); await mkdir(runDirectory, { recursive: true });
@@ -1043,9 +1044,12 @@ describe("qualified ngspice adapter", () => {
     for (let attempt = 0; attempt < 100 && !await Bun.file(captured).exists(); attempt += 1) await Bun.sleep(5);
     await Bun.write(sourceModel, ".model changed R\n");
     const result = await pending;
-    expect(result.assessment.status.state).toBe("incomplete");
-    expect(await Bun.file(captured).text()).toBe(model);
-    expect(result.evidence?.modelDigests.resistors).toBe(sha256(model));
+    expect(result.assessment.status.state, JSON.stringify(result.assessment.diagnostics, null, 2))
+      .toBe("failed");
+    expect(result.assessment.diagnostics.map(({ id }) => id))
+      .toEqual(["SIM_MODEL_ASSET_INVALID_001"]);
+    expect(await Bun.file(captured).exists()).toBeFalse();
+    expect(result.evidence).toBeUndefined();
   });
 
   test("keeps issued qualification authority fail-closed under WeakSet prototype poisoning", async () => {

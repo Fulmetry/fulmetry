@@ -39,6 +39,11 @@ for (const layers of [2, 4] as const) {
     runDirectory,
     executable,
   });
+  await writeFile(
+    join(fixtureRoot, "live-validation.json"),
+    `${JSON.stringify(validation, null, 2)}\n`,
+    { flag: "wx" },
+  );
   if (validation.state !== "qualified") {
     throw new Error(`KiCad ${layers}-layer qualification did not pass: ${validation.message}`);
   }
