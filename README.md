@@ -1,14 +1,36 @@
 # PCBoo
 
-Build circuits with your coding agent.
+**Build circuits with your coding agent.**
 
-PCBoo is an experimental, Bun-first framework for authoring one circuit board as composable TypeScript files. The repository is the interface: an agent or human edits normal source, runs deterministic commands, reads concise diagnostics or versioned JSON, and opens a fixed local inspection server. The initial release supports Apple Silicon macOS and exactly Bun 1.3.14, matching its package metadata and CI authority. Other operating systems, architectures, and Bun versions are unsupported; unsupported Bun versions fail closed with `PCBOO_RUNTIME_UNSUPPORTED_BUN_001` before project evaluation, external-tool execution, generated-output publication, or authoritative readiness evidence. PCBoo reuses the supported tscircuit implementation directly; it is not a visual editor or an agent runtime.
+[![npm — @pcboo/pcboo](https://img.shields.io/npm/v/@pcboo/pcboo?label=%40pcboo%2Fpcboo)](https://www.npmjs.com/package/@pcboo/pcboo)
+[![npm — create-pcboo](https://img.shields.io/npm/v/create-pcboo?label=create-pcboo)](https://www.npmjs.com/package/create-pcboo)
+[![License: MIT](https://img.shields.io/badge/License-MIT-informational)](./LICENSE)
+[![Platform](https://img.shields.io/badge/platform-macOS%20Apple%20Silicon-lightgrey)](#requirements)
 
-PCBoo is an independent open-source project built on [tscircuit](https://github.com/tscircuit/tscircuit). It is not an official tscircuit product and does not imply endorsement by or affiliation with tscircuit Inc.
+PCBoo is an experimental, Bun-first framework for authoring one circuit board as a set of composable TypeScript files. **The repository is the interface:** an agent or a human edits ordinary source, runs a small set of deterministic commands, reads concise diagnostics or versioned JSON, and opens a local inspection server in the browser.
 
-## Current executable surface
+It is designed for coding agents. Codex, Claude Code, Cursor, or any filesystem-capable agent can compose a board, run the commands, read the results, and repair its own work — no proprietary chat surface or visual editor required. Humans stay in the loop through the inspection workspace and can hand off to KiCad when manual CAD adjustment is the right tool.
 
-Create a normal single-package project with Bun:
+> PCBoo is an independent open-source project built on [tscircuit](https://github.com/tscircuit/tscircuit). It reuses the supported tscircuit implementation directly for authoring and compilation. It is **not** an official tscircuit product and does not imply endorsement by or affiliation with tscircuit Inc.
+
+---
+
+## Requirements
+
+The initial release authority is deliberately narrow. Anything outside this matrix is unsupported.
+
+| Requirement | Supported value |
+| --- | --- |
+| Operating system | macOS |
+| Architecture | Apple Silicon (`arm64`) |
+| Runtime | Bun `1.3.14` exactly |
+| Circuit engine | the tscircuit version pinned by PCBoo |
+
+Unsupported Bun versions fail closed with `PCBOO_RUNTIME_UNSUPPORTED_BUN_001` **before** any project evaluation, external-tool execution, generated-output publication, or authoritative readiness evidence.
+
+## Quick start
+
+Create a new project and build it:
 
 ```sh
 bun create pcboo my-board
@@ -16,100 +38,131 @@ cd my-board
 bun run build
 ```
 
-The independently published `create-pcboo` package writes a multi-file circuit, deterministic `pcboo.lock`, Bun test, coding-agent guide, and version-matched project-local Agent Skills. It refuses to overwrite any existing path. Pass `--no-skills` to omit the skills. Existing projects can install the public skill catalog with `bunx --bun skills@latest add pcboo-dev/pcboo --copy` (or the equivalent `npx skills@latest add pcboo-dev/pcboo --copy`); copy mode preserves PCBoo's no-symlink input boundary. Inside a local project containing `pcboo.config.ts` and `pcboo.lock`, the primary commands are:
+`bun create pcboo` runs the published [`create-pcboo`](https://www.npmjs.com/package/create-pcboo) package, which scaffolds a normal single-package repository (and installs its dependencies for you):
+
+- a multi-file circuit under `circuit/`;
+- `pcboo.config.ts` — resolved project configuration;
+- deterministic `pcboo.lock` authority;
+- Bun tests;
+- a coding-agent guide (`AGENTS.md`);
+- version-matched, project-local **Agent Skills** (see below);
+- scripts for build, check, inspection, simulation, and export.
+
+The scaffold refuses to overwrite any existing path. Pass `--no-skills` to omit the skills. The framework itself is published as [`@pcboo/pcboo`](https://www.npmjs.com/package/@pcboo/pcboo) and is added to generated projects for you.
+
+## Agent Skills
+
+PCBoo ships a catalog of [Agent Skills](https://www.anthropic.com/news/skills) that teach a coding agent the correct PCBoo procedures — how to design a complete board, diagnose a failing check, verify a claim, and produce manufacturing evidence without weakening a gate or skipping a human approval. Generated projects include a version-matched copy under `.agents/skills/` and `.claude/skills/`.
+
+| Skill | Purpose |
+| --- | --- |
+| `pcboo-best-practices` | Router skill — orient in a project and route work to the right procedure. |
+| `pcboo-design` | Create or edit complete circuits: architecture, footprints, stack-up, placement, routing. |
+| `pcboo-schematic-layout` | Make schematics readable with authored logical coordinates and collision checks. |
+| `pcboo-resolve-models` | Resolve, vendor, license-check, and bind realistic component 3D models. |
+| `pcboo-diagnose` | Repair one build, electrical, fabrication, test, simulation, KiCad, or manufacturing finding. |
+| `pcboo-verify` | Prove requirements with tests, Circuit JSON checks, qualified simulations, and evidence review. |
+| `pcboo-manufacturing` | Generate and independently verify Gerber/drill/BOM/placement artifacts and KiCad handoffs. |
+
+Add the public catalog to an existing project separately:
+
+```sh
+bunx --bun skills@latest add pcboo-dev/pcboo --copy
+# Node equivalent:
+npx skills@latest add pcboo-dev/pcboo --copy
+```
+
+Use **copy mode** — PCBoo intentionally rejects symlinks inside authoritative project input.
+
+## Commands
+
+Run inside a project containing `pcboo.config.ts` and `pcboo.lock`. Every finite command accepts `--json` for machine-readable output and `--offline` to assert the local network policy.
 
 ```sh
 bun run pcboo help
-bun run pcboo build --json
-bun run pcboo check --json
-bun run pcboo test --json
+bun run pcboo build --json          # compile twice, emit normalized Circuit JSON
+bun run pcboo check --json          # electrical + baseline fabrication evidence
+bun run pcboo test --json           # discover and run *.test.ts / *.test.tsx
+bun run pcboo simulate --json       # named ngspice testbenches
 bun run pcboo inspect --status fabrication --json
+bun run pcboo dev --port 0 --json   # local React inspection workspace
+bun run pcboo export kicad --json           # detached, validated KiCad handoff
+bun run pcboo export gerbers --offline --json  # non-overwriting draft artifacts
+bun run pcboo verify manufacturing --json      # independently reconciled artifact evidence
+```
+
+Autorouting via [Freerouting](https://github.com/freerouting/freerouting) (bring your own JAR, pinned by digest):
+
+```sh
 bun run pcboo route freerouting --jar /absolute/path/freerouting.jar --jar-sha256 <sha256> --json
-bun run pcboo route promote .pcboo/runs/<run-id>/candidate.ses --output circuit/routes --via-hole-mm 0.30 --via-outer-mm 0.60 --json
-bun run pcboo export kicad --json
-bun run pcboo export gerbers --offline --json
-bun run pcboo verify manufacturing --json
-bun run pcboo dev --port 0 --json
-bun run test
+bun run pcboo route promote .pcboo/runs/<run-id>/candidate.ses \
+  --output circuit/routes --via-hole-mm 0.30 --via-outer-mm 0.60 --json
 ```
 
-The initial release fixes the accepted tscircuit version. The following maintainer syntax is retained as a fail-closed future interface, but macOS refuses it before reading project or candidate inputs until a qualified native descendant broker exists. Every `/absolute/...`, `sha512-...`, and `<...>` token is illustrative rather than executable authority.
+Every finite command creates a fresh `.pcboo/runs/<run-id>/` directory and writes its complete `report.json` there.
 
-```sh
-bun run upgrade:tscircuit review \
-  --candidate-package /absolute/path/to/node_modules/tscircuit \
-  --candidate-lock /absolute/path/to/bun.lock \
-  --candidate-packed-package /absolute/path/to/clean-consumer/node_modules/tscircuit \
-  --integrity sha512-...
-```
+## The inspection workspace
 
-The dormant transaction is designed to require the explicit lock root's direct `node_modules/tscircuit` package and a physically separate clean-consumer package, perform no install or network resolution, authenticate both runtime closures, bind exact lock and package identities, and rerun the curated two-/four-layer qualification. It must not launch candidate code on macOS until kernel-owned descendant cleanup is qualified; Bun `--no-orphans` and process groups are not accepted substitutes.
+`bun run pcboo dev` binds to `127.0.0.1` and serves a responsive, Bun-built React workspace. It watches project source, configuration, and lock data; publishes successful rebuilds atomically; and retains the last good circuit while marking its evidence stale when a rebuild fails.
 
-Acceptance is a separate maintainer-only transaction and requires the exact canonical report file, its explicitly reviewed SHA-256, the same candidate package and lock, and `--accept-reviewed-upgrade`. It requalifies twice, regenerates and independently verifies every canonical fixture, binds staged input, semantic, manufacturing, and exact-inventory evidence to the review, and runs every non-recursive test against the candidate dependency tree. Candidate execution may change only reviewed fixture outputs: complete repository-gate identities are checked around preparation and tests, while intended publishable source transformations are hashed before candidate code runs. Typechecking uses PCBoo's separately content-pinned TypeScript package, and the candidate's sole ordered root declaration authority must itself contain the required direct Circuit JSON type re-exports; ambient declarations, `typesVersions`, and decoy conditional exports cannot satisfy that gate. Only then does rollback-capable publication install the digest-bound accepted-version authority set. Acceptance permits only a narrowly validated Bun lock change limited to the root tscircuit pins and direct tscircuit tuple. It never installs, resolves, fetches, or intentionally mutates `node_modules`; after successful source acceptance, the maintainer must run `bun install --frozen-lockfile` before ordinary repository commands. `acceptedUpgradeReview` records the report that advanced the anchor but is not, by itself, proof of human review.
+The workspace includes a project overview, tscircuit-backed schematic and PCB SVG views, layer filtering, selection, visual measurement, a locally rendered **3D assembly**, independent check and simulation evidence, manufacturing outputs, and a searchable Circuit JSON explorer.
 
-```sh
-bun run accept:tscircuit accept \
-  --candidate-package /absolute/path/to/node_modules/tscircuit \
-  --candidate-lock /absolute/path/to/bun.lock \
-  --candidate-packed-package /absolute/path/to/clean-consumer/node_modules/tscircuit \
-  --integrity sha512-... \
-  --report /absolute/path/to/review.json \
-  --reviewed-report-sha256 <exact-report-digest> \
-  --runtime-evidence /absolute/path/to/tscircuit-runtime-darwin-arm64.json \
-  --runtime-evidence-sha256 <exact-evidence-digest> \
-  --accept-reviewed-upgrade
-```
+- Loopback-only, same-origin, per-process-token actions can run `build`, `check`, and named `simulate`. They may write derived `.pcboo` outputs but never edit authored circuit source or configuration.
+- The 3D assembly is an approximation from available board, pad, trace, hole, and component geometry. It downloads no remote models and is **not** mechanical or manufacturing authority.
+- A non-loopback `--host` is explicit, prints a visible exposure warning, and disables browser-triggered actions.
+- Bounded `/api/inspect` geometry and connectivity results remain the authoritative automation interface.
 
-The separate maintainer-only canonical-golden refresh prepares and independently validates the complete two- and four-layer fixture set in sibling staging before touching checked-in fixtures. Publication binds both original and staged tree digests, retains the original directories until every prepared replacement is installed, and rolls the whole set back on an ordinary publication failure. Unexpected concurrent bytes are retained in an explicit recovery directory rather than deleted. This maintenance path cannot advance the accepted tscircuit compatibility anchor.
-
-Accepted and candidate tscircuit identities authenticate the complete declared installed package closure rooted at tscircuit, not a JavaScript static-import approximation. Every declared production, present optional, and resolved peer package instance contributes all package-owned files plus the resolver topology that distinguishes hoisted, nested, shared, duplicated, linked, and direct-directory instances. Undeclared nested package slots fail closed, while unrelated dependencies owned by the consuming project do not contaminate the engine identity. This binds declared-package resources loaded through `createRequire`, computed imports, filesystem APIs, WASM/native loaders, or future Bun syntax. The exact Bun-selected bare-package entrypoint is resolved twice in fresh processes; Bun version, platform, and architecture are also bound. Repository and physically separate clean packed-consumer profiles are independently named and pinned. An upgrade requires one canonical, self-digested Apple Silicon macOS evidence record bound to the exact baseline, candidate, Bun runtime, and fingerprint implementation. Per-package content permits at most 8,192 entries through 32 directory levels, 64 MiB per file, and 128 MiB aggregate; the overall closure permits 1,024 package instances, 65,536 files, 8,192 directories, 4,096 package links, and 2 GiB aggregate. Package metadata is limited to 1 MiB and read through a non-following descriptor. Special entries, root replacement, post-read membership changes, resolution-layout changes, and file-identity changes reject the fingerprint.
-
-Each finite command creates a fresh `.pcboo/runs/<run-id>/` directory and writes its complete `report.json` there. A fresh custom output root receives a nonce-bearing marker paired with canonical `.pcboo-output-ownership.json` project authority outside the excluded root; pre-existing, mixed-ownership, marker-only, mismatched, or replaced custom roots are rejected before they can hide authored inputs from discovery or hashing. Durable run evidence is limited to 512 entries through 16 directory levels, 64 MiB per file, and 256 MiB in aggregate; exact and selected failure evidence share the same stable-read boundary. `build` compiles twice and emits normalized Circuit JSON; it does not imply that electrical, fabrication, simulation, standards, or sourcing checks passed. Evaluation is time-, output-, and cancellation-bounded. `test` discovers ordinary `.test.ts` and `.test.tsx` files, invokes the pinned Bun executable directly without a shell, and reconciles bounded process output with JUnit counts before setting the independent functional status; absent, zero-case, focused, skipped, failed, timed-out, cancelled, subprocess-capable, or oversized-output runs never pass. A would-be pass performs a bounded `bun test --only` focus probe within the same command deadline, so test-module top-level initialization must be idempotent even though actual non-focused test cases run only once. Project tests are trusted arbitrary in-process code, but authoritative project tests may not import or reference subprocess APIs; use PCBoo's bounded build, simulation, and external-tool actions instead. Because PCBoo does not yet have a qualified macOS process network containment, `pcboo test --offline` does not launch either Bun subprocess and reports functional validation as `incomplete`; proxy variables or API monkey-patching are not misrepresented as socket containment. `check` currently evaluates the independent electrical and baseline fabrication dimensions, emits an offline recorded-selection integrity report, and maps stable generated object IDs back to the nearest honest literal-name location in composed TypeScript when possible. `export gerbers` compiles twice and writes only a fresh, non-overwriting `manufacturing-draft/` directory plus a per-file input snapshot and `draft-artifact-manifest.json`. It always leaves fabrication `incomplete`, exits nonzero, creates no archive or verified manifest, and directs callers to the separate verifier. `verify manufacturing` emits an unmistakably draft Gerber/drill/BOM/placement set, independently parses and reconciles its exact captured bytes, and emits bounded pre-compliance evidence for the locked local baseline profile. Its artifact boundary streams at most 128 entries through eight directory levels and rejects more than 64 MiB per file or 256 MiB across the expected set before reading or parsing payload bytes. Its separate offline sourcing report reconciles source-selected manufacturer/supplier identities and recorded package and footprint strings, then reports retrieval-time, lifecycle, price, and recorded stock-condition observations against the host wall clock. A self-authored selection record and digest prove reviewable selection integrity only: they do not prove package compatibility or supplier availability, remain `unchecked` when optional, and are `unavailable` whenever sourcing is required. No live supplier request is made. Standards evidence is a profile check, not certification or a claim of legal compliance. Only `promoteProductionBundle` can construct a verified manifest, and `publishVerifiedProductionBundle` persists its manifested bytes using stale-input checks, exclusive publication, and a manifest-last validity boundary. `verifyPublishedProductionBundle` revalidates that finished manifest, every typed artifact, any generated notice, and the exact directory inventory; callers must pass the `manifestSha256` returned out of band by publication as `expectedManifestSha256`, because a digest read from the bundle itself is not a trust authority. Any incorporated CAD asset must be a same-digest `vendored` build input with locked source, version, license, attribution, and explicitly allowed redistribution. Unknown, prohibited, unreviewed-license, remote-only, unlocked, or digest-mismatched assets block promotion; admitted records are serialized in the manifest and in a hashed bundle-local `THIRD_PARTY_NOTICES.md`.
-
-Named simulation testbench modules follow the same offline containment boundary: `pcboo simulate --offline` binds the raw simulation/model trees without evaluating testbench code or launching the solver, and reports functional validation as `incomplete` until process-level containment is qualified.
-
-Verified production promotion requires a conservative source-controlled `boardRevision` in `pcboo.config.ts`. The draft artifact manifest must repeat that exact authenticated value; PCBoo rejects missing or mismatched revisions and writes the config-authoritative value into the verified manifest.
-
-Every project input below `vendor/` or `models/` is classified as vendored even when imported as executable circuit source. Verified promotion requires every such input to be covered by a fully qualified locked asset or its digest-bound license notice; an untracked helper, footprint, component-data file, model, or extra notice blocks the bundle after compilation has erased its source path.
-
-Asset permission is never inferred from an SPDX label alone. Every admitted asset also binds a separate project-relative vendored license/notice file and its SHA-256 digest; PCBoo checks license-family notice markers and embeds the exact captured text in both the verified manifest and bundle-local notice.
-
-Before `build` can publish normalized Circuit JSON, the result must contain exactly one linked source board, PCB board, and root assembly group. Missing boards, multiple composed boards, detached root assemblies, or broken board-to-assembly links return an `unsupported` result with `PROJECT_BOARD_CARDINALITY_UNSUPPORTED_001` and no Circuit JSON artifact; nested child groups remain composable beneath the single root.
-
-KiCad live-input and detached-handoff verification accept only their exact flat manifests. They stream no more than 16 direct entries, never descend into unexpected directories, and reject files above 64 MiB or sets above 256 MiB before reading payload bytes; descriptor, pathname, and directory identities must remain stable throughout capture.
-
-Simulation publication accepts only its exact root-and-model artifact tree. It inspects at most 256 entries through two levels, refuses unexpected subtrees without descending, rejects files above 64 MiB or sets above 256 MiB before payload reads, and revalidates descriptor, pathname, and root identities after evidence creation. The isolated executable directory is removed only when empty; unrecognized tool output is never recursively deleted as cleanup.
-
-`pcboo test` binds its result to every regular project file outside `.git`, `node_modules`, and the configured generated-output directory, plus recursively imported ordinary dependency-module bytes used by the test graph. Exact `pcboo` and `tscircuit` import entries are authenticated to their required owning package and captured as dependency leaves rather than misclassifying PCBoo's own transitive compiler implementation as authored project input; the separately captured project-engine identity binds the complete tscircuit package. It rejects symlinked inputs, dynamic runtime-loader escape hatches, focused tests, and expected-failure modifiers as authoritative passage. Each captured authored or dependency-leaf input is limited to 8 MiB and the captured set to 64 MiB total; changing or restoring a captured file before publication invalidates the result.
-
-`pcboo dev` binds to `127.0.0.1` by default and serves a responsive Bun-built React inspection workspace plus fixed derived-action routes. It watches relevant project source, configuration, and lock data, publishes successful rebuilds atomically, and retains the last good circuit while marking its evidence stale when a rebuild fails. Loopback-only, same-origin, per-process-token actions can run `build`, `check`, and named `simulate` operations; these actions may write derived `.pcboo` outputs but never edit authored circuit source or configuration. Client disconnect and server shutdown cancellation propagate to the action; cancelled action output may remain in its isolated run for diagnosis but no result, report, status, or artifact becomes browser authority. Verified source and simulation definitions reject runtime subprocess APIs before execution. Project tests and user-selected tool executables are trusted code, not hostile-code sandbox inputs. Their operational cleanup uses macOS Seatbelt to deny direct child creation and parent signaling. This mechanism does not claim to sandbox a malicious executable that intentionally attacks PCBoo or brokers work through system services. If the required OS cleanup mechanism is unavailable, PCBoo reports process containment unavailable without launching the selected executable. A non-loopback `--host` is explicit, produces a visible exposure warning and disables browser actions. The workspace includes a project overview, tscircuit-backed schematic and PCB SVG views, layer filtering, selection, visual measurement, a locally rendered 3D assembly, independent check and simulation evidence, manufacturing outputs, and a searchable Circuit JSON explorer. The 3D assembly is an approximation derived from available board, pad, trace, hole, and component geometry; it does not download remote models and is not mechanical or manufacturing authority. Bounded `/api/inspect` geometry and connectivity results remain the authoritative automation interface.
+---
 
 ## Statuses are deliberately separate
 
-Every result preserves independent `fabrication`, `electrical`, `functional`, `standards`, and `sourcing` statuses. Passing fabrication cannot imply a passing simulation, current stock, or standards evidence. Unavailable and incomplete work remains visible in compact text, JSON, browser data, and verified bundle manifests. “Checked against a profile” is evidence about implemented rules; it is not certification, legal compliance advice, or a guarantee that a board is safe to manufacture.
+Every result preserves independent **`fabrication`**, **`electrical`**, **`functional`**, **`standards`**, and **`sourcing`** statuses. Passing fabrication never implies a passing simulation, current stock, or standards evidence. Unavailable and incomplete work stays visible in compact text, JSON, browser data, and verified bundle manifests.
 
-Scoped waivers live in source-controlled `waivers/*.json` files. A declaration must identify one active waiver-eligible rule occurrence by its exact status dimension and object/region scope, include a written justification, and optionally include a valid expiry date. Capability, connectivity, ownership, identity, unsupported-construct, resource-limit, and artifact-integrity findings remain non-waivable. Partial, stale, duplicate, unused, or mismatched declarations cannot turn a failed dimension into a pass. Source-only `check` remains `incomplete` even after valid waivers; `warning-only` is available only after the emitted manufacturing files pass independent verification, and `passed-with-waivers` remains explicit in the fabrication status and report.
+> "Checked against a profile" is evidence about implemented rules. It is **not** certification, legal compliance advice, or a guarantee that a board is safe to manufacture.
+
+**Draft vs. verified.** `export gerbers` compiles twice and writes only a fresh, non-overwriting `manufacturing-draft/` directory plus a per-file input snapshot and manifest. It always leaves fabrication `incomplete` and exits nonzero, directing callers to the separate verifier. `verify manufacturing` emits an unmistakably draft Gerber/drill/BOM/placement set, independently re-parses its exact captured bytes, and produces bounded pre-compliance evidence. Only the promotion path can construct a *verified* manifest, and verification of a published bundle requires the `manifestSha256` returned out of band by publication — a digest read from the bundle itself is not a trust authority.
+
+**Waivers.** Scoped waivers live in source-controlled `waivers/*.json`. A declaration identifies one active waiver-eligible rule occurrence by its exact status dimension and object/region scope, includes a written justification, and optionally an expiry date. Capability, connectivity, ownership, identity, unsupported-construct, resource-limit, and artifact-integrity findings are **non-waivable**. Source-only `check` stays `incomplete` even after valid waivers; `passed-with-waivers` remains explicit in the fabrication status and report.
 
 ## Trust, privacy, and generated output
 
-Invoking project evaluation runs trusted executable TypeScript. Finite evidence commands bind every regular project file outside `.git`, `node_modules`, and the configured output directory, and reject ambient runtime-I/O globals—including Bun's import-free Node-module globals—clocks, randomness, and constructor/evaluator escape hatches in verified source while retaining deterministic `Math` operations for geometry. Verified circuit modules may import only explicit named symbols from PCBoo's authoring facade (or the identical pinned tscircuit authoring set); namespace, operational, deep-package, dynamic-loader, dangerous reflection, and non-static computed-property access are rejected. Configuration uses the same local-source restrictions and rejects clock, randomness, platform, and `import.meta` runtime-loader globals before execution. Its canonical resolved entry, output directory, sorted active profiles, and optional board revision are hashed together with configuration source bytes into both config and project authority. Circuit evaluation consumes the already-authorized resolved config and revalidates it before and after both fresh-process builds; command finalization and browser request freshness reload and compare resolved config rather than relying on source bytes alone. Authoritative capture rejects projects above 10,000 input files, 12,000 traversed entries, 128 nested directories, 64 MiB for one input, or 512 MiB in aggregate; static local configuration imports receive the same preflight before configuration execution. A project may define at most 64 named simulations, and their definition evaluation shares a 60-second aggregate deadline per capture in addition to each definition's own bound. PCBoo's repeat-build, whole-project input authority, and source-graph checks detect ordinary undeclared inputs and nondeterminism; they are not a sandbox for malicious source, cannot authenticate external files or network responses reached through a novel language escape, and do not replace operating-system isolation. Generated files and third-party models remain adversarial inputs at their parsing boundaries.
+- **No telemetry.** PCBoo performs no telemetry or project-data upload by default. The implemented commands do not install external tools or contact supplier services. PCBoo never installs KiCad or ngspice for you.
+- **Offline is honest.** Every durable result records whether the network policy was `default` or `offline`. This release has no PCBoo-managed network-backed resolver, so both policies do the same local work and preserve the same circuit identity. `--offline` is a policy assertion, not an OS sandbox — trusted circuit source can still initiate its own network access.
+- **Trusted-but-bounded source.** Project evaluation runs trusted executable TypeScript. Finite evidence commands bind every regular project file outside `.git`, `node_modules`, and the configured output directory, and reject ambient runtime-I/O globals, clocks, randomness, and evaluator escape hatches in verified source (while keeping deterministic `Math` for geometry). Verified circuit modules may import only explicit named symbols from PCBoo's authoring facade (or the identical pinned tscircuit authoring set).
+- **Not a malware sandbox.** PCBoo's repeat-build and whole-project input checks detect ordinary undeclared inputs and nondeterminism. They are not a sandbox for hostile source and do not replace operating-system isolation. Generated files and third-party models remain adversarial inputs at their parsing boundaries.
+- **Your work stays yours.** Circuit source and ordinary generated manufacturing files remain your work; PCBoo's MIT license is not applied to them merely because PCBoo processed them.
 
-PCBoo performs no telemetry or project-data upload by default. The implemented commands do not install external tools or contact supplier services. Finite commands accept `--offline`, and every durable result records whether the PCBoo-managed network policy was `default` or `offline`. This release has no PCBoo-managed network-backed resolver, so both policies perform the same local work and preserve the same circuit identity. `--offline` is not an operating-system sandbox: trusted circuit source and configuration can initiate their own network access. Network-exposed development servers are the user's responsibility and are warned about explicitly. Circuit source and ordinary generated manufacturing files remain the user's work; PCBoo's MIT license is not applied to them merely because PCBoo processed them.
+## Current limitations
 
-## Important current limitations
+PCBoo is experimental. Manufacturing output must pass its explicit verification gates before any production use.
 
-- Maintainer-only tscircuit review and acceptance are disabled on the initial macOS release because Bun descendant tracking and process groups cannot authoritatively contain an external double-fork. The accepted tscircuit version is fixed until a qualified native macOS broker exists; this limitation does not remove ordinary project authoring and inspection support.
-- Named `simulations/<name>.testbench.ts` definitions, model provenance checks, explicit-region R/C/L netlist generation, bounded direct ngspice execution, ASCII-raw parsing, and independent numeric assertions exist. Versions 42–47 are detection candidates, not trust by version string: each exact captured executable must pass PCBoo-owned divider operating-point, RC transient, RC AC magnitude/phase, and divider DC-sweep cases before its current run may report functional `passed`. Qualification uses `-n -b`, ASCII raw output, fixed analytical oracles, aggregate/per-case deadlines, exact output trees, and executable-byte checks between cases. Its serialized `qualification.json` is evidence only and cannot grant authority when replayed. An explicitly required production functional gate additionally needs a same-process authority bound to the current Circuit JSON, exact loader-authenticated testbench source graph, and complete build-input snapshot. The required CI live test retains the exact qualification decks, raw outputs, stdout, and stderr, executes an authored divider testbench against the real solver, uses only that same-process authority to publish a production bundle requiring functional validation, independently re-verifies the persisted bundle, and uploads digest-addressed evidence. Its CI job installs the macOS platform package on a pinned Apple Silicon runner; it does not claim that every ngspice major in the detection range has been exercised. PCBoo itself never installs ngspice. A host with no executable, unavailable process containment, or failed qualification reports `unavailable` or `incomplete`, never passed.
-- KiCad export creates a deterministic, detached `.kicad_sch`/`.kicad_pcb`/`.kicad_pro` handoff in a fresh run directory and validates its syntax with a pinned offline parser. A second PCBoo-owned pass independently reconciles the baseline component references and values, schematic symbols, footprints, nets, routed segments, vias, plated and non-plated holes, rectangular outline, copper-layer order, dimensions, and transformed coordinates. Only those successfully reconciled baseline mappings are reported as exact; unsupported or unreconciled constructs remain nonpassing. KiCad 10 is the initial live-supported major on Apple Silicon macOS; KiCad 9 remains detection-only. PCBoo invokes design commands only for the official signed KiCad app at `/Applications/KiCad/KiCad.app`, after validating its Apple team identity, native architecture, exact executable bytes, and numeric version. Qualification runs all-severity schematic ERC and PCB DRC with violation exit codes, including schematic parity, plus schematic netlist and PCB Gerber export against isolated immutable handoff bytes. Exit code 5 is retained as KiCad's documented rule-violation result while PCBoo completes the remaining bounded interoperability commands; it never becomes a qualified result. PCBoo independently rejects duplicate-key or incomplete rule reports, any reported violation, unconnected item, parity error, ignored check, incomplete severity set, wrong source/version, or missing root sheet. It checks that the netlist retains every reconciled component/net and that each required copper layer contains exactly one correctly identified, linearly plotted Gerber with valid aperture state and drawable content. The single profile Gerber must be a simple, nonzero-area rectangular contour matching the reconciled board position and dimensions. The current converter output is known to produce KiCad ERC warnings, so the live CI fixture must demonstrate complete output interoperability and an authenticated `failed` result; it does not grant a false qualified authority. It captures bounded outputs and revalidates executable, input, output, and directory identity before publication. Missing, unsupported, unsigned, relocated, fake, failed, timed-out, semantically divergent, or mutated tools never qualify. This does not claim fabrication certification, synchronize later edits, or imply an automatic round trip.
-- Supplier search and authenticated provider/cache evidence remain unimplemented. A self-authored selection record and digest are selection-integrity evidence only, never perform substitution, cannot prove package compatibility or provider availability, and trust the host wall clock for age observations. The browser exposes this same fail-closed offline check under `/api/checks`. Standards profiles beyond the local fabrication baseline and routing also remain unimplemented. Browser-triggered build/check/simulate actions are intentionally available only on loopback bindings. A pinned Apple Silicon macOS CI workflow exists but has not yet been observed passing on a hosted runner.
-- The privacy regression observes HTTP proxy traffic and, on the declared Apple Silicon macOS platform, preloads a sensitivity-checked runtime egress observer before PCBoo loads. A direct `Bun.connect` canary must reach a local listener without observation and must be detected and blocked under observation; a nested-Bun canary proves the observer is injected into PCBoo's fresh configuration/evaluation processes, and named `node:net`, DNS, fetch, and UDP canaries independently prove those client surfaces are instrumented. The observed default workflow compiles through the real pinned tscircuit authoring graph, runs build, check (including local manufacturing evidence), detached KiCad export, and registry prepack, proves multiple fresh child processes joined observation, and requires zero socket, DNS, HTTP, WebSocket, or UDP client attempts. macOS additionally runs default and offline builds under an operating-system network deny. This evidence covers PCBoo's Bun/JavaScript runtime graph, not malicious trusted project code or native code issuing raw system calls outside the runtime APIs. The installed `circuit-json` and `circuit-to-svg` tarballs omit license files; PCBoo classifies their exact pinned, nonbundled content and ISC package metadata against the official SPDX ISC definition and records that limited fallback in its generated notices. It does not present the generic SPDX definition as a package-specific copyright notice. Every other direct distribution package is bound to reviewed complete package content and must ship matching license text; prepack recursively rejects packaged source without PCBoo's reviewed MIT provenance headers or with an unqualified bare package import.
-- Verified asset redistribution currently admits only explicitly allowed, vendored, digest-bound MIT assets with a digest-bound license/notice file. The variable copyright block must name the locked attribution, and the remaining text must match the complete canonical MIT grant, retention condition, warranty disclaimer, and liability paragraph after whitespace normalization; marker-only or rewritten notices fail closed. Other licenses remain usable in local project work but block verified redistribution until their complete obligations have a qualified packaging policy.
-- Verified manufacturing currently supports one rectangular two- or four-layer board, component-owned SMT, circular or straight routed-slot component-owned PTH, NPTH, full-stack through vias, and axis-aligned rectangular copper keepouts on declared board layers. Explicit source-bound mechanical support pads are excluded from electrical pin authority while remaining manufacturing geometry. Ownerless SMT pads and fiducials lack an authenticated primitive identity in current Circuit JSON and therefore remain explicitly unsupported; unsupported or independently unreconciled geometry blocks verified promotion.
-- Authored per-net minimum trace thickness and maximum length are checked against authoritative physical-net mappings. Maximum-length measurement includes declared board-thickness transitions; a through-pad whose start and end coordinates differ is deliberately unmeasurable and blocks verified promotion rather than guessing its conductive path.
-- Within the pinned production footprint set and source-bound custom-footprint surface, PCBoo reconciles source, schematic, PCB-port, pad-number, CAD-signature, and qualified common two-pin semantic identities. Named pinned footprinters must retain their qualified signatures; an unnamed custom footprint additionally requires an explicit manufacturer part number and safe, internally consistent emitted geometry. This detects contradictory transformations but is not an independent part-datasheet oracle: a fully self-consistent upstream rewrite of every pin identity remains inside the explicitly pinned tscircuit/component-data trust boundary.
-- Content-addressed verified manifests are explicitly unsigned.
+- **Manufacturing scope.** Verified manufacturing currently supports one rectangular two- or four-layer board, component-owned SMT, circular or straight routed-slot component-owned PTH, NPTH, full-stack through vias, and axis-aligned rectangular copper keepouts. Ownerless SMT pads and fiducials remain unsupported; unsupported or unreconciled geometry blocks verified promotion.
+- **Simulation.** Named `simulations/<name>.testbench.ts` definitions, model-provenance checks, R/C/L netlist generation, bounded direct ngspice execution, and independent numeric assertions exist. ngspice majors 42–47 are *detection candidates* — each captured executable must pass PCBoo-owned analytical cases before a run may report functional `passed`. A host with no executable, unavailable process containment, or failed qualification reports `unavailable`/`incomplete`, never passed.
+- **KiCad.** `export kicad` produces a deterministic, detached `.kicad_sch`/`.kicad_pcb`/`.kicad_pro` handoff and reconciles it against the baseline. KiCad 10 is the initial live-supported major (KiCad 9 is detection-only), invoked only for the official signed app at `/Applications/KiCad/KiCad.app` after identity and version checks. This is a handoff, not certification or an automatic round trip.
+- **Sourcing & standards.** Supplier search and authenticated provider evidence are unimplemented. A self-authored selection record proves selection integrity only — never package compatibility or supplier availability. Standards profiles beyond the local fabrication baseline are unimplemented.
+- **Maintainer tscircuit upgrade** (see below) is disabled on this macOS release; the accepted tscircuit version is fixed until a qualified native macOS descendant broker exists. This does not affect ordinary project authoring or inspection.
+- Content-addressed verified manifests are explicitly **unsigned**.
 
-See the [product requirements](./PRODUCT_REQUIREMENTS.md) for the target product, [future explorations](./FUTURE_EXPLORATIONS.md) for deferred ideas, and the [engineering Gauntlet](./GAUNTLET_PROMPT.md) for the adversarial verification standard.
+<details>
+<summary><strong>Advanced: the dormant maintainer tscircuit upgrade transaction</strong></summary>
+
+PCBoo pins one exact tscircuit version. Advancing it is a maintainer-only, two-stage transaction (`upgrade:tscircuit review` → `accept:tscircuit accept`) that authenticates the complete declared package closure rooted at tscircuit — not a static-import approximation — across a repository profile and a physically separate clean packed-consumer, binds exact lock and package identities, and re-runs the curated two-/four-layer qualification.
+
+It performs **no** install, resolution, or network fetch, and never intentionally mutates `node_modules`. Acceptance requires the exact canonical report, its reviewed SHA-256, digest-bound runtime evidence, and `--accept-reviewed-upgrade`; it requalifies twice and independently regenerates every canonical fixture.
+
+**On the initial macOS release this path is disabled**, because Bun descendant tracking and process groups cannot authoritatively contain an external double-fork. The syntax is retained as a fail-closed future interface and refuses to launch candidate code until a kernel-owned descendant-cleanup broker is qualified. See the source under `src/upgrade/` and `scripts/*-tscircuit-upgrade.ts`.
+
+</details>
+
+---
+
+## Documentation
+
+- [Getting started](./docs/getting-started.mdx) — environment, scaffold, and first build.
+- [Product requirements](./PRODUCT_REQUIREMENTS.md) — the target product.
+- [Future explorations](./FUTURE_EXPLORATIONS.md) — deferred ideas.
+- [Engineering Gauntlet](./GAUNTLET_PROMPT.md) — the adversarial verification standard PCBoo is built to survive.
+- Full docs: [docs.page/pcboo-dev/pcboo](https://docs.page/pcboo-dev/pcboo)
 
 ## License and attribution
 

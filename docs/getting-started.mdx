@@ -5,7 +5,7 @@ description: Understand the supported environment and the current path for tryin
 
 # Getting started
 
-PCBoo's public package installation flow is specified but not released yet. This page separates the intended package experience from what works in the source repository today.
+PCBoo is published to npm. This page covers the supported environment, the package flow for a new project, and how to work from the source repository as a contributor.
 
 ## Supported environment
 
@@ -20,9 +20,9 @@ The initial release authority is deliberately narrow:
 
 Unsupported Bun versions fail before project evaluation or authoritative output is published.
 
-## Intended package flow
+## Package flow
 
-After the first registry release, a new project will start with:
+Start a new project with:
 
 ```sh
 bun create pcboo my-board
@@ -30,9 +30,11 @@ cd my-board
 bun run build
 ```
 
-<Warning>
-The `pcboo` and `create-pcboo` packages are not published to the registry yet. The command above documents the intended interface; it is not externally available today.
-</Warning>
+This runs the published [`create-pcboo`](https://www.npmjs.com/package/create-pcboo) package and installs the framework, [`@pcboo/pcboo`](https://www.npmjs.com/package/@pcboo/pcboo), for you.
+
+<Info>
+PCBoo is experimental. Manufacturing output must pass its explicit verification gates before any production use.
+</Info>
 
 ## Work from the source repository today
 
