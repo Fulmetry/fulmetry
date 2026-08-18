@@ -12,8 +12,8 @@
   },
   "profiles": {
     "pcboo-baseline-2-4layer": {
-      "version": "1.2.0",
-      "digest": "sha256:22d9153319a6f38b50c920fb1866b10b1d2661b435f4b6aca221a1003ef31c02"
+      "version": "1.6.0",
+      "digest": "sha256:e58d733810e286fc52996496939c66153533537e2deff6fba17e3fe437a72ca4"
     }
   },
   "assets": {}

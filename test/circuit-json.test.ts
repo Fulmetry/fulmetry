@@ -4,6 +4,21 @@ import { canonicalCircuitJson, parseCanonicalCircuitJson } from "../src/circuit-
 import { manufacturingFixture } from "./fixtures/manufacturing";
 
 describe("canonical Circuit JSON evidence", () => {
+  test("uses locale-independent RFC 8785 property ordering", () => {
+    const value = ([
+      { type: "source_project_metadata", source_project_metadata_id: "meta", z: 1, "ä": 2 },
+    ] as unknown) as AnyCircuitElement[];
+    expect(canonicalCircuitJson(value)).toContain('"z":1,"ä":2');
+  });
+
+  test("rejects duplicate object properties and unpaired Unicode surrogates", () => {
+    expect(() => parseCanonicalCircuitJson('[{"type":"pcb_board","type":"pcb_board"}]\n'))
+      .toThrow("duplicate key");
+    expect(() => canonicalCircuitJson([
+      { type: "source_project_metadata", source_project_metadata_id: "meta", bad: "\ud800" },
+    ] as unknown as AnyCircuitElement[])).toThrow("unpaired high surrogate");
+  });
+
   test("accepts canonical tscircuit output through pinned compatibility shims", async () => {
     const text = canonicalCircuitJson(await manufacturingFixture(2));
     expect(parseCanonicalCircuitJson(text).length).toBeGreaterThan(0);

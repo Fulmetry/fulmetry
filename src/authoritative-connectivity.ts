@@ -176,9 +176,6 @@ export function deriveAuthoritativeConnectivity(
     }
   }
   for (const connection of internalConnections) {
-    unsupported.add(
-      `${connection.source_component_internal_connection_id}:internal-connectivity-requires-component-qualified-physical-proof`,
-    );
     const ports = [...new Set(connection.source_port_ids)];
     const declaredOwner = connection.source_component_id;
     const hasExactOwner = typeof declaredOwner === "string" && ports.every((id) => {
@@ -190,6 +187,24 @@ export function deriveAuthoritativeConnectivity(
         `${connection.source_component_internal_connection_id}:internal-port-owner-mismatch`,
       );
       continue;
+    }
+    const owner = sourceComponentsById.get(declaredOwner)?.[0];
+    const manufacturerPartNumber = owner !== undefined &&
+        "manufacturer_part_number" in owner
+      ? owner.manufacturer_part_number
+      : undefined;
+    const hasQualifiedManufacturedPins = ports.length >= 2 && ports.every((sourcePortId) => {
+      const manufacturedPorts = pcbPortsBySourcePortId.get(sourcePortId) ?? [];
+      return manufacturedPorts.length === 1 &&
+        (padsByPcbPortId.get(manufacturedPorts[0]!.pcb_port_id) ?? []).length === 1;
+    });
+    if (
+      typeof manufacturerPartNumber !== "string" || manufacturerPartNumber.trim() === "" ||
+      !hasQualifiedManufacturedPins
+    ) {
+      unsupported.add(
+        `${connection.source_component_internal_connection_id}:internal-connectivity-requires-component-qualified-physical-proof`,
+      );
     }
     for (const id of ports) declarePort(id);
     for (let index = 1; index < ports.length; index += 1) {
@@ -399,6 +414,7 @@ export function deriveAuthoritativeConnectivity(
     }
 
     for (const pad of componentPads) {
+      if (pad.port_hints?.includes("pcboo:mechanical") === true) continue;
       const padId = pad.type === "pcb_smtpad"
         ? pad.pcb_smtpad_id
         : pad.pcb_plated_hole_id;
@@ -459,8 +475,24 @@ export function deriveAuthoritativeConnectivity(
         return pad.shape === "circle" &&
           Math.hypot(point.x - pad.x, point.y - pad.y) <= pad.radius + point.width / 2;
       }
-      return pad.shape === "circle" && pad.layers.includes(point.layer as never) &&
-        Math.hypot(point.x - pad.x, point.y - pad.y) <= pad.outer_diameter / 2 + point.width / 2;
+      if (!pad.layers.includes(point.layer as never)) return false;
+      if (pad.shape === "circle") {
+        return Math.hypot(point.x - pad.x, point.y - pad.y) <=
+          pad.outer_diameter / 2 + point.width / 2;
+      }
+      if (pad.shape !== "pill_hole_with_rect_pad" && pad.shape !== "rotated_pill_hole_with_rect_pad") {
+        return false;
+      }
+      const rotation = pad.shape === "rotated_pill_hole_with_rect_pad"
+        ? pad.rect_ccw_rotation
+        : 0;
+      const radians = -rotation * Math.PI / 180;
+      const dx = point.x - pad.x;
+      const dy = point.y - pad.y;
+      const localX = dx * Math.cos(radians) - dy * Math.sin(radians);
+      const localY = dx * Math.sin(radians) + dy * Math.cos(radians);
+      return Math.abs(localX) <= pad.rect_pad_width / 2 + point.width / 2 &&
+        Math.abs(localY) <= pad.rect_pad_height / 2 + point.width / 2;
     });
   };
 

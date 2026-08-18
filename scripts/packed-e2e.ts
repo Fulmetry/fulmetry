@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -49,7 +49,7 @@ async function verifyDocumentedDevCommand(project: string): Promise<void> {
   let stdout = "";
   // Packed command surfaces run serially in one cold harness and can leave the
   // machine under transient compiler/GC pressure before the dev process starts.
-  const deadline = Date.now() + 30_000;
+  const deadline = Date.now() + 60_000;
   try {
     let startup: Record<string, unknown> | undefined;
     while (startup === undefined && Date.now() < deadline) {
@@ -121,6 +121,24 @@ try {
   await run({ command: [process.execPath, join(harness, "node_modules/create-pcboo/src/cli.ts"), "board", "--no-install"], cwd: harness });
 
   const project = join(harness, "board");
+  for (const skillPath of [
+    ".agents/skills/pcboo-best-practices/SKILL.md",
+    ".agents/skills/pcboo-design/SKILL.md",
+    ".agents/skills/pcboo-diagnose/SKILL.md",
+    ".agents/skills/pcboo-manufacturing/SKILL.md",
+    ".agents/skills/pcboo-resolve-models/SKILL.md",
+    ".agents/skills/pcboo-resolve-models/scripts/audit-cad-models.ts",
+    ".agents/skills/pcboo-verify/SKILL.md",
+    ".agents/skills/pcboo-design/references/completion-and-preview.md",
+    ".claude/skills/pcboo-best-practices/SKILL.md",
+    ".claude/skills/pcboo-resolve-models/SKILL.md",
+    ".claude/skills/pcboo-design/references/completion-and-preview.md",
+  ]) {
+    const skill = await lstat(join(project, ...skillPath.split("/")));
+    if (!skill.isFile() || skill.isSymbolicLink()) {
+      throw new Error(`Packed creator omitted a regular copied Agent Skill: ${skillPath}`);
+    }
+  }
   const projectPackage = JSON.parse(await readFile(join(project, "package.json"), "utf8")) as {
     dependencies: Record<string, string>;
   };

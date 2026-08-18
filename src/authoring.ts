@@ -57,3 +57,16 @@ export {
 } from "tscircuit";
 
 export type { AnyCircuitElement, CircuitJson } from "tscircuit";
+export {
+  SemanticPcbTrace,
+  defineRoute,
+  defineRoutes,
+  port,
+  resolveSemanticPcbRoute,
+} from "./routes";
+export type {
+  PcbCopperLayer,
+  ResolvedSemanticPcbRoute,
+  SemanticPcbRouteDefinition,
+  SemanticPortSelector,
+} from "./routes";

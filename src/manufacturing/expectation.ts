@@ -99,6 +99,18 @@ const PINNED_FOOTPRINT_PAD_SIGNATURES: Readonly<Record<string, readonly PinnedFo
       Object.freeze({ kind: "smt-rect", x: -0.825, y: 0, width: 0.8, height: 0.95, drill: 0, pin: "1" }),
       Object.freeze({ kind: "smt-rect", x: 0.825, y: 0, width: 0.8, height: 0.95, drill: 0, pin: "2" }),
     ]),
+    "0603_color(green)": Object.freeze([
+      Object.freeze({ kind: "smt-rect", x: -0.825, y: 0, width: 0.8, height: 0.95, drill: 0, pin: "1" }),
+      Object.freeze({ kind: "smt-rect", x: 0.825, y: 0, width: 0.8, height: 0.95, drill: 0, pin: "2" }),
+    ]),
+    "0603_color(red)": Object.freeze([
+      Object.freeze({ kind: "smt-rect", x: -0.825, y: 0, width: 0.8, height: 0.95, drill: 0, pin: "1" }),
+      Object.freeze({ kind: "smt-rect", x: 0.825, y: 0, width: 0.8, height: 0.95, drill: 0, pin: "2" }),
+    ]),
+    "0805": Object.freeze([
+      Object.freeze({ kind: "smt-rect", x: -0.9125, y: 0, width: 1.025, height: 1.4, drill: 0, pin: "1" }),
+      Object.freeze({ kind: "smt-rect", x: 0.9125, y: 0, width: 1.025, height: 1.4, drill: 0, pin: "2" }),
+    ]),
     pinrow2_nosquareplating: Object.freeze([
       Object.freeze({ kind: "pth-circle", x: -1.27, y: 0, width: 1.5, height: 1.5, drill: 1, pin: "1" }),
       Object.freeze({ kind: "pth-circle", x: 1.27, y: 0, width: 1.5, height: 1.5, drill: 1, pin: "2" }),
@@ -135,8 +147,9 @@ const PINNED_TWO_PIN_SEMANTIC_FTYPES = new Set([
 
 function semanticHintPinIdentity(value: string | undefined): string | undefined {
   if (value === undefined) return undefined;
-  if (["anode", "pos", "left"].includes(value)) return "1";
-  if (["cathode", "neg", "right"].includes(value)) return "2";
+  const normalized = value.toLowerCase();
+  if (["a", "anode", "pos", "left"].includes(normalized)) return "1";
+  if (["k", "cathode", "neg", "right"].includes(normalized)) return "2";
   return undefined;
 }
 
@@ -158,20 +171,10 @@ function consistentSourcePinIdentity(
   ) return "";
   if (PINNED_TWO_PIN_SEMANTIC_FTYPES.has(source.ftype)) {
     const hints = new Set(sourcePort.port_hints ?? []);
-    const expected = pinNumber === "1"
-      ? ["anode", "pos", "left"]
-      : pinNumber === "2"
-        ? ["cathode", "neg", "right"]
-        : [];
-    const contradictory = pinNumber === "1"
-      ? ["cathode", "neg", "right"]
-      : pinNumber === "2"
-        ? ["anode", "pos", "left"]
-        : [];
-    if (
-      expected.length === 0 || expected.some((hint) => !hints.has(hint)) ||
-      contradictory.some((hint) => hints.has(hint))
-    ) return "";
+    const semanticIdentities = [...hints]
+      .map(semanticHintPinIdentity)
+      .filter((identity): identity is string => identity !== undefined);
+    if (semanticIdentities.some((identity) => identity !== pinNumber)) return "";
   }
   return pinNumber;
 }
@@ -238,6 +241,60 @@ function matchesPinnedFootprintPadSignature(
     serializedPadSignature(expected.map(transform)) === actualSignature;
 }
 
+function matchesSourceBoundCustomFootprintPadSignature(
+  source: SourceComponentElement,
+  component: PcbComponentElement,
+  pads: readonly Extract<AnyCircuitElement, { type: "pcb_smtpad" | "pcb_plated_hole" }>[],
+): boolean {
+  if (
+    pads.length === 0 || pads.length > 512 ||
+    !isExpectedSafeOptionalPartIdentity(source.manufacturer_part_number) ||
+    source.manufacturer_part_number === undefined ||
+    !Number.isFinite(component.center.x) || !Number.isFinite(component.center.y) ||
+    !Number.isFinite(component.rotation)
+  ) return false;
+  const signatures = pads.flatMap((pad): string[] => {
+    const pin = numericPinHint(pad);
+    if (pad.type === "pcb_smtpad") {
+      if (
+        (pad.shape !== "rect" && pad.shape !== "circle") ||
+        ![pad.x, pad.y].every(Number.isFinite)
+      ) return [];
+      const x = roundedSignatureNumber(pad.x - component.center.x);
+      const y = roundedSignatureNumber(pad.y - component.center.y);
+      const width = pad.shape === "circle" ? pad.radius * 2 : pad.width;
+      const height = pad.shape === "circle" ? pad.radius * 2 : pad.height;
+      if (![width, height].every(Number.isFinite) || width <= 0 || height <= 0) return [];
+      return [["smt", pad.shape, x, y, roundedSignatureNumber(width),
+        roundedSignatureNumber(height), pin].join(":")];
+    }
+    const x = roundedSignatureNumber(pad.x - component.center.x);
+    const y = roundedSignatureNumber(pad.y - component.center.y);
+    if (pad.shape === "circle") {
+      if (
+        ![pad.outer_diameter, pad.hole_diameter, pad.x, pad.y].every(Number.isFinite) ||
+        pad.hole_diameter <= 0 || pad.outer_diameter <= pad.hole_diameter
+      ) return [];
+      return [["pth", "circle", x, y, roundedSignatureNumber(pad.outer_diameter),
+        roundedSignatureNumber(pad.hole_diameter), pin].join(":")];
+    }
+    if (
+      pad.shape !== "pill_hole_with_rect_pad" &&
+      pad.shape !== "rotated_pill_hole_with_rect_pad"
+    ) return [];
+    if (
+      ![pad.rect_pad_width, pad.rect_pad_height, pad.hole_width, pad.hole_height, pad.x, pad.y]
+        .every(Number.isFinite) ||
+      pad.hole_width <= 0 || pad.hole_height <= 0 ||
+      pad.rect_pad_width <= pad.hole_width || pad.rect_pad_height <= pad.hole_height
+    ) return [];
+    return [["pth", pad.shape, x, y, roundedSignatureNumber(pad.rect_pad_width),
+      roundedSignatureNumber(pad.rect_pad_height), roundedSignatureNumber(pad.hole_width),
+      roundedSignatureNumber(pad.hole_height), pin].join(":")];
+  });
+  return signatures.length === pads.length && new Set(signatures).size === signatures.length;
+}
+
 export interface ExpectedPoint {
   readonly x: number;
   readonly y: number;
@@ -260,6 +317,60 @@ export interface ExpectedSegment {
 
 export interface ExpectedDrillHit extends ExpectedPoint {
   readonly diameter: number;
+  /** Routed-slot centerline. Absent for an ordinary circular drill hit. */
+  readonly slot?: Readonly<{
+    readonly startX: number;
+    readonly startY: number;
+    readonly endX: number;
+    readonly endY: number;
+  }>;
+}
+
+function platedSlotGeometry(element: Extract<AnyCircuitElement, { type: "pcb_plated_hole" }>): Readonly<{
+  drill: ExpectedDrillHit;
+  padWidth: number;
+  padHeight: number;
+}> | undefined {
+  if (
+    element.shape !== "pill_hole_with_rect_pad" &&
+    element.shape !== "rotated_pill_hole_with_rect_pad"
+  ) return undefined;
+  const holeWidth = element.hole_width;
+  const holeHeight = element.hole_height;
+  const padWidth = element.rect_pad_width;
+  const padHeight = element.rect_pad_height;
+  if (![holeWidth, holeHeight, padWidth, padHeight, element.x, element.y].every(Number.isFinite)) {
+    return undefined;
+  }
+  const diameter = Math.min(holeWidth, holeHeight);
+  const halfTravel = (Math.max(holeWidth, holeHeight) - diameter) / 2;
+  const vertical = holeHeight >= holeWidth;
+  const rotatedShape = element.shape === "rotated_pill_hole_with_rect_pad";
+  const authoredRotation = "ccw_rotation" in element &&
+      typeof element.ccw_rotation === "number"
+    ? element.ccw_rotation
+    : 0;
+  const rotation = ((authoredRotation + (rotatedShape ? 90 : 0)) * Math.PI) / 180;
+  const dx = vertical ? 0 : halfTravel;
+  const dy = vertical ? halfTravel : 0;
+  const rx = dx * Math.cos(rotation) - dy * Math.sin(rotation);
+  const ry = dx * Math.sin(rotation) + dy * Math.cos(rotation);
+  return Object.freeze({
+    drill: Object.freeze({
+      x: element.x,
+      y: element.y,
+      diameter,
+      source: element.pcb_plated_hole_id,
+      slot: Object.freeze({
+        startX: element.x - rx,
+        startY: element.y - ry,
+        endX: element.x + rx,
+        endY: element.y + ry,
+      }),
+    }),
+    padWidth: rotatedShape ? padHeight : padWidth,
+    padHeight: rotatedShape ? padWidth : padHeight,
+  });
 }
 
 export interface ExpectedPlacement extends ExpectedPoint {
@@ -671,16 +782,18 @@ export function deriveManufacturingExpectation(options: {
           `${element.pcb_plated_hole_id}: ownerless plated copper is not an authenticated component pin or via`,
         );
       }
-      if (element.shape !== "circle") {
+      const slot = platedSlotGeometry(element);
+      const circle = element.shape === "circle" ? element : undefined;
+      if (circle === undefined && slot === undefined) {
         unsupported.push(
-          `${element.pcb_plated_hole_id}: only circular plated holes are independently verified`,
+          `${element.pcb_plated_hole_id}: plated-hole shape is not independently verified`,
         );
         continue;
       }
-      platedDrills.push({
+      platedDrills.push(slot?.drill ?? {
         x: element.x,
         y: element.y,
-        diameter: element.hole_diameter,
+        diameter: circle!.hole_diameter,
         source: element.pcb_plated_hole_id,
       });
       for (const layer of element.layers) {
@@ -688,25 +801,35 @@ export function deriveManufacturingExpectation(options: {
         if (file === undefined) {
           unsupported.push(`${element.pcb_plated_hole_id}: plated hole uses unsupported layer ${layer}`);
         } else {
-          flashes[file]!.push(
-            flash(
-              { x: element.x, y: element.y, source: element.pcb_plated_hole_id },
-              "circle",
-              element.outer_diameter,
-            ),
-          );
+          flashes[file]!.push(slot === undefined
+            ? flash(
+                { x: element.x, y: element.y, source: element.pcb_plated_hole_id },
+                "circle",
+                circle!.outer_diameter,
+              )
+            : flash(
+                { x: element.x, y: element.y, source: element.pcb_plated_hole_id },
+                "rect",
+                slot.padWidth,
+                slot.padHeight,
+              ));
         }
       }
       if (element.is_covered_with_solder_mask !== true) {
         const margin = element.soldermask_margin ?? 0;
         for (const mask of ["F_Mask", "B_Mask"]) {
-          flashes[mask]!.push(
-            flash(
-              { x: element.x, y: element.y, source: element.pcb_plated_hole_id },
-              "circle",
-              element.outer_diameter + margin * 2,
-            ),
-          );
+          flashes[mask]!.push(slot === undefined
+            ? flash(
+                { x: element.x, y: element.y, source: element.pcb_plated_hole_id },
+                "circle",
+                circle!.outer_diameter + margin * 2,
+              )
+            : flash(
+                { x: element.x, y: element.y, source: element.pcb_plated_hole_id },
+                "rect",
+                slot.padWidth + margin * 2,
+                slot.padHeight + margin * 2,
+              ));
         }
       }
     } else if (element.type === "pcb_via") {
@@ -717,8 +840,8 @@ export function deriveManufacturingExpectation(options: {
         const routeMatches = owners.flatMap((owner) => owner.type === "pcb_trace"
           ? owner.route.filter((point) =>
             point.route_type === "via" && point.x === element.x && point.y === element.y &&
-            [element.from_layer, element.to_layer].includes(point.from_layer) &&
-            [element.from_layer, element.to_layer].includes(point.to_layer)
+            element.layers.includes(point.from_layer) &&
+            element.layers.includes(point.to_layer)
           )
           : []);
         if (owners.length !== 1 || routeMatches.length !== 1) {
@@ -848,9 +971,8 @@ export function deriveManufacturingExpectation(options: {
             candidate.type === "pcb_via" &&
             candidate.pcb_trace_id === element.pcb_trace_id &&
             candidate.x === point.x && candidate.y === point.y &&
-            new Set([candidate.from_layer, candidate.to_layer]).size === 2 &&
-            [candidate.from_layer, candidate.to_layer].includes(point.from_layer) &&
-            [candidate.from_layer, candidate.to_layer].includes(point.to_layer),
+            candidate.layers.includes(point.from_layer) &&
+            candidate.layers.includes(point.to_layer),
         );
         if (matchingPhysicalVias.length > 1) {
           unsupported.push(`${source}: routed via resolves to multiple physical vias`);
@@ -1069,26 +1191,32 @@ export function deriveManufacturingExpectation(options: {
     const matchingCad = cadComponents.filter(
       (candidate) => candidate.pcb_component_id === component.pcb_component_id,
     );
-    if (
-      matchingCad.length !== 1 ||
-      typeof matchingCad[0]!.footprinter_string !== "string" ||
-      matchingCad[0]!.footprinter_string!.trim() === ""
-    ) {
+    if (matchingCad.length !== 1) {
       unsupported.push(
-        `${component.pcb_component_id}: assembly footprint must resolve to exactly one non-blank CAD footprint`,
+        `${component.pcb_component_id}: assembly footprint must resolve to exactly one CAD component`,
       );
     } else {
       const cad = matchingCad[0]!;
+      const cadAnchorWithinComponent =
+        Number.isFinite(cad.position.x) && Number.isFinite(cad.position.y) &&
+        Math.abs(cad.position.x - component.center.x) <= component.width / 2 + 1e-9 &&
+        Math.abs(cad.position.y - component.center.y) <= component.height / 2 + 1e-9;
       if (
         cad.source_component_id !== component.source_component_id ||
-        Math.abs(cad.position.x - component.center.x) > 1e-9 ||
-        Math.abs(cad.position.y - component.center.y) > 1e-9
+        !cadAnchorWithinComponent
       ) unsupported.push(
-        `${component.pcb_component_id}: CAD identity or position contradicts its PCB and source component`,
+        `${component.pcb_component_id}: CAD identity or anchor lies outside its PCB component bounds`,
       );
-      if (!matchesPinnedFootprintPadSignature(cad.footprinter_string!, component, padsForComponent)) {
+      const footprinter = cad.footprinter_string?.trim() ?? "";
+      const pinned = footprinter in PINNED_FOOTPRINT_PAD_SIGNATURES;
+      if (
+        pinned
+          ? !matchesPinnedFootprintPadSignature(footprinter, component, padsForComponent)
+          : footprinter !== "" ||
+            !matchesSourceBoundCustomFootprintPadSignature(source, component, padsForComponent)
+      ) {
         unsupported.push(
-          `${component.pcb_component_id}: CAD footprint is not qualified by its emitted pad signature`,
+          `${component.pcb_component_id}: CAD footprint is not qualified by a pinned or source-bound emitted pad signature`,
         );
       }
     }
@@ -1110,11 +1238,12 @@ export function deriveManufacturingExpectation(options: {
       continue;
     }
 
-    if (supplierEntries.length === 0) {
+    if (source.manufacturer_part_number === undefined) {
       unsupported.push(
-        `${component.pcb_component_id}: populated manufacturing component ${source.name ?? source.source_component_id} has no explicit supplier part identity`,
+        `${component.pcb_component_id}: populated manufacturing component ${source.name ?? source.source_component_id} has no explicit manufacturer part identity`,
       );
-    } else if (supplierIdentity === undefined) {
+    }
+    if (supplierEntries.length > 0 && supplierIdentity === undefined) {
       unsupported.push(
         `${component.pcb_component_id}: populated manufacturing component ${source.name ?? source.source_component_id} supplier identity cannot be represented unambiguously in one BOM row`,
       );
@@ -1177,21 +1306,25 @@ export function deriveManufacturingExpectation(options: {
     }
     for (const pad of padsForComponent) {
       if (pad.type === "pcb_plated_hole") {
-        if (pad.shape !== "circle") {
+        const slot = platedSlotGeometry(pad);
+        const circle = pad.shape === "circle" ? pad : undefined;
+        if (circle === undefined && slot === undefined) {
           unsupported.push(
             `${pad.pcb_plated_hole_id}: ${pad.shape} plated hole cannot qualify courtyard containment`,
           );
           continue;
         }
-        const radius = pad.outer_diameter / 2;
+        const halfWidth = slot?.padWidth !== undefined ? slot.padWidth / 2 : circle!.outer_diameter / 2;
+        const halfHeight = slot?.padHeight !== undefined ? slot.padHeight / 2 : circle!.outer_diameter / 2;
         if (
-          Math.abs(pad.x - resolvedCourtyard.x) + radius >
+          Math.abs(pad.x - resolvedCourtyard.x) + halfWidth >
             resolvedCourtyard.halfWidth + 1e-9 ||
-          Math.abs(pad.y - resolvedCourtyard.y) + radius >
+          Math.abs(pad.y - resolvedCourtyard.y) + halfHeight >
             resolvedCourtyard.halfHeight + 1e-9
         ) unsupported.push(
           `${pad.pcb_plated_hole_id}: plated-hole pad lies outside its owner courtyard`,
         );
+        if (pad.port_hints?.includes("pcboo:mechanical") === true) continue;
         if (pad.pcb_port_id === undefined) {
           unsupported.push(`${pad.pcb_plated_hole_id}: plated-hole pad has no owning PCB port`);
           continue;
@@ -1234,7 +1367,10 @@ export function deriveManufacturingExpectation(options: {
       ) unsupported.push(
         `${pad.pcb_smtpad_id}: SMT pad lies outside its owner courtyard`,
       );
-      if (pad.pcb_port_id !== undefined) {
+      if (
+        pad.port_hints?.includes("pcboo:mechanical") !== true &&
+        pad.pcb_port_id !== undefined
+      ) {
         const matchingPorts = portsForComponent.filter((port) =>
           port.pcb_port_id === pad.pcb_port_id
         );
@@ -1378,7 +1514,7 @@ export function deriveManufacturingExpectation(options: {
       const supplierIdentity = component.do_not_place === true
         ? undefined
         : expectedBomSupplierIdentity(source.supplier_part_numbers);
-      const footprint = cadFootprints.get(component.pcb_component_id) || " ";
+      const footprint = cadFootprints.get(component.pcb_component_id) ?? "";
       return [{
         columns: {
           Designator: source.name ?? component.pcb_component_id,
@@ -1426,7 +1562,13 @@ export function deriveManufacturingExpectation(options: {
   const bomHeaders = [...MANUFACTURING_BOM_HEADERS];
 
   const freezePoints = <T extends ExpectedPoint>(points: T[]): readonly Readonly<T>[] =>
-    Object.freeze(points.map((point) => Object.freeze({ ...point })));
+    Object.freeze(points.map((point) => {
+      const slot = (point as unknown as { slot?: ExpectedDrillHit["slot"] }).slot;
+      return Object.freeze({
+        ...point,
+        ...(slot === undefined ? {} : { slot: Object.freeze({ ...slot }) }),
+      }) as Readonly<T>;
+    }));
 
   return Object.freeze({
     boardName: options.boardName,

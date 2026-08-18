@@ -61,7 +61,9 @@ describe("distribution licensing and attribution", () => {
       scripts?: Record<string, string>;
     };
     expect(rootManifest.scripts?.prepack).toBe("bun ./scripts/validate-package-boundary.ts");
-    expect(creatorManifest.scripts?.prepack).toBe("bun ../../scripts/validate-package-boundary.ts");
+    expect(creatorManifest.scripts?.prepack).toBe(
+      "bun ../../scripts/validate-agent-skills.ts && bun ../../scripts/validate-package-boundary.ts",
+    );
     expect(rootManifest.bin).toEqual({ pcboo: "src/cli/pcboo.js" });
     expect(creatorManifest.bin).toEqual({ "create-pcboo": "src/create-pcboo.js" });
   });
@@ -177,7 +179,7 @@ describe("distribution licensing and attribution", () => {
       await expect(requireDistributionPackageReady({
         packageRoot: root,
         nodeModulesRoot: join(repositoryRoot, "node_modules"),
-      })).rejects.toThrow("unqualified non-TypeScript asset unqualified.ps1");
+      })).rejects.toThrow("unqualified source asset unqualified.ps1");
 
       await rm(join(root, "src/unqualified.ps1"));
       await mkdir(join(root, "src/internal"));

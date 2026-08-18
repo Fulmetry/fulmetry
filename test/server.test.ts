@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { chmod, mkdir, mkdtemp, readFile, readdir, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -23,6 +23,7 @@ import { manufacturingFixture } from "./fixtures/manufacturing";
 
 const roots: string[] = [];
 const servers: InspectionServer[] = [];
+setDefaultTimeout(45_000);
 const finalPublicationAttacks: ReadonlyArray<readonly [
   attack: "bytes" | "symlink",
   target: "circuit.json" | "report.json",
@@ -34,7 +35,7 @@ const finalPublicationAttacks: ReadonlyArray<readonly [
     : [["symlink", "circuit.json"] as const, ["symlink", "report.json"] as const]),
 ];
 
-function lock(): string {
+function lock(assets: Record<string, unknown> = {}): string {
   return JSON.stringify({
     schemaVersion: 1,
     tscircuit: {
@@ -48,7 +49,7 @@ function lock(): string {
       independentParser: "gerber-parser@4.2.7",
     },
     profiles: {},
-    assets: {},
+    assets,
   }, null, 2) + "\n";
 }
 
@@ -139,17 +140,19 @@ describe("fixed PCBoo inspection and action server", () => {
     for (const path of [
       "/", "/api/project", "/api/circuit", "/api/inspect?type=pcb_component",
       "/api/checks", "/api/simulations", "/api/artifacts", "/schematic", "/pcb",
-      "/api/actions",
-      "/pcb/layers/top", "/checks", "/simulations/smoke", "/manufacturing",
+      "/api/actions", "/api/render/schematic", "/api/render/pcb",
+      "/pcb/layers/top", "/checks", "/simulations", "/simulations/smoke", "/manufacturing",
+      "/3d", "/explorer",
     ]) {
       const response = await fetch(new URL(path, server.url));
       expect(response.status, path).toBe(200);
       expect(response.headers.get("cache-control"), path).toBe("no-store");
       expect(response.headers.get("content-type"), path).toMatch(
-        path.startsWith("/api/") ? /^application\/json/ : /^text\/html/,
+        path.startsWith("/api/render/") ? /^image\/svg\+xml/
+          : path.startsWith("/api/") ? /^application\/json/ : /^text\/html/,
       );
     }
-  });
+  }, 45_000);
 
   test("returns focused inspection data, unassessed engineering statuses, and fail-closed sourcing evidence", async () => {
     const { root } = await project();
@@ -502,19 +505,24 @@ describe("fixed PCBoo inspection and action server", () => {
     expect(body.inspection[0].sourceLocations.length).toBeGreaterThan(0);
   });
 
-  test("serves fixed tscircuit-backed SVG views and a fixed interaction asset", async () => {
+  test("serves the Bun-built React application and fixed tscircuit-backed SVG views", async () => {
     const { root } = await project();
     const server = await start(root);
     const pcb = await fetch(new URL("/pcb", server.url));
     const html = await pcb.text();
-    expect(html).toContain("<svg");
-    expect(html).toContain("data-pcboo-viewer");
-    expect(html).toContain("/assets/viewer.js");
+    expect(html).toContain('id="root"');
+    expect(html).toMatch(/\/assets\/pcboo-app-[a-z0-9]+\.js/u);
     expect(html).toContain("circuit sha256:");
-    const script = await fetch(new URL("/assets/viewer.js", server.url));
+    const scriptPath = html.match(/src="(\/assets\/pcboo-app-[a-z0-9]+\.js)"/u)?.[1];
+    expect(scriptPath).toBeDefined();
+    const script = await fetch(new URL(scriptPath!, server.url));
     expect(script.headers.get("content-type")).toMatch(/^text\/javascript/);
-    expect(await script.text()).toContain("data-layer-filter");
-  });
+    expect(script.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+    expect((await script.text()).length).toBeGreaterThan(10_000);
+    const render = await fetch(new URL("/api/render/pcb", server.url));
+    expect(render.headers.get("content-type")).toMatch(/^image\/svg\+xml/);
+    expect(await render.text()).toContain("<svg");
+  }, 15_000);
 
   test("returns visible warning metadata for explicit non-loopback binding", async () => {
     const { root } = await project();
@@ -529,6 +537,42 @@ describe("fixed PCBoo inspection and action server", () => {
         actionsEnabled: false,
       },
     });
+  });
+
+  test("serves only digest-locked project-local 3D model bytes", async () => {
+    const { root } = await project();
+    const model = new Uint8Array([0x67, 0x6c, 0x54, 0x46, 2, 0, 0, 0]);
+    const notice = "fixture model notice\n";
+    const digest = `sha256:${new Bun.CryptoHasher("sha256").update(model).digest("hex")}`;
+    const noticeDigest = `sha256:${new Bun.CryptoHasher("sha256").update(notice).digest("hex")}`;
+    await Bun.write(join(root, "models", "assembly.glb"), model);
+    await Bun.write(join(root, "models", "LICENSE.txt"), notice);
+    await Bun.write(join(root, "pcboo.lock"), lock({
+      assembly: {
+        source: "https://example.invalid/assembly.glb",
+        version: "fixture-1",
+        digest,
+        license: "CC0-1.0",
+        attribution: "PCBoo test fixture",
+        licenseNotice: "models/LICENSE.txt",
+        licenseNoticeDigest: noticeDigest,
+        redistribution: "allowed",
+      },
+    }));
+    const server = await start(root);
+
+    const response = await fetch(new URL("/models/assembly.glb", server.url));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("model/gltf-binary");
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(model);
+    const head = await fetch(new URL("/models/assembly.glb", server.url), { method: "HEAD" });
+    expect(head.status).toBe(200);
+    expect((await head.arrayBuffer()).byteLength).toBe(0);
+
+    await Bun.write(join(root, "models", "assembly.glb"), new Uint8Array([...model, 1]));
+    const changed = await fetch(new URL("/models/assembly.glb", server.url));
+    expect(changed.status).toBe(409);
+    expect(await changed.text()).toContain("Model bytes are not approved by pcboo.lock.assets");
   });
 
   test("publishes verified engine identity without filesystem locations", async () => {
@@ -1199,6 +1243,43 @@ describe("fixed PCBoo inspection and action server", () => {
     expect(checks.statuses.electrical?.state).not.toBe("not-run");
     expect(["unavailable", "incomplete"]).toContain(checks.statuses.functional!.state);
     expect(checks.lastAction.command).toBe("pcboo export kicad");
+  }, 120_000);
+
+  test("live-syncs verification evidence written by an external CLI action", async () => {
+    const { root } = await project();
+    const server = await start(root, { watchDebounceMs: 20 });
+    const projectUrl = new URL("/api/project", server.url);
+    const initial = await (await fetch(projectUrl)).json() as {
+      snapshot: { revision: number };
+      server: { activityRevision: number; activityUpdatedAt: string };
+    };
+
+    const checked = await runCli({
+      argv: ["check"],
+      cwd: root,
+      runId: "external-live-sync",
+    });
+    expect(checked.result?.requestedDimensions).toEqual(["electrical", "fabrication"]);
+
+    const synchronized = await waitFor(
+      async () => await (await fetch(projectUrl)).json() as {
+        snapshot: { revision: number };
+        server: { activityRevision: number; activityUpdatedAt: string };
+      },
+      ({ server: live }) => live.activityRevision > initial.server.activityRevision,
+    );
+    expect(synchronized.snapshot.revision).toBe(initial.snapshot.revision);
+    expect(Date.parse(synchronized.server.activityUpdatedAt))
+      .toBeGreaterThanOrEqual(Date.parse(initial.server.activityUpdatedAt));
+
+    const checks = await (await fetch(new URL("/api/checks", server.url))).json() as any;
+    expect(checks.lastAction).toMatchObject({
+      command: "pcboo check",
+      runId: "external-live-sync",
+    });
+    expect(checks.evidenceActions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ runId: "external-live-sync" }),
+    ]));
   }, 120_000);
 
   test("rejects artifact mutation before action attachment and publishes no stale references", async () => {

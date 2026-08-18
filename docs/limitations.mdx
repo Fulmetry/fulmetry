@@ -17,9 +17,18 @@ PCBoo favors explicit unsupported and incomplete results over broad claims. The 
 
 - One board per project.
 - One rectangular two- or four-layer board for verified manufacturing.
-- Supported component-owned SMT, circular component-owned PTH, NPTH, and full-stack through vias.
+- Supported component-owned SMT, circular or straight routed-slot component-owned PTH, NPTH, and full-stack through vias.
+- Axis-aligned rectangular copper keepouts are checked independently on each declared board layer; other keepout shapes remain unsupported.
+- Source-bound custom footprints require an explicit manufacturer part number and safe emitted geometry; explicitly marked mechanical support pads do not become electrical pins.
 - Ownerless SMT pads and fiducials are not yet inside the verified promotion surface.
 - Verified manifests are content-addressed but unsigned.
+
+## Browser and 3D inspection
+
+- The browser is a read-only inspection and derived-action surface; edits are made in project source.
+- Schematic and PCB canvases are tscircuit-backed SVG views. Structured Circuit JSON and bounded inspection results remain authoritative.
+- The 3D view reconstructs board, pad, trace, hole, and component primitives from available Circuit JSON geometry. It does not yet resolve vendor STEP/GLTF models, prove enclosure clearance, or become mechanical or manufacturing evidence.
+- WebGL-unavailable machines retain the 2D and structured inspection surfaces and receive an explicit 3D fallback state.
 
 ## Tools
 

@@ -15,9 +15,18 @@ export const DISTRIBUTED_PACKAGE_LICENSES = Object.freeze([
   { name: "circuit-json-to-kicad", version: "0.0.171", license: "MIT", contentSha256: "b69b6f63a21d5d6f9088168e254508602ab589a44c2b4a35fc86c18023b3315a" },
   { name: "circuit-json-to-pnp-csv", version: "0.0.9", license: "MIT", contentSha256: "80b1fa1e8045bb83f11c6f11c3a8afad13ef895564aeb85e93b58b108741b9ba" },
   { name: "circuit-to-svg", version: "0.0.400", license: "ISC", contentSha256: "e0c26ed6f3fab4d22afad4ef2794b991b53e0a7c995efc2359d35cbe9cb3bdec" },
+  { name: "class-variance-authority", version: "0.7.1", license: "Apache-2.0", contentSha256: "7a3ed30dd38784750e84f8bcd4807e8fc847fad25b1c60756bcdc8a4e2eabad8" },
+  { name: "clsx", version: "2.1.1", license: "MIT", contentSha256: "82f7ea42660428c19cc7432af2f6f9f05986f8d5b9e0451bd6b7c415ba21a715" },
+  { name: "dsn-converter", version: "0.0.90", license: "MIT", contentSha256: "3fa1e61970992dcadc3fccaf473d90e57726a77e52d7c89f3a7f852b57ce5663" },
   { name: "format-si-prefix", version: "0.3.2", license: "MIT", contentSha256: "5f1a4e5fd4519e1f33f9c3676bd0659663b94b72691aebaad870fc7349958677" },
   { name: "gerber-parser", version: "4.2.7", license: "MIT", contentSha256: "7a7fa9ec1f2649ed8c13ee184dd73b523c8a2bdb507a533e692d7e167c2de9a6" },
   { name: "kicadts", version: "0.0.53", license: "MIT", contentSha256: "d3664508f31c9b9fecc00a4d3f4a733e46396a430da9576840aafa4830d0c334" },
+  { name: "lucide-react", version: "1.30.0", license: "ISC", contentSha256: "a9c3866112e1bde6671fe40defbecbd8b66448e21548b2ddfedc0c638b413c10" },
+  { name: "react", version: "19.2.8", license: "MIT", contentSha256: "89c9d8559c102b00ea4926bc714e687438fc95db8f8bf647517230616a905d1b" },
+  { name: "react-dom", version: "19.2.8", license: "MIT", contentSha256: "bd8bdbb52be56a9684e15ed6583157deb0e270ca8a881d7848989e1c46b12e68" },
+  { name: "tailwind-merge", version: "3.6.0", license: "MIT", contentSha256: "ab6ffae6e17172459bf52fabc948bf3c11f7d8dc6226c91da2905fcc09d8ddd5" },
+  { name: "tailwindcss", version: "4.3.3", license: "MIT", contentSha256: "204dd3629459136119239726a73fab2a02ddcf6180a774a93eb29cd3d83ea634" },
+  { name: "three", version: "0.179.1", license: "MIT", contentSha256: "5e8757f2a089258eb648c8cb745e4623a32370ad41dfde37b515ed3519abddc6" },
   { name: "tscircuit", version: "0.0.2261", license: "MIT", contentSha256: "c0880767e6967a6b7f8423604882ba6989d9a58108355b3835f48309f09cf487" },
   { name: "typescript", version: "5.9.3", license: "Apache-2.0", contentSha256: "1247d2a746ccfbc5d73c07f6d61c2e05197373d4668f258a0681e77298eccf27" },
 ] as const);
@@ -70,6 +79,7 @@ export const PCBOO_DISTRIBUTION_FILES = Object.freeze([
 export const CREATE_PCBOO_DISTRIBUTION_FILES = Object.freeze([
   "LICENSE",
   "README.md",
+  "skills",
   "src",
 ] as const);
 
@@ -262,7 +272,7 @@ export function renderThirdPartyNotices(): string {
     "",
     "PCBoo is an independent MIT-licensed project built on tscircuit. It is not an official tscircuit product and does not imply endorsement by or affiliation with tscircuit Inc.",
     "",
-    "The following direct runtime, optional, and peer packages are declared by PCBoo but are not bundled into PCBoo's package tarball. Their own license terms remain in force. The normal package prepack boundary recursively accepts only reviewed MIT/SPDX-marked PCBoo TypeScript under src, reconciles its bare imports to this table, requires the exact qualified top-level inventory, complete PCBoo MIT text, this generated notice, and exact reviewed installed package content. The two explicit ISC fallbacks classify exact pinned nonbundled bytes using package metadata and SPDX, and are not represented as package-specific copyright notices.",
+    "The following direct runtime, optional, and peer packages are declared by PCBoo but are not bundled into PCBoo's package tarball. Their own license terms remain in force. The normal package prepack boundary recursively accepts only reviewed MIT/SPDX-marked PCBoo TypeScript, TSX, and CSS under src, reconciles bare imports to this table, requires the exact qualified top-level inventory, complete PCBoo MIT text, this generated notice, and exact reviewed installed package content. Explicit SPDX fallbacks classify exact pinned nonbundled bytes using package metadata and SPDX when a package omits license text, and are not represented as package-specific copyright notices.",
     "",
     "| Package | Pinned version | License | Evidence | Source |",
     "| --- | ---: | --- | --- | --- |",
@@ -341,7 +351,7 @@ function importedPackageNames(source: string, relativePath: string): readonly st
     source,
     ts.ScriptTarget.ESNext,
     true,
-    ts.ScriptKind.TS,
+    relativePath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
   );
   const addLiteral = (value: ts.Expression | undefined, kind: string): void => {
     if (value === undefined || !ts.isStringLiteralLike(value)) {
@@ -450,6 +460,15 @@ function importedPackageNames(source: string, relativePath: string): readonly st
   return Object.freeze([...names].sort());
 }
 
+function importedCssPackageNames(source: string): readonly string[] {
+  const names = new Set<string>();
+  for (const match of source.matchAll(/@import\s+(?:url\(\s*)?["']([^"']+)["']/gu)) {
+    const name = barePackageName(match[1]!);
+    if (name !== undefined) names.add(name);
+  }
+  return Object.freeze([...names].sort());
+}
+
 async function requireQualifiedPackagedSourceTree(
   sourceRoot: string,
   declaredPackages: ReadonlySet<string>,
@@ -497,11 +516,13 @@ async function requireQualifiedPackagedSourceTree(
       const qualifiedPowerShell = relativePath === "internal/windows-job-runner.ps1";
       const qualifiedBunConfig = relativePath === "internal/empty-bunfig.toml";
       const qualifiedJavaScriptLauncher = qualifiedJavaScriptLaunchers.has(relativePath);
+      const ownedTypeScript = name.endsWith(".ts") || name.endsWith(".tsx");
+      const ownedCss = name.endsWith(".css");
       if (
         !stat.isFile() ||
-        (!name.endsWith(".ts") && !qualifiedPowerShell && !qualifiedBunConfig && !qualifiedJavaScriptLauncher)
+        (!ownedTypeScript && !ownedCss && !qualifiedPowerShell && !qualifiedBunConfig && !qualifiedJavaScriptLauncher)
       ) {
-        throw new Error(`pcboo packaged source contains an unqualified non-TypeScript asset ${relativePath}`);
+        throw new Error(`pcboo packaged source contains an unqualified source asset ${relativePath}`);
       }
       fileCount += 1;
       if (fileCount > MAX_PACKAGED_SOURCE_FILES) {
@@ -523,17 +544,21 @@ async function requireQualifiedPackagedSourceTree(
       const copyright = sourceLines[provenanceOffset];
       const license = sourceLines[provenanceOffset + 1];
       const hashComment = qualifiedPowerShell || qualifiedBunConfig;
+      const blockComment = ownedCss;
       const expectedCopyright = hashComment
         ? PCBOO_SOURCE_COPYRIGHT.replace(/^\/\//u, "#")
-        : PCBOO_SOURCE_COPYRIGHT;
+        : blockComment ? `/* ${PCBOO_SOURCE_COPYRIGHT.replace(/^\/\/\s*/u, "")} */` : PCBOO_SOURCE_COPYRIGHT;
       const expectedLicense = hashComment
         ? PCBOO_SOURCE_LICENSE.replace(/^\/\//u, "#")
-        : PCBOO_SOURCE_LICENSE;
+        : blockComment ? `/* ${PCBOO_SOURCE_LICENSE.replace(/^\/\/\s*/u, "")} */` : PCBOO_SOURCE_LICENSE;
       if (copyright !== expectedCopyright || license !== expectedLicense) {
         throw new Error(`pcboo packaged source lacks reviewed PCBoo provenance headers: ${relativePath}`);
       }
       if (!qualifiedPowerShell && !qualifiedBunConfig) {
-        for (const packageName of importedPackageNames(source, relativePath)) {
+        const imports = ownedCss
+          ? importedCssPackageNames(source)
+          : importedPackageNames(source, relativePath);
+        for (const packageName of imports) {
           if (!declaredPackages.has(packageName)) {
             throw new Error(`pcboo packaged source ${relativePath} imports unqualified package ${packageName}`);
           }

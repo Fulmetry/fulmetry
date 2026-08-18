@@ -1,0 +1,4 @@
+interface:
+  display_name: "PCBoo Manufacturing"
+  short_description: "Prepare and verify PCB manufacturing data"
+  default_prompt: "Use $pcboo-manufacturing to prepare and independently verify PCBoo manufacturing artifacts."

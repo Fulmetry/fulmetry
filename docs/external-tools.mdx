@@ -18,7 +18,7 @@ Named modules under `simulations/` define supported testbenches and numeric asse
 - RC AC magnitude and phase; and
 - divider DC sweep.
 
-The initial detection range covers ngspice versions 42–46, but a version string alone never grants trust. Missing containment, a failed qualification, a timeout, or changed executable bytes produce an unavailable or incomplete result—not passage.
+The initial detection range covers ngspice versions 42–47, but a version string alone never grants trust. Missing containment, a failed qualification, a timeout, or changed executable bytes produce an unavailable or incomplete result—not passage.
 
 ## KiCad handoff
 
@@ -42,7 +42,7 @@ PCBoo distinguishes three levels:
 2. **Independent verification** — parsed and reconciled manufacturing evidence for the current project identity.
 3. **Promoted bundle** — content-addressed artifacts and notices with a verified manifest.
 
-The initial verified manufacturing surface is conservative: one rectangular two- or four-layer board, supported component-owned SMT and circular PTH pads, NPTH holes, and full-stack through vias.
+The initial verified manufacturing surface is conservative: one rectangular two- or four-layer board, supported component-owned SMT and circular or straight routed-slot PTH pads, NPTH holes, full-stack through vias, and axis-aligned rectangular copper keepouts on declared board layers. Named pinned footprints remain signature-qualified; source-bound custom footprints require an explicit manufacturer part number and safe emitted geometry.
 
 ## Trust boundary
 

@@ -560,6 +560,8 @@ Routing verification tests assert:
 - Re-running a deterministic router with identical inputs yields equivalent routing.
 - Router failure returns unresolved nets and congestion evidence rather than partial success.
 
+The first router integration is a bounded Freerouting adapter, not a source editor. It authenticates the exact user-supplied JAR, requires the qualified Java major, exports the complete copper stack and active manufacturing clearance, disables the router's network-facing services, and records resource and input identity in the candidate evidence. Candidate output is never authoritative by itself. A separate explicit promotion operation converts stable endpoint metadata into composable semantic TypeScript route modules, emits explicit through-via records, writes only a fresh directory, and refuses overwrite. Promoted source must independently pass the same connectivity, clearance, manufacturing, and interoperability checks as manually authored routing.
+
 The suite includes narrow channels, dense pads, unavoidable-routing cases, same-layer crossing traps, multilayer escapes, and intentionally impossible boards.
 
 ### 8.9 Simulation tests

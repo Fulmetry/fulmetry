@@ -13,6 +13,20 @@ An agent authors a PCBoo project by reading and editing its normal TypeScript, c
 
 PCBoo does not require an MCP server for these operations. This keeps the local project model close to frameworks such as Next.js: source files are the interface, and commands provide build and inspection tools.
 
+## Project-local Agent Skills
+
+`bun create pcboo` installs a version-matched portable skill catalog by default. Codex, Cursor, and compatible agents read `.agents/skills/`; Claude Code receives deterministic copies under `.claude/skills/`. Start with `pcboo-best-practices`, which routes design, model resolution, diagnosis, verification, and manufacturing work to focused skills. A create, build, or design request defaults to a complete logical and physical board unless the user explicitly asks for a limited draft. Before a final browser preview, agents must load `pcboo-resolve-models`, resolve and vendor permitted exact models, and pass its fresh Circuit JSON audit; unresolved bounding boxes keep the preview gate incomplete.
+
+The creator copies skills from its own package instead of running a second network installer, so the skill instructions match the generated PCBoo version. Pass `--no-skills` to omit them. To add the latest catalog to an existing project, run:
+
+```sh
+bunx --bun skills@latest add pcboo-dev/pcboo --copy
+```
+
+The Node package-runner equivalent is `npx skills@latest add pcboo-dev/pcboo --copy`.
+
+Use copy mode because PCBoo's authoritative input boundary deliberately rejects project symlinks. Skills guide an agent but do not grant filesystem, network, or tool permissions; the agent host remains responsible for enforcing those controls.
+
 ## Public docs use docs.page
 
 docs.page exposes these public documentation files through three useful surfaces:
@@ -41,13 +55,14 @@ Use the docs MCP when an agent needs a focused piece of PCBoo guidance without l
 
 ## Browser inspection is not circuit authority
 
-The local PCBoo browser presents schematic, PCB, layer, selection, measurement, and status views. Browser actions can request bounded derived work on loopback, but browser state never changes the authored circuit. An agent that wants to modify the board edits the files and rebuilds.
+The local PCBoo browser presents an overview plus schematic, PCB, layer, 3D assembly, selection, measurement, check, simulation, manufacturing, and searchable Circuit JSON views. The 3D scene is reconstructed locally from available Circuit JSON geometry and is an inspection aid, not mechanical or manufacturing authority. Browser actions can request bounded derived work on loopback, but browser state never changes the authored circuit. An agent that wants to modify the board edits the files and rebuilds.
 
 ## Recommended agent sequence
 
 1. Read `pcboo.config.ts`, `pcboo.lock`, and the relevant circuit modules.
 2. Load only the documentation pages needed for the requested change.
-3. Make a small source edit.
-4. Run `build --json` and the relevant independent checks.
-5. Read diagnostics and inspect bounded geometry or connectivity when needed.
-6. Repeat until the requested evidence is satisfied or a limitation is explicit.
+3. Resolve component pins, packages, footprints, requested realistic models, and provenance from authoritative sources.
+4. Implement logical topology, intentional placement, routing, vias, and physical model bindings in source.
+5. Run `build --json`; inspect the fresh Circuit JSON for missing footprints, absent PCB traces, placeholder CAD, and other physical-readiness failures.
+6. Run the relevant independent checks and tests, then repeat until the requested evidence is satisfied or a precise limitation is explicit.
+7. Start the local server only after the applicable completion gate passes, open the browser routes, compare them with the same artifact digest, and leave the server running for the user.

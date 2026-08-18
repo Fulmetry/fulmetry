@@ -62,9 +62,10 @@ The scaffold produces a normal single-package repository with:
 - `pcboo.config.ts` for resolved project configuration;
 - deterministic `pcboo.lock` authority;
 - Bun tests;
-- an agent guide; and
+- an agent guide;
+- version-matched project-local Agent Skills under `.agents/skills/` and `.claude/skills/`; and
 - scripts for build, check, inspection, simulation, and export.
 
-The scaffold refuses to overwrite an existing path.
+The scaffold refuses to overwrite an existing path. Pass `--no-skills` to omit the skills. Existing projects can install the public catalog separately with `bunx --bun skills@latest add pcboo-dev/pcboo --copy` (or `npx skills@latest add pcboo-dev/pcboo --copy`); PCBoo projects use copies because symlinks are rejected by the authoritative project-input boundary.
 
 Next, see [Project structure](/project-structure) and [Author circuits](/authoring).

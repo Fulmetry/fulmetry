@@ -127,7 +127,7 @@ function exportableManufacturerPartNumber(value: unknown): string {
 function assemblyCsvCircuitJson(circuitJson: AnyCircuitElement[]): AnyCircuitElement[] {
   const excludedSourceIds = new Set(circuitJson.flatMap((element) =>
     element.type === "source_component" &&
-      !isStableAssemblyDesignator(element.name)
+      (element.ftype === "simple_test_point" || !isStableAssemblyDesignator(element.name))
       ? [element.source_component_id]
       : []
   ));
@@ -288,8 +288,9 @@ export function canonicalizeManufacturingText(content: string): string {
 /**
  * circuit-json-to-gerber 0.0.90 crashes when a plated hole includes an inner
  * layer because it unconditionally requests that inner layer's solder-mask
- * file. For circular through-holes, express the inner annular pads as a
- * Gerber-only via while retaining the original PTH on the two outer layers.
+ * file. Express inner annular copper as Gerber-only features while retaining
+ * the original PTH on the two outer layers. The untouched Circuit JSON remains
+ * authoritative for drill, BOM, PnP, and manufacturing reconciliation.
  * Drill/BOM/PnP conversion always receives the untouched Circuit JSON.
  */
 function gerberCompatibleCircuitJson(
@@ -304,28 +305,158 @@ function gerberCompatibleCircuitJson(
       compatible.push(element);
       continue;
     }
-    if (element.shape !== "circle") {
+    const rectSlot = element.shape === "pill_hole_with_rect_pad" ||
+      element.shape === "rotated_pill_hole_with_rect_pad";
+    if (element.shape !== "circle" && !rectSlot) {
       throw new Error(
         `Four-layer Gerber export does not yet safely support ${element.shape} plated hole ${element.pcb_plated_hole_id}`,
       );
     }
 
-    compatible.push({ ...element, layers: ["top", "bottom"] });
-    compatible.push({
-      type: "pcb_via",
-      pcb_via_id: `pcboo_inner_pad_${element.pcb_plated_hole_id}`,
-      x: element.x,
-      y: element.y,
-      hole_diameter: element.hole_diameter,
-      outer_diameter: element.outer_diameter,
-      layers: ["inner1", "inner2"],
-      from_layer: "inner1",
-      to_layer: "inner2",
-      subcircuit_id: element.subcircuit_id,
-      pcb_group_id: element.pcb_group_id,
-    } as AnyCircuitElement);
+    compatible.push(element.shape === "rotated_pill_hole_with_rect_pad"
+      ? {
+          ...element,
+          layers: ["top", "bottom"],
+          rect_pad_width: element.rect_pad_height,
+          rect_pad_height: element.rect_pad_width,
+        } as AnyCircuitElement
+      : { ...element, layers: ["top", "bottom"] });
+    if (rectSlot) {
+      for (const layer of ["inner1", "inner2"] as const) {
+        compatible.push({
+          type: "pcb_smtpad",
+          pcb_smtpad_id: `pcboo_inner_pad_${layer}_${element.pcb_plated_hole_id}`,
+          pcb_component_id: element.pcb_component_id,
+          pcb_port_id: element.pcb_port_id,
+          x: element.x,
+          y: element.y,
+          shape: "rect",
+          width: element.shape === "rotated_pill_hole_with_rect_pad"
+            ? element.rect_pad_height
+            : element.rect_pad_width,
+          height: element.shape === "rotated_pill_hole_with_rect_pad"
+            ? element.rect_pad_width
+            : element.rect_pad_height,
+          layer,
+          is_covered_with_solder_mask: true,
+          subcircuit_id: element.subcircuit_id,
+          pcb_group_id: element.pcb_group_id,
+        } as AnyCircuitElement);
+      }
+    } else {
+      compatible.push({
+        type: "pcb_via",
+        pcb_via_id: `pcboo_inner_pad_${element.pcb_plated_hole_id}`,
+        x: element.x,
+        y: element.y,
+        hole_diameter: element.hole_diameter,
+        outer_diameter: element.outer_diameter,
+        layers: ["inner1", "inner2"],
+        from_layer: "inner1",
+        to_layer: "inner2",
+        subcircuit_id: element.subcircuit_id,
+        pcb_group_id: element.pcb_group_id,
+      } as AnyCircuitElement);
+    }
   }
   return compatible;
+}
+
+/**
+ * The pinned exporter also derives drills from dimensioned via route points.
+ * PCBoo authored routes intentionally materialize explicit pcb_via records, so
+ * leaving both representations dimensioned would duplicate the same physical
+ * drill. Keep route transition coordinates/layers and let the explicit record
+ * be the sole manufacturing geometry authority.
+ */
+function explicitViaCompatibleCircuitJson(
+  circuitJson: AnyCircuitElement[],
+): AnyCircuitElement[] {
+  const explicit = new Set(circuitJson.flatMap((element) =>
+    element.type === "pcb_via" && typeof element.pcb_trace_id === "string"
+      ? [`${element.pcb_trace_id}:${element.x}:${element.y}`]
+      : []
+  ));
+  return circuitJson.map((element) => {
+    if (element.type !== "pcb_trace") return element;
+    let changed = false;
+    const route = element.route.map((point) => {
+      if (
+        point.route_type !== "via" ||
+        !explicit.has(`${element.pcb_trace_id}:${point.x}:${point.y}`)
+      ) return point;
+      changed = true;
+      const { hole_diameter: _hole, outer_diameter: _outer, ...transition } = point;
+      return transition;
+    });
+    return changed ? { ...element, route } as AnyCircuitElement : element;
+  });
+}
+
+function gerberCoordinate(value: number): string {
+  const scaled = Math.round(value * 1_000_000);
+  return scaled < 0 ? `-${Math.abs(scaled)}` : String(scaled);
+}
+
+/**
+ * circuit-json-to-gerber@0.0.90 declares rectangular apertures for inner-layer
+ * PTH annuli but omits their flashes. Add only those missing flashes to the
+ * pinned adapter's output. The independent verifier still reconciles every
+ * coordinate and aperture dimension against the untouched authored geometry.
+ */
+function addInnerPlatedSlotFlashes(
+  content: string,
+  circuitJson: AnyCircuitElement[],
+  layer: "inner1" | "inner2",
+): string {
+  const slots = circuitJson.filter((element): element is Extract<
+    AnyCircuitElement,
+    {
+      type: "pcb_plated_hole";
+      shape: "pill_hole_with_rect_pad" | "rotated_pill_hole_with_rect_pad";
+    }
+  > =>
+    element.type === "pcb_plated_hole" &&
+    (element.shape === "pill_hole_with_rect_pad" ||
+      element.shape === "rotated_pill_hole_with_rect_pad") &&
+    element.layers.includes(layer)
+  );
+  if (slots.length === 0) return content;
+
+  const apertures = new Map<string, number>();
+  let highestCode = 9;
+  for (const match of content.matchAll(/^%ADD(\d+)R,([0-9.]+)X([0-9.]+)\*%$/gmu)) {
+    const code = Number(match[1]);
+    highestCode = Math.max(highestCode, code);
+    apertures.set(`${Number(match[2]).toFixed(6)}x${Number(match[3]).toFixed(6)}`, code);
+  }
+  for (const match of content.matchAll(/^%ADD(\d+)/gmu)) {
+    highestCode = Math.max(highestCode, Number(match[1]));
+  }
+
+  const declarations: string[] = [];
+  const flashes: string[] = [];
+  for (const slot of slots) {
+    const rotated = slot.shape === "rotated_pill_hole_with_rect_pad";
+    const width = rotated ? slot.rect_pad_height : slot.rect_pad_width;
+    const height = rotated ? slot.rect_pad_width : slot.rect_pad_height;
+    const key = `${width.toFixed(6)}x${height.toFixed(6)}`;
+    let code = apertures.get(key);
+    if (code === undefined) {
+      code = ++highestCode;
+      apertures.set(key, code);
+      declarations.push(`%ADD${code}R,${width.toFixed(6)}X${height.toFixed(6)}*%`);
+    }
+    flashes.push(
+      `D${code}*\nX${gerberCoordinate(slot.x)}Y${gerberCoordinate(slot.y)}D03*`,
+    );
+  }
+
+  let result = content;
+  if (declarations.length > 0) {
+    result = result.replace("%TD*%", `${declarations.join("\n")}\n%TD*%`);
+  }
+  return result.replace(/M02\*\s*$/u, `${flashes.join("\n")}\nM02*\n`);
 }
 
 export async function exportManufacturingFiles(options: {
@@ -339,14 +470,26 @@ export async function exportManufacturingFiles(options: {
     );
   }
   const layerCount = assertOneSupportedBoard(options.circuitJson);
+  const adapterCircuitJson = explicitViaCompatibleCircuitJson(options.circuitJson);
 
   const gerberLayers = stringifyGerberCommandLayers(
     convertSoupToGerberCommands(
-      gerberCompatibleCircuitJson(options.circuitJson, layerCount),
+      gerberCompatibleCircuitJson(adapterCircuitJson, layerCount),
     ),
   );
+  if (layerCount === 4) {
+    for (const [layer, file] of [
+      ["inner1", "In1_Cu"],
+      ["inner2", "In2_Cu"],
+    ] as const) {
+      const content = gerberLayers[file];
+      if (content !== undefined) {
+        gerberLayers[file] = addInnerPlatedSlotFlashes(content, adapterCircuitJson, layer);
+      }
+    }
+  }
   const drillLayers = convertSoupToExcellonDrillCommandLayers({
-    circuitJson: options.circuitJson,
+    circuitJson: adapterCircuitJson,
   });
   const assemblyCircuitJson = assemblyCsvCircuitJson(options.circuitJson);
   const bomRows = await convertCircuitJsonToBomRows({ circuitJson: assemblyCircuitJson });

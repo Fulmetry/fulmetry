@@ -337,7 +337,7 @@ describe("independent manufacturing verification", () => {
     expect(roleForgeryResult.findings).toEqual([
       expect.objectContaining({
         code: "MANUFACTURING_INPUT_LIMIT",
-        message: "assembly authority role must match the independently qualified emitted pad signature",
+        message: "test-point assembly authority must own exactly one emitted copper pad source",
       }),
     ]);
     expect(roleForgeryResult.artifacts).toEqual([]);
@@ -673,7 +673,7 @@ describe("independent manufacturing verification", () => {
     expect(converseResult.findings).toEqual([
       expect.objectContaining({
         code: "MANUFACTURING_INPUT_LIMIT",
-        message: "full-stack copper flashes must be one aligned circular feature per layer and source",
+        message: "full-stack copper flashes must be one aligned circular or rectangular feature per layer and source",
       }),
     ]);
     expect(converseResult.artifacts).toEqual([]);
@@ -2089,11 +2089,88 @@ describe("independent manufacturing verification", () => {
     });
     const expectation = deriveManufacturingExpectation({ boardName: "control", circuitJson });
     expect(expectation.unsupported).toContainEqual(
-      expect.stringContaining("CAD footprint is not qualified by its emitted pad signature"),
+      expect.stringContaining("CAD footprint is not qualified by a pinned or source-bound emitted pad signature"),
     );
     const result = await verifyManufacturingDirectory({ root, expectation });
     expect(result.passed).toBeFalse();
     expect(result.findings.map(({ code }) => code)).toContain("MANUFACTURING_UNSUPPORTED");
+  });
+
+  test("allows an intentional CAD model-origin offset within the footprint but rejects a detached anchor", async () => {
+    const circuitJson = await manufacturingFixture(2);
+    const component = circuitJson.find((element) => element.type === "pcb_component" && element.source_component_id === "source_component_1");
+    const cad = component?.type === "pcb_component"
+      ? circuitJson.find((element) => element.type === "cad_component" && element.pcb_component_id === component.pcb_component_id)
+      : undefined;
+    if (component?.type !== "pcb_component" || cad?.type !== "cad_component") throw new Error("CAD anchor fixture missing");
+
+    cad.position.x = component.center.x + component.width / 2;
+    let expectation = deriveManufacturingExpectation({ boardName: "control", circuitJson });
+    expect(expectation.unsupported).not.toContainEqual(expect.stringContaining("CAD identity or anchor"));
+
+    cad.position.x = component.center.x + component.width / 2 + 0.01;
+    expectation = deriveManufacturingExpectation({ boardName: "control", circuitJson });
+    expect(expectation.unsupported).toContainEqual(expect.stringContaining("CAD identity or anchor lies outside"));
+  });
+
+  test("qualifies source-bound custom geometry, mechanical pads, and optional supplier identity", async () => {
+    const circuitJson = await manufacturingFixture(2);
+    const source = circuitJson.find((element) =>
+      element.type === "source_component" && element.name === "R1"
+    );
+    const component = source?.type === "source_component"
+      ? circuitJson.find((element) =>
+        element.type === "pcb_component" &&
+        element.source_component_id === source.source_component_id
+      )
+      : undefined;
+    const cad = component?.type === "pcb_component"
+      ? circuitJson.find((element) =>
+        element.type === "cad_component" &&
+        element.pcb_component_id === component.pcb_component_id
+      )
+      : undefined;
+    if (
+      source?.type !== "source_component" ||
+      component?.type !== "pcb_component" ||
+      cad?.type !== "cad_component"
+    ) throw new Error("Source-bound custom-footprint fixture is incomplete");
+
+    source.manufacturer_part_number = "RC0603FR-0710KL";
+    source.supplier_part_numbers = {};
+    cad.footprinter_string = "";
+    circuitJson.push({
+      type: "pcb_smtpad",
+      pcb_smtpad_id: "pcb_smtpad_pcboo_mechanical_1",
+      pcb_component_id: component.pcb_component_id,
+      layer: "top",
+      shape: "rect",
+      x: component.center.x,
+      y: component.center.y,
+      width: 0.8,
+      height: 0.8,
+      port_hints: ["pcboo:mechanical"],
+    } as AnyCircuitElement);
+
+    const expectation = deriveManufacturingExpectation({ boardName: "control", circuitJson });
+    expect(expectation.unsupported).not.toContainEqual(
+      expect.stringContaining(`${component.pcb_component_id}: CAD footprint is not qualified`),
+    );
+    expect(expectation.unsupported).not.toContainEqual(
+      expect.stringContaining("pcb_smtpad_pcboo_mechanical_1"),
+    );
+    expect(expectation.unsupported).not.toContainEqual(
+      expect.stringContaining(`${component.pcb_component_id}: populated manufacturing component R1 supplier identity`),
+    );
+    expect(expectation.bomRows.find((row) => row.columns.Designator === "R1")?.columns)
+      .toMatchObject({
+        Footprint: "",
+        Supplier: "",
+        "Supplier Part Number": "",
+      });
+    expect(
+      expectation.assemblyAuthority.find((entry) => entry.designator === "R1")?.padSources,
+    ).toContain("pcb_smtpad_pcboo_mechanical_1");
   });
 
   test("rejects a polarized placement rotation that contradicts its fixed pad orientation", async () => {
@@ -2122,7 +2199,7 @@ describe("independent manufacturing verification", () => {
     });
     const expectation = deriveManufacturingExpectation({ boardName: "control", circuitJson });
     expect(expectation.unsupported).toContainEqual(
-      expect.stringContaining("CAD footprint is not qualified by its emitted pad signature"),
+      expect.stringContaining("CAD footprint is not qualified by a pinned or source-bound emitted pad signature"),
     );
     const result = await verifyManufacturingDirectory({ root, expectation });
     expect(result.passed).toBeFalse();
@@ -2740,13 +2817,6 @@ describe("independent manufacturing verification", () => {
         json.filter(
           (element) => !(element.type === "pcb_smtpad" && element.pcb_component_id === "pcb_component_1"),
         ),
-      (json: Awaited<ReturnType<typeof manufacturingFixture>>) => {
-        const source = json.find(
-          (element) => element.type === "source_component" && element.name === "D1",
-        );
-        if (source?.type === "source_component") source.supplier_part_numbers = {};
-        return json;
-      },
       (json: Awaited<ReturnType<typeof manufacturingFixture>>) => {
         const source = json.find(
           (element) => element.type === "source_component" && element.name === "D1",

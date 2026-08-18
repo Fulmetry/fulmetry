@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 PCBoo contributors
 // SPDX-License-Identifier: MIT
 import { watch, type FSWatcher } from "node:fs";
-import { lstat } from "node:fs/promises";
+import { lstat, realpath, readdir } from "node:fs/promises";
 import { isIP } from "node:net";
-import { basename, dirname, join, relative } from "node:path";
+import { basename, dirname, extname, join, relative } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { runCli, type CliRun, type RunCliOptions } from "../cli/runner";
 import { discoverProject, type DiscoveredProject } from "../project/discovery";
@@ -13,13 +13,13 @@ import {
   type ProjectCircuitEvaluation,
 } from "../project/evaluate";
 import { loadPcbooLock, type PcbooLock } from "../project/lock";
-import { statusSet, unassessedStatusSet, type StatusSet } from "../status";
+import { STATUS_DIMENSIONS, statusSet, unassessedStatusSet, type StatusDimension, type StatusSet } from "../status";
 import {
   requireTscircuitIdentity,
   type TscircuitIdentityReport,
 } from "../engine-identity";
 import type { Diagnostic } from "../diagnostics";
-import type { ArtifactReference, ExitClassification } from "../result";
+import { commandResult, type ArtifactReference, type CommandResult, type ExitClassification } from "../result";
 import { digestProjectInputs } from "../project/input-digest";
 import { assessRecordedSourcing, type RecordedSourcingEvidence } from "../sourcing";
 import type { AnyCircuitElement } from "circuit-json";
@@ -51,6 +51,10 @@ import {
   deriveAuthoritativeConnectivity,
   type AuthoritativeConnectivity,
 } from "../authoritative-connectivity";
+import {
+  loadInspectionWebAssets,
+  type InspectionWebAssets,
+} from "./web-assets";
 
 const DEFAULT_HOSTNAME = "127.0.0.1";
 const DEFAULT_MAX_QUERY_BYTES = 2_048;
@@ -59,83 +63,13 @@ const MAX_INSPECT_RESULTS = 200;
 const DEFAULT_WATCH_DEBOUNCE_MS = 75;
 const DEFAULT_ACTION_BODY_BYTES = 1_024;
 const DEFAULT_ACTION_BODY_TIMEOUT_MS = 5_000;
-
-const VIEWER_SCRIPT = String.raw`(() => {
-  const number = (value) => Number.parseFloat(value || "");
-  for (const root of document.querySelectorAll("[data-pcboo-viewer]")) {
-    const svg = root.querySelector("svg");
-    if (!svg) continue;
-    const width = number(svg.getAttribute("width")) || 1000;
-    const height = number(svg.getAttribute("height")) || 700;
-    let view = { x: 0, y: 0, width, height };
-    const apply = () => svg.setAttribute("viewBox", [view.x, view.y, view.width, view.height].join(" "));
-    apply();
-    const zoom = (factor, clientX = svg.getBoundingClientRect().left + svg.clientWidth / 2, clientY = svg.getBoundingClientRect().top + svg.clientHeight / 2) => {
-      const rect = svg.getBoundingClientRect();
-      const rx = (clientX - rect.left) / rect.width;
-      const ry = (clientY - rect.top) / rect.height;
-      const nextWidth = Math.min(width * 20, Math.max(width / 100, view.width * factor));
-      const nextHeight = Math.min(height * 20, Math.max(height / 100, view.height * factor));
-      view = { x: view.x + rx * (view.width - nextWidth), y: view.y + ry * (view.height - nextHeight), width: nextWidth, height: nextHeight };
-      apply();
-    };
-    root.querySelector('[data-action="zoom-in"]')?.addEventListener("click", () => zoom(0.8));
-    root.querySelector('[data-action="zoom-out"]')?.addEventListener("click", () => zoom(1.25));
-    root.querySelector('[data-action="reset"]')?.addEventListener("click", () => { view = { x: 0, y: 0, width, height }; apply(); });
-    svg.addEventListener("wheel", (event) => { event.preventDefault(); zoom(event.deltaY < 0 ? 0.85 : 1.18, event.clientX, event.clientY); }, { passive: false });
-    let drag;
-    svg.addEventListener("pointerdown", (event) => { if (!root.hasAttribute("data-measuring")) { drag = { x: event.clientX, y: event.clientY, viewX: view.x, viewY: view.y }; svg.setPointerCapture(event.pointerId); } });
-    svg.addEventListener("pointermove", (event) => { if (!drag) return; const rect = svg.getBoundingClientRect(); view.x = drag.viewX - (event.clientX - drag.x) * view.width / rect.width; view.y = drag.viewY - (event.clientY - drag.y) * view.height / rect.height; apply(); });
-    svg.addEventListener("pointerup", () => { drag = undefined; });
-    for (const input of root.querySelectorAll("[data-layer-filter]")) input.addEventListener("change", () => {
-      const layer = input.getAttribute("data-layer-filter");
-      for (const item of svg.querySelectorAll("[data-pcb-layer]")) if (item.getAttribute("data-pcb-layer") === layer) item.style.display = input.checked ? "" : "none";
-    });
-    const selection = root.querySelector("[data-selection]");
-    svg.addEventListener("click", (event) => {
-      if (root.hasAttribute("data-measuring")) return;
-      const item = event.target.closest?.("[data-type]");
-      if (!item || !selection) return;
-      selection.textContent = JSON.stringify({ type: item.dataset.type, layer: item.dataset.pcbLayer || null, pad: item.dataset.padName || null });
-    });
-    root.querySelector('[data-action="copy-selection"]')?.addEventListener("click", async () => { if (selection?.textContent) await navigator.clipboard.writeText(selection.textContent); });
-    const measureOutput = root.querySelector("[data-measurement]");
-    let measurePoints = [];
-    root.querySelector('[data-action="measure"]')?.addEventListener("click", () => { root.toggleAttribute("data-measuring"); measurePoints = []; if (measureOutput) measureOutput.textContent = root.hasAttribute("data-measuring") ? "Select two points" : "Measurement off"; });
-    svg.addEventListener("click", (event) => {
-      if (!root.hasAttribute("data-measuring")) return;
-      const matrix = svg.getScreenCTM();
-      const board = svg.querySelector(".pcb-board");
-      const boardWidthMm = number(root.getAttribute("data-board-width-mm"));
-      if (!matrix || !board || !boardWidthMm) { if (measureOutput) measureOutput.textContent = "Exact visual scale unavailable; use /api/inspect"; return; }
-      const p = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
-      measurePoints.push(p);
-      if (measurePoints.length === 2) {
-        const unitsPerMm = board.getBBox().width / boardWidthMm;
-        const distance = Math.hypot(measurePoints[1].x - measurePoints[0].x, measurePoints[1].y - measurePoints[0].y) / unitsPerMm;
-        if (measureOutput) measureOutput.textContent = distance.toFixed(3) + " mm (visual; verify exact object gaps via /api/inspect)";
-        measurePoints = [];
-      }
-    });
-  }
-  for (const button of document.querySelectorAll("[data-server-action]")) button.addEventListener("click", async () => {
-    const output = document.querySelector("[data-action-result]");
-    try {
-      const project = await fetch("/api/project").then((response) => response.json());
-      if (!project.server.actionsEnabled || !project.server.actionToken) throw new Error("Browser actions are disabled for this binding");
-      const action = button.getAttribute("data-server-action");
-      const name = action === "simulate" ? document.querySelector("[data-simulation-name]")?.value : undefined;
-      const response = await fetch("/api/actions/" + action, { method: "POST", headers: { "Content-Type": "application/json", "X-PCBoo-Action-Token": project.server.actionToken }, body: JSON.stringify(name ? { name } : {}) });
-      const body = await response.json();
-      if (output) output.textContent = JSON.stringify(body, null, 2);
-    } catch (error) { if (output) output.textContent = String(error); }
-  });
-})();`;
+const MAX_RETAINED_REPORT_CANDIDATES = 512;
+const MAX_RETAINED_REPORT_BYTES = 2 * 1024 * 1024;
 
 export const INSPECTION_SERVER_INITIAL_LIMITS = Object.freeze([
   "The server watches project source and atomically retains the last good snapshot when rebuilding fails.",
   "Fixed build, check, simulation, and detached KiCad export actions may write derived .pcboo artifacts but never authored source.",
-  "Schematic and PCB pages use pinned tscircuit-backed SVG rendering; structured inspection remains authoritative.",
+  "Schematic and PCB pages use pinned tscircuit-backed SVG rendering; the local 3D assembly is derived from Circuit JSON geometry; structured inspection remains authoritative.",
   "Artifact metadata is reported without serving arbitrary project or output files.",
 ] as const);
 
@@ -204,6 +138,12 @@ interface LastSimulationAction extends LastServerAction {
   readonly artifacts: readonly ArtifactReference[];
 }
 
+interface RetainedEvidenceAction {
+  readonly action: LastServerAction;
+  readonly requestedDimensions: readonly StatusDimension[];
+  readonly authority: Readonly<ServerGeneratedFileAuthority>;
+}
+
 interface ServerSnapshot {
   readonly project: Readonly<DiscoveredProject>;
   readonly config: Readonly<PcbooConfig>;
@@ -217,10 +157,103 @@ interface ServerSnapshot {
   readonly sourcingEvidence: RecordedSourcingEvidence;
   readonly rebuild: SnapshotRebuildState;
   readonly lastAction?: LastServerAction;
+  readonly retainedEvidence: readonly RetainedEvidenceAction[];
   readonly lastSimulationAction?: LastSimulationAction;
+  readonly simulationActions?: ReadonlyMap<string, LastSimulationAction>;
   readonly warnings: readonly InspectionServerWarning[];
   readonly simulationNames: readonly string[];
   readonly inputPaths: readonly string[];
+}
+
+function parseRetainedCommandResult(value: unknown): Readonly<CommandResult> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new TypeError("Retained report must be a JSON object");
+  }
+  const candidate = value as Record<string, unknown>;
+  if (candidate.schemaVersion !== "1" || typeof candidate.project !== "object" || candidate.project === null) {
+    throw new TypeError("Retained report has an unsupported schema or no project context");
+  }
+  return commandResult(candidate as unknown as Omit<CommandResult, "schemaVersion" | "diagnostics" | "artifacts"> & {
+    readonly diagnostics?: CommandResult["diagnostics"];
+    readonly artifacts?: CommandResult["artifacts"];
+  });
+}
+
+async function loadRetainedEvidence(options: {
+  readonly projectRoot: string;
+  readonly outputDirectory: string;
+  readonly projectDigest: string;
+  readonly circuitDigest: string;
+}): Promise<Readonly<{
+  statuses: Readonly<StatusSet>;
+  diagnostics: readonly Diagnostic[];
+  actions: readonly RetainedEvidenceAction[];
+  lastAction?: LastServerAction;
+}>> {
+  const runsDirectory = join(options.projectRoot, ...options.outputDirectory.replaceAll("\\", "/").split("/"), "runs");
+  let entries: Array<{ name: string; isDirectory(): boolean; isSymbolicLink(): boolean }>;
+  try {
+    entries = await readdir(runsDirectory, { withFileTypes: true });
+  } catch {
+    return Object.freeze({ statuses: unassessedStatusSet(), diagnostics: Object.freeze([]), actions: Object.freeze([]) });
+  }
+  const candidates: Array<{ result: Readonly<CommandResult>; action: LastServerAction; authority: Readonly<ServerGeneratedFileAuthority>; mtimeMs: number }> = [];
+  for (const entry of entries.filter((item) => item.isDirectory() && !item.isSymbolicLink()).slice(-MAX_RETAINED_REPORT_CANDIDATES)) {
+    const runDirectory = join(runsDirectory, entry.name);
+    const reportPath = join(runDirectory, "report.json");
+    try {
+      const reportStat = await lstat(reportPath);
+      if (!reportStat.isFile() || reportStat.isSymbolicLink() || reportStat.size > MAX_RETAINED_REPORT_BYTES) continue;
+      const bytes = new Uint8Array(await Bun.file(reportPath).arrayBuffer());
+      if (bytes.byteLength !== reportStat.size) continue;
+      const result = parseRetainedCommandResult(JSON.parse(new TextDecoder().decode(bytes)));
+      if (result.runId !== entry.name || result.project?.projectDigest !== options.projectDigest || result.requestedDimensions.length === 0) continue;
+      const authority = await captureServerGeneratedFileAuthority({
+        projectRoot: options.projectRoot,
+        runDirectory,
+        absolutePath: reportPath,
+        kind: "command-report",
+        expectedBytes: bytes,
+      });
+      const action = Object.freeze({
+        command: result.command,
+        exitClassification: result.exitClassification,
+        runId: result.runId,
+        projectDigest: options.projectDigest,
+        circuitDigest: options.circuitDigest,
+        reportPath: relative(options.projectRoot, reportPath).replaceAll("\\", "/"),
+      });
+      candidates.push({ result, action, authority, mtimeMs: reportStat.mtimeMs });
+    } catch {
+      // Invalid, oversized, redirected, stale, or partially-written reports are never retained.
+    }
+  }
+  candidates.sort((left, right) => left.mtimeMs - right.mtimeMs || left.result.runId.localeCompare(right.result.runId));
+  const selected = new Map<StatusDimension, typeof candidates[number]>();
+  for (const candidate of candidates) {
+    for (const dimension of candidate.result.requestedDimensions) selected.set(dimension, candidate);
+  }
+  const statuses = { ...unassessedStatusSet() } as StatusSet;
+  const diagnostics: Diagnostic[] = [];
+  for (const dimension of STATUS_DIMENSIONS) {
+    const candidate = selected.get(dimension);
+    if (candidate === undefined) continue;
+    (statuses as unknown as Record<StatusDimension, StatusSet[StatusDimension]>)[dimension] = candidate.result.statuses[dimension];
+    diagnostics.push(...candidate.result.diagnostics.filter((diagnostic) => diagnostic.dimension === dimension));
+  }
+  const retainedCandidates = [...new Set(selected.values())].sort((left, right) => left.mtimeMs - right.mtimeMs);
+  const actions = Object.freeze(retainedCandidates.map(({ action, authority, result }) => Object.freeze({
+    action,
+    authority,
+    requestedDimensions: result.requestedDimensions,
+  })));
+  const lastAction = retainedCandidates.at(-1)?.action;
+  return Object.freeze({
+    statuses: statusSet(statuses),
+    diagnostics: Object.freeze(diagnostics),
+    actions,
+    ...(lastAction === undefined ? {} : { lastAction }),
+  });
 }
 
 type ActionPublicationOutcome = "published" | "evidence-stale" | "artifacts-stale";
@@ -232,7 +265,8 @@ interface SimulationSummary {
 }
 
 function simulationActionView(snapshot: ServerSnapshot, name: string) {
-  const action = snapshot.lastSimulationAction?.name === name ? snapshot.lastSimulationAction : undefined;
+  const action = snapshot.simulationActions?.get(name) ??
+    (snapshot.lastSimulationAction?.name === name ? snapshot.lastSimulationAction : undefined);
   const current = action !== undefined && snapshot.rebuild.state === "ready" &&
     action.projectDigest === snapshot.rebuild.projectDigest &&
     action.circuitDigest === snapshot.rebuild.circuitDigest;
@@ -284,7 +318,7 @@ function htmlResponse(html: string, init: ResponseInit = {}): Response {
   headers.set("Cache-Control", "no-store");
   headers.set("Content-Security-Policy", [
     "default-src 'none'",
-    "style-src 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
     "connect-src 'self'",
     "script-src 'self'",
@@ -297,11 +331,15 @@ function htmlResponse(html: string, init: ResponseInit = {}): Response {
   return new Response(html, { ...init, headers });
 }
 
-function javascriptResponse(script: string): Response {
-  return new Response(script, {
+function svgResponse(svg: string | undefined): Response {
+  if (svg === undefined) {
+    return jsonResponse({ error: { code: "RENDER_UNAVAILABLE", message: "The current snapshot could not be rendered" } }, { status: 422 });
+  }
+  return new Response(svg, {
     headers: {
-      "Content-Type": "text/javascript; charset=utf-8",
+      "Content-Type": "image/svg+xml; charset=utf-8",
       "Cache-Control": "no-store",
+      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox",
       "X-Content-Type-Options": "nosniff",
     },
   });
@@ -317,9 +355,59 @@ function errorResponse(
     return jsonResponse({ error: { code, message } }, { status });
   }
   return htmlResponse(
-    page("PCBoo error", `<h1>${status}</h1><p>${escapeHtml(message)}</p>`, []),
+    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PCBoo error</title></head><body><main><h1>${status}</h1><p>${escapeHtml(message)}</p></main></body></html>`,
     { status },
   );
+}
+
+const MODEL_CONTENT_TYPES = Object.freeze<Record<string, string>>({
+  ".glb": "model/gltf-binary",
+  ".gltf": "model/gltf+json",
+  ".obj": "text/plain; charset=utf-8",
+  ".mtl": "text/plain; charset=utf-8",
+  ".stl": "model/stl",
+  ".step": "application/step",
+  ".stp": "application/step",
+  ".wrl": "model/vrml",
+});
+
+async function projectModelResponse(pathname: string, snapshot: ServerSnapshot): Promise<Response | undefined> {
+  if (!pathname.startsWith("/models/")) return undefined;
+  const rawSegments = pathname.slice("/models/".length).split("/");
+  const segments: string[] = [];
+  for (const raw of rawSegments) {
+    const decoded = decodePathSegment(raw);
+    if (decoded instanceof Response) return decoded;
+    segments.push(decoded);
+  }
+  const contentType = MODEL_CONTENT_TYPES[extname(segments.at(-1)!).toLowerCase()];
+  if (contentType === undefined) {
+    return errorResponse(pathname, 415, "MODEL_FORMAT_UNSUPPORTED", "Only fixed 3D assembly model formats may be served");
+  }
+  try {
+    const modelRoot = await realpath(join(snapshot.project.root, "models"));
+    const filePath = await realpath(join(modelRoot, ...segments));
+    const boundary = relative(modelRoot, filePath);
+    if (boundary.startsWith("..") || boundary === "" || boundary.includes("/../") || boundary.includes("\\..\\")) {
+      return errorResponse(pathname, 403, "MODEL_PATH_DENIED", "Model path escapes the project model directory");
+    }
+    const file = Bun.file(filePath);
+    const bytes = await file.arrayBuffer();
+    const digest = `sha256:${new Bun.CryptoHasher("sha256").update(bytes).digest("hex")}`;
+    if (!Object.values(snapshot.lock.assets).some((asset) => asset.digest === digest && asset.redistribution === "allowed")) {
+      return errorResponse(pathname, 409, "MODEL_ASSET_UNLOCKED", "Model bytes are not approved by pcboo.lock.assets");
+    }
+    return new Response(bytes, {
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": "no-store",
+        "Cross-Origin-Resource-Policy": "same-origin",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  } catch {
+    return errorResponse(pathname, 404, "MODEL_NOT_FOUND", "The locked project model does not exist");
+  }
 }
 
 function escapeHtml(value: unknown): string {
@@ -331,50 +419,28 @@ function escapeHtml(value: unknown): string {
     .replaceAll("'", "&#039;");
 }
 
-function warningMarkup(warnings: readonly InspectionServerWarning[]): string {
-  if (warnings.length === 0) return "";
-  return warnings.map((warning) =>
-    `<aside class="warning"><strong>${escapeHtml(warning.code)}</strong> ${escapeHtml(warning.message)}</aside>`
-  ).join("");
-}
-
-function page(
+function applicationPage(
   title: string,
-  body: string,
-  warnings: readonly InspectionServerWarning[],
+  assets: InspectionWebAssets,
+  snapshot: SnapshotRebuildState,
+  routeState?: string,
 ): string {
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#020617">
+  <meta name="pcboo-snapshot-state" content="${escapeHtml(snapshot.state)}">
+  ${routeState === undefined ? "" : `<meta name="pcboo-route-state" content="${escapeHtml(routeState)}">`}
   <title>${escapeHtml(title)}</title>
-  <style>
-    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
-    body { max-width: 72rem; margin: 0 auto; padding: 1.5rem; line-height: 1.5; }
-    nav { display: flex; flex-wrap: wrap; gap: .8rem; margin: 1rem 0 1.5rem; }
-    pre { overflow: auto; padding: 1rem; border: 1px solid #7777; border-radius: .4rem; }
-    .warning { padding: .8rem; margin: .8rem 0; border: 2px solid #c77b00; border-radius: .4rem; }
-    table { border-collapse: collapse; } th, td { border: 1px solid #7777; padding: .4rem .6rem; text-align: left; }
-    .viewer-toolbar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .8rem 0; }
-    .pcboo-viewer svg { width: 100%; height: min(70vh, 46rem); border: 1px solid #7777; touch-action: none; }
-    .viewer-readout { min-height: 1.5rem; font-family: ui-monospace, monospace; }
-  </style>
+  ${assets.stylesheets.map((path) => `<link rel="stylesheet" href="${escapeHtml(path)}">`).join("\n  ")}
 </head>
 <body>
-  ${warningMarkup(warnings)}
-  <nav aria-label="PCBoo inspection">
-    <a href="/">Project</a><a href="/schematic">Schematic</a><a href="/pcb">PCB</a>
-    <a href="/checks">Checks</a><a href="/manufacturing">Manufacturing</a>
-  </nav>
-  <main>${body}</main>
-  <script src="/assets/viewer.js" defer></script>
+  <div id="root"><p>Loading circuit ${escapeHtml(snapshot.circuitDigest)}…</p></div>
+  <script type="module" src="${escapeHtml(assets.entryScript)}"></script>
 </body>
 </html>`;
-}
-
-function pretty(value: unknown): string {
-  return `<pre>${escapeHtml(JSON.stringify(value, null, 2))}</pre>`;
 }
 
 function safeRenderedSvg(svg: string): string {
@@ -415,40 +481,6 @@ function renderCircuitSvg(
   }
 }
 
-function boardWidthMm(circuitJson: readonly unknown[]): number | undefined {
-  for (const element of circuitJson) {
-    const record = asRecord(element);
-    if (record?.type === "pcb_board" && typeof record.width === "number" && record.width > 0) return record.width;
-  }
-  return undefined;
-}
-
-function viewerMarkup(options: {
-  readonly svg: string | undefined;
-  readonly snapshot: SnapshotRebuildState;
-  readonly layers?: readonly string[];
-  readonly boardWidth?: number | undefined;
-}): string {
-  if (options.svg === undefined) {
-    return `<aside class="warning">Render unavailable for this snapshot. Exact Circuit JSON remains available through <a href="/api/inspect">/api/inspect</a>.</aside>`;
-  }
-  const filters = options.layers?.map((layer) =>
-    `<label><input type="checkbox" checked data-layer-filter="${escapeHtml(layer)}"> ${escapeHtml(layer)}</label>`
-  ).join(" ") ?? "";
-  return `<section data-pcboo-viewer${options.boardWidth === undefined ? "" : ` data-board-width-mm="${options.boardWidth}"`}>
-    <p>Snapshot revision ${options.snapshot.revision}; circuit ${escapeHtml(options.snapshot.circuitDigest)}; state ${options.snapshot.state}.</p>
-    <div class="viewer-toolbar"><button data-action="zoom-in">Zoom in</button><button data-action="zoom-out">Zoom out</button><button data-action="reset">Reset</button><button data-action="measure">Measure</button><button data-action="copy-selection">Copy selection</button>${filters}</div>
-    <p class="viewer-readout" data-measurement>Measurement off</p><p class="viewer-readout" data-selection>No object selected</p>
-    ${options.svg}
-  </section>`;
-}
-
-function actionControls(simulationNames: readonly string[]): string {
-  const defaultSimulation = simulationNames[0] ?? "";
-  return `<section><h2>Derived actions</h2><p>Actions write only derived output and attach evidence only when its project and circuit digests match the live snapshot.</p>
-    <div class="viewer-toolbar"><button data-server-action="build">Build</button><button data-server-action="check">Check</button><button data-server-action="export-kicad">Export KiCad</button><label>Simulation <input data-simulation-name value="${escapeHtml(defaultSimulation)}"></label><button data-server-action="simulate">Simulate</button></div>
-    <pre data-action-result>No action requested</pre></section>`;
-}
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -791,7 +823,15 @@ function inspectCircuit(
 function fixedRouteResponse(
   url: URL,
   snapshot: ServerSnapshot,
-  runtime: Readonly<{ actionToken: string; actionRunning: boolean; actionsEnabled: boolean }>,
+  runtime: Readonly<{
+    actionToken: string;
+    actionRunning: boolean;
+    actionsEnabled: boolean;
+    syncingEvidence: boolean;
+    activityRevision: number;
+    activityUpdatedAt: string;
+  }>,
+  webAssets: InspectionWebAssets,
 ): Response {
   const circuitJson = snapshot.evaluation.circuitJson;
   const simulationList = simulations(snapshot.simulationNames);
@@ -811,6 +851,9 @@ function fixedRouteResponse(
   if (noQueryError !== undefined) {
     return errorResponse(url.pathname, 400, "QUERY_NOT_ALLOWED", noQueryError);
   }
+
+  const browserAsset = webAssets.response(url.pathname, false);
+  if (browserAsset !== undefined) return browserAsset;
 
   if (url.pathname === "/api/project") {
     return jsonResponse({
@@ -833,6 +876,9 @@ function fixedRouteResponse(
         actionsEnabled: runtime.actionsEnabled,
         ...(runtime.actionsEnabled ? { actionToken: runtime.actionToken } : {}),
         actionRunning: runtime.actionRunning,
+        syncingEvidence: runtime.syncingEvidence,
+        activityRevision: runtime.activityRevision,
+        activityUpdatedAt: runtime.activityUpdatedAt,
       },
     });
   }
@@ -851,6 +897,10 @@ function fixedRouteResponse(
       diagnostics: snapshot.diagnostics,
       sourcingEvidence: snapshot.sourcingEvidence,
       lastAction: snapshot.lastAction ?? null,
+      evidenceActions: snapshot.retainedEvidence.map(({ action, requestedDimensions }) => ({
+        ...action,
+        requestedDimensions,
+      })),
     });
   }
   if (url.pathname === "/api/simulations") {
@@ -876,42 +926,44 @@ function fixedRouteResponse(
   if (url.pathname === "/api/actions") {
     return jsonResponse({ schemaVersion: 1, snapshot: snapshot.rebuild, evidence, running: runtime.actionRunning, lastAction: snapshot.lastAction ?? null });
   }
-  if (url.pathname === "/assets/viewer.js") return javascriptResponse(VIEWER_SCRIPT);
+  if (url.pathname === "/api/render/schematic") {
+    return svgResponse(renderCircuitSvg("schematic", circuitJson));
+  }
+  if (url.pathname === "/api/render/pcb") {
+    return svgResponse(renderCircuitSvg("pcb", circuitJson));
+  }
+  const renderedLayerMatch = /^\/api\/render\/pcb\/layers\/([^/]+)$/u.exec(url.pathname);
+  if (renderedLayerMatch !== null) {
+    const layer = decodePathSegment(renderedLayerMatch[1]!);
+    if (layer instanceof Response) return layer;
+    if (!layers.includes(layer)) {
+      return errorResponse(url.pathname, 404, "LAYER_NOT_FOUND", `Unknown PCB layer: ${layer}`);
+    }
+    return svgResponse(renderCircuitSvg("pcb", circuitJson, layer));
+  }
   if (url.pathname === "/") {
-    return htmlResponse(page(
-      `PCBoo — ${basename(snapshot.project.root)}`,
-      `<h1>${escapeHtml(basename(snapshot.project.root))}</h1>
-       <p>Live PCBoo project inspection. Fixed actions write derived artifacts only.</p>
-       ${pretty({ config: snapshot.config, snapshot: snapshot.rebuild, statuses: snapshot.statuses, elementCount: circuitJson.length })}
-       ${actionControls(simulationList.map(({ name }) => name))}`,
-      snapshot.warnings,
-    ));
+    return htmlResponse(applicationPage(`PCBoo — ${basename(snapshot.project.root)}`, webAssets, snapshot.rebuild));
   }
   if (url.pathname === "/schematic") {
-    const schematic = circuitJson.filter((element) => asRecord(element)?.type?.toString().startsWith("schematic_"));
-    return htmlResponse(page(
-      "PCBoo schematic",
-      `<h1>Schematic</h1>${viewerMarkup({ svg: renderCircuitSvg("schematic", circuitJson), snapshot: snapshot.rebuild })}<details><summary>Structured schematic elements</summary>${pretty(schematic)}</details>`,
-      snapshot.warnings,
-    ));
+    return htmlResponse(applicationPage("PCBoo schematic", webAssets, snapshot.rebuild));
   }
   if (url.pathname === "/pcb") {
-    const pcb = circuitJson.filter((element) => asRecord(element)?.type?.toString().startsWith("pcb_"));
-    return htmlResponse(page(
-      "PCBoo PCB",
-      `<h1>PCB</h1><p>Layers: ${layers.map((layer) => `<a href="/pcb/layers/${encodeURIComponent(layer)}">${escapeHtml(layer)}</a>`).join(", ")}</p>${viewerMarkup({ svg: renderCircuitSvg("pcb", circuitJson), snapshot: snapshot.rebuild, layers, boardWidth: boardWidthMm(circuitJson) })}<details><summary>Structured PCB elements</summary>${pretty(pcb)}</details>`,
-      snapshot.warnings,
-    ));
+    return htmlResponse(applicationPage("PCBoo PCB", webAssets, snapshot.rebuild));
+  }
+  if (url.pathname === "/3d") {
+    return htmlResponse(applicationPage("PCBoo 3D board", webAssets, snapshot.rebuild));
   }
   if (url.pathname === "/checks") {
-    return htmlResponse(page("PCBoo checks", `<h1>Checks</h1>${pretty({ statuses: snapshot.statuses, diagnostics: snapshot.diagnostics })}`, snapshot.warnings));
+    return htmlResponse(applicationPage("PCBoo checks", webAssets, snapshot.rebuild, evidence.state));
   }
   if (url.pathname === "/manufacturing") {
-    return htmlResponse(page(
-      "PCBoo manufacturing",
-      `<h1>Manufacturing</h1>${pretty({ fabrication: snapshot.statuses.fabrication, outputDirectory: snapshot.config.outputDirectory, artifacts: snapshot.artifacts })}`,
-      snapshot.warnings,
-    ));
+    return htmlResponse(applicationPage("PCBoo manufacturing", webAssets, snapshot.rebuild, evidence.state));
+  }
+  if (url.pathname === "/simulations") {
+    return htmlResponse(applicationPage("PCBoo simulations", webAssets, snapshot.rebuild));
+  }
+  if (url.pathname === "/explorer") {
+    return htmlResponse(applicationPage("PCBoo circuit data", webAssets, snapshot.rebuild));
   }
 
   const layerMatch = /^\/pcb\/layers\/([^/]+)$/u.exec(url.pathname);
@@ -921,16 +973,7 @@ function fixedRouteResponse(
     if (!layers.includes(layer)) {
       return errorResponse(url.pathname, 404, "LAYER_NOT_FOUND", `Unknown PCB layer: ${layer}`);
     }
-    const elements = circuitJson.filter((element) => {
-      const record = asRecord(element);
-      return record?.layer === layer || record?.from_layer === layer || record?.to_layer === layer ||
-        (Array.isArray(record?.layers) && record.layers.includes(layer));
-    });
-    return htmlResponse(page(
-      `PCBoo layer ${layer}`,
-      `<h1>PCB layer: ${escapeHtml(layer)}</h1>${viewerMarkup({ svg: renderCircuitSvg("pcb", circuitJson, layer), snapshot: snapshot.rebuild, layers: [layer], boardWidth: boardWidthMm(circuitJson) })}<details><summary>Structured layer elements</summary>${pretty(elements)}</details>`,
-      snapshot.warnings,
-    ));
+    return htmlResponse(applicationPage(`PCBoo layer ${layer}`, webAssets, snapshot.rebuild));
   }
 
   const simulationMatch = /^\/simulations\/([^/]+)$/u.exec(url.pathname);
@@ -941,7 +984,8 @@ function fixedRouteResponse(
     if (simulation === undefined) {
       return errorResponse(url.pathname, 404, "SIMULATION_NOT_FOUND", `Unknown simulation: ${name}`);
     }
-    return htmlResponse(page(`PCBoo simulation ${name}`, `<h1>Simulation: ${escapeHtml(name)}</h1>${pretty({ ...simulation, ...simulationActionView(snapshot, name) })}`, snapshot.warnings));
+    const simulationView = simulationActionView(snapshot, name);
+    return htmlResponse(applicationPage(`PCBoo simulation ${name}`, webAssets, snapshot.rebuild, simulationView.freshness));
   }
 
   return errorResponse(url.pathname, 404, "ROUTE_NOT_FOUND", "Unknown PCBoo inspection route");
@@ -1013,23 +1057,34 @@ async function loadSnapshot(
     circuitJson: evaluation.circuitJson,
     lock,
   });
+  const evaluatedCircuitDigest = circuitDigest(evaluation);
+  const retained = await loadRetainedEvidence({
+    projectRoot: project.root,
+    outputDirectory: config.outputDirectory,
+    projectDigest: afterInputs.projectDigest,
+    circuitDigest: evaluatedCircuitDigest,
+  });
+  const hasRetainedSourcing = retained.actions.some(({ requestedDimensions }) => requestedDimensions.includes("sourcing"));
+  const retainedSourcing = hasRetainedSourcing ? retained.statuses.sourcing : sourcing.status;
   return Object.freeze({
     project,
     config,
     lock,
     evaluation,
     engineIdentity,
-    statuses: statusSet({ ...unassessedStatusSet(), sourcing: sourcing.status }),
-    diagnostics: sourcing.diagnostics,
+    statuses: statusSet({ ...retained.statuses, sourcing: retainedSourcing }),
+    diagnostics: Object.freeze([...retained.diagnostics, ...sourcing.diagnostics]),
     artifacts: Object.freeze([]),
     sourcingEvidence: sourcing.evidence,
     rebuild: Object.freeze({
       state: "ready" as const,
       revision,
-      circuitDigest: circuitDigest(evaluation),
+      circuitDigest: evaluatedCircuitDigest,
       projectDigest: afterInputs.projectDigest,
     }),
     warnings,
+    retainedEvidence: retained.actions,
+    ...(retained.lastAction === undefined ? {} : { lastAction: retained.lastAction }),
     simulationNames: afterInputs.simulationNames,
     inputPaths: afterInputs.inputPaths,
   });
@@ -1219,14 +1274,25 @@ export async function startInspectionServer(
   }
 
   const warnings = networkWarnings(hostname);
+  const webAssets = await loadInspectionWebAssets();
   let snapshot = await loadSnapshot(options.projectDirectory, warnings);
   const actionToken = crypto.randomUUID();
   let actionRunning = false;
+  let syncingEvidence = false;
+  let activityRevision = 1;
+  let activityUpdatedAt = new Date().toISOString();
+  const markActivity = () => {
+    activityRevision += 1;
+    activityUpdatedAt = new Date().toISOString();
+  };
   let activeAction: Promise<Response> | undefined;
   let activeActionController: AbortController | undefined;
   let watchers: FSWatcher[] = [];
+  let evidenceWatcher: FSWatcher | undefined;
   let rebuildTimer: ReturnType<typeof setTimeout> | undefined;
+  let evidenceRefreshTimer: ReturnType<typeof setTimeout> | undefined;
   let rebuildChain = Promise.resolve();
+  let evidenceRefreshChain = Promise.resolve();
   let stopped = false;
   const shutdownController = new AbortController();
   let inputGeneration = 0;
@@ -1240,12 +1306,15 @@ export async function startInspectionServer(
     _expectedGeneration?: number,
   ): Promise<boolean> => false;
   let activeRebuildController: AbortController | undefined;
+  let scheduleEvidenceRefresh = () => {};
+  let installEvidenceWatcher = async (_target: ServerSnapshot): Promise<void> => {};
 
   const rebuild = async (generation: number) => {
     if (stopped || generation !== inputGeneration) return;
     const controller = new AbortController();
     activeRebuildController = controller;
     snapshot = activeRebuildSnapshot(snapshot);
+    markActivity();
     const projectRoot = snapshot.project.root;
     const revision = snapshot.rebuild.revision + 1;
     try {
@@ -1266,14 +1335,18 @@ export async function startInspectionServer(
       }
       snapshot = Object.freeze({
         ...candidate,
-        ...(snapshot.lastAction === undefined ? {} : { lastAction: snapshot.lastAction }),
+        ...(candidate.lastAction !== undefined || snapshot.lastAction === undefined ? {} : { lastAction: snapshot.lastAction }),
+        retainedEvidence: candidate.retainedEvidence.length > 0 ? candidate.retainedEvidence : snapshot.retainedEvidence,
         ...(snapshot.lastSimulationAction === undefined ? {} : { lastSimulationAction: snapshot.lastSimulationAction }),
+        ...(snapshot.simulationActions === undefined ? {} : { simulationActions: snapshot.simulationActions }),
         artifacts: snapshot.artifacts,
         ...(snapshot.artifactAuthority === undefined ? {} : { artifactAuthority: snapshot.artifactAuthority }),
       });
+      markActivity();
     } catch {
       if (!stopped && generation === inputGeneration) {
         snapshot = failedRebuildSnapshot(snapshot);
+        markActivity();
       }
     } finally {
       if (activeRebuildController === controller) activeRebuildController = undefined;
@@ -1298,6 +1371,7 @@ export async function startInspectionServer(
     inputGeneration += 1;
     activeRebuildController?.abort();
     snapshot = pendingRebuildSnapshot(snapshot);
+    markActivity();
     if (rebuildTimer !== undefined) clearTimeout(rebuildTimer);
     rebuildTimer = setTimeout(() => {
       rebuildTimer = undefined;
@@ -1307,6 +1381,86 @@ export async function startInspectionServer(
         () => rebuild(generation),
       );
     }, watchDebounceMs);
+  };
+  scheduleEvidenceRefresh = () => {
+    if (stopped) return;
+    if (actionRunning || snapshot.rebuild.state !== "ready") return;
+    if (!syncingEvidence) {
+      syncingEvidence = true;
+      markActivity();
+    }
+    if (evidenceRefreshTimer !== undefined) clearTimeout(evidenceRefreshTimer);
+    evidenceRefreshTimer = setTimeout(() => {
+      evidenceRefreshTimer = undefined;
+      evidenceRefreshChain = evidenceRefreshChain.then(async () => {
+        if (stopped) return;
+        // The in-process action publisher and source rebuild loader already attach
+        // their own evidence atomically. Output events observed while either is
+        // active belong to that transaction and must not race it or clear its
+        // richer artifact authority after publication.
+        if (actionRunning || snapshot.rebuild.state !== "ready") {
+          if (syncingEvidence) {
+            syncingEvidence = false;
+            markActivity();
+          }
+          return;
+        }
+        const observed = snapshot;
+        const retained = await loadRetainedEvidence({
+          projectRoot: observed.project.root,
+          outputDirectory: observed.config.outputDirectory,
+          projectDigest: observed.rebuild.projectDigest,
+          circuitDigest: observed.rebuild.circuitDigest,
+        });
+        if (stopped || snapshot !== observed || observed.rebuild.state !== "ready") return;
+        const sourcing = assessRecordedSourcing({
+          circuitJson: observed.evaluation.circuitJson,
+          lock: observed.lock,
+        });
+        const hasRetainedSourcing = retained.actions.some(({ requestedDimensions }) =>
+          requestedDimensions.includes("sourcing")
+        );
+        const { lastAction: _lastAction, artifactAuthority: _artifactAuthority, ...base } = observed;
+        snapshot = Object.freeze({
+          ...base,
+          statuses: statusSet({
+            ...retained.statuses,
+            sourcing: hasRetainedSourcing ? retained.statuses.sourcing : sourcing.status,
+          }),
+          diagnostics: Object.freeze([...retained.diagnostics, ...sourcing.diagnostics]),
+          retainedEvidence: retained.actions,
+          artifacts: Object.freeze([]),
+          ...(retained.lastAction === undefined ? {} : { lastAction: retained.lastAction }),
+        });
+        syncingEvidence = false;
+        markActivity();
+      }, async () => {
+        if (syncingEvidence) {
+          syncingEvidence = false;
+          markActivity();
+        }
+      });
+    }, Math.max(150, watchDebounceMs * 2));
+  };
+  installEvidenceWatcher = async (target) => {
+    const outputDirectory = join(
+      target.project.root,
+      ...target.config.outputDirectory.replaceAll("\\", "/").split("/"),
+    );
+    try {
+      if (!(await lstat(outputDirectory)).isDirectory()) return;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+      throw error;
+    }
+    evidenceWatcher?.close();
+    const replacement = watch(outputDirectory, { recursive: true }, () => {
+      scheduleEvidenceRefresh();
+    });
+    replacement.on("error", () => {
+      if (evidenceWatcher === replacement) evidenceWatcher = undefined;
+    });
+    evidenceWatcher = replacement;
   };
   installWatchers = async (target, expectedGeneration) => {
     const superseded = () => stopped ||
@@ -1350,6 +1504,11 @@ export async function startInspectionServer(
           const candidate = filename === null
             ? relative(target.project.root, directory)
             : relative(target.project.root, join(directory, filename.toString()));
+          const normalized = candidate.replaceAll("\\", "/").replace(/^\.\//, "");
+          if (normalized === outputPrefix || normalized.startsWith(`${outputPrefix}/`)) {
+            void installEvidenceWatcher(target).then(scheduleEvidenceRefresh, () => undefined);
+            return;
+          }
           scheduleRebuild(candidate, target.config.outputDirectory);
         });
         watcher.on("error", () => {
@@ -1368,6 +1527,7 @@ export async function startInspectionServer(
     const previous = watchers;
     watchers = replacements;
     for (const watcher of previous) watcher.close();
+    await installEvidenceWatcher(target);
     return true;
   };
 
@@ -1633,6 +1793,10 @@ export async function startInspectionServer(
       nextSnapshot = Object.freeze({
         ...base,
         lastSimulationAction,
+        simulationActions: new Map([
+          ...(snapshot.simulationActions ?? new Map<string, LastSimulationAction>()),
+          [simulationName, lastSimulationAction],
+        ]),
         statuses: statusSet({ ...snapshot.statuses, functional: run.result.statuses.functional }),
         diagnostics: Object.freeze([
           ...snapshot.diagnostics.filter(({ dimension }) => dimension !== "functional"),
@@ -1707,7 +1871,7 @@ export async function startInspectionServer(
       pathname === "/api/checks" || pathname === "/checks" || pathname === "/api/actions";
     const exposesCurrentReport = pathname === "/api/checks" || pathname === "/checks" ||
       pathname === "/api/actions";
-    const exposesSimulationAction = pathname === "/api/simulations" || /^\/simulations\/[^/]+$/u.test(pathname);
+    const exposesSimulationAction = pathname === "/api/simulations" || pathname === "/simulations" || /^\/simulations\/[^/]+$/u.test(pathname);
     const currentActionIsFresh = snapshot.rebuild.state === "ready" && snapshot.lastAction !== undefined &&
       snapshot.lastAction.projectDigest === snapshot.rebuild.projectDigest &&
       snapshot.lastAction.circuitDigest === snapshot.rebuild.circuitDigest;
@@ -1728,7 +1892,8 @@ export async function startInspectionServer(
       }
     }
     if (exposesCurrentReport && snapshot.lastAction?.reportPath !== undefined) {
-      const report = reportAuthorities.get(snapshot.lastAction);
+      const retained = snapshot.retainedEvidence.find(({ action }) => action === snapshot.lastAction);
+      const report = retained?.authority ?? reportAuthorities.get(snapshot.lastAction);
       if (report === undefined) return "Stored action report has no authenticated run authority";
       try {
         await verifyServerArtifactAuthority(report.authority, [report.reference]);
@@ -1738,43 +1903,57 @@ export async function startInspectionServer(
           : "Stored action report authority could not be revalidated";
       }
     }
-    const simulationAction = snapshot.lastSimulationAction;
-    const simulationActionIsFresh = snapshot.rebuild.state === "ready" && simulationAction !== undefined &&
-      simulationAction.projectDigest === snapshot.rebuild.projectDigest &&
-      simulationAction.circuitDigest === snapshot.rebuild.circuitDigest;
-    if (exposesSimulationAction && simulationAction !== undefined && !simulationActionIsFresh) {
-      return "Retained simulation evidence belongs to an older project or circuit epoch";
-    }
-    if (exposesSimulationAction && (simulationAction?.artifacts.length ?? 0) > 0) {
-      const action = snapshot.lastSimulationAction!;
-      const authority = simulationArtifactAuthorities.get(action);
-      if (authority === undefined) {
-        return "Retained simulation artifacts have no matching authenticated run authority";
-      }
-      try {
-        await verifyServerArtifactAuthority(authority, action.artifacts);
-      } catch (error) {
-        return error instanceof ServerArtifactFreshnessError
-          ? error.message
-          : "Retained simulation artifact authority could not be revalidated";
+    if (exposesCurrentReport) {
+      for (const retained of snapshot.retainedEvidence) {
+        try {
+          await verifyServerArtifactAuthority(retained.authority.authority, [retained.authority.reference]);
+        } catch (error) {
+          return error instanceof ServerArtifactFreshnessError
+            ? error.message
+            : "Retained engineering evidence could not be revalidated";
+        }
       }
     }
-    if (exposesSimulationAction && simulationAction?.reportPath !== undefined) {
-      const report = reportAuthorities.get(simulationAction);
-      if (report === undefined) return "Retained simulation report has no authenticated run authority";
-      try {
-        await verifyServerArtifactAuthority(report.authority, [report.reference]);
-      } catch (error) {
-        return error instanceof ServerArtifactFreshnessError
-          ? error.message
-          : "Retained simulation report authority could not be revalidated";
+    const simulationActions = snapshot.simulationActions === undefined
+      ? snapshot.lastSimulationAction === undefined ? [] : [snapshot.lastSimulationAction]
+      : [...snapshot.simulationActions.values()];
+    if (exposesSimulationAction) {
+      for (const action of simulationActions) {
+        const current = snapshot.rebuild.state === "ready" &&
+          action.projectDigest === snapshot.rebuild.projectDigest &&
+          action.circuitDigest === snapshot.rebuild.circuitDigest;
+        if (!current) return "Retained simulation evidence belongs to an older project or circuit epoch";
+        if (action.artifacts.length > 0) {
+          const authority = simulationArtifactAuthorities.get(action);
+          if (authority === undefined) {
+            return "Retained simulation artifacts have no matching authenticated run authority";
+          }
+          try {
+            await verifyServerArtifactAuthority(authority, action.artifacts);
+          } catch (error) {
+            return error instanceof ServerArtifactFreshnessError
+              ? error.message
+              : "Retained simulation artifact authority could not be revalidated";
+          }
+        }
+        if (action.reportPath !== undefined) {
+          const report = reportAuthorities.get(action);
+          if (report === undefined) return "Retained simulation report has no authenticated run authority";
+          try {
+            await verifyServerArtifactAuthority(report.authority, [report.reference]);
+          } catch (error) {
+            return error instanceof ServerArtifactFreshnessError
+              ? error.message
+              : "Retained simulation report authority could not be revalidated";
+          }
+        }
       }
     }
     return undefined;
   };
 
   const refreshCurrentProjectAuthority = async (pathname: string): Promise<void> => {
-    if (pathname === "/assets/viewer.js" || snapshot.rebuild.state !== "ready") return;
+    if (pathname.startsWith("/assets/") || pathname.startsWith("/models/") || snapshot.rebuild.state !== "ready") return;
     const observed = snapshot;
     try {
       const firstConfig = await loadProjectConfig(observed.project.root);
@@ -1863,6 +2042,8 @@ export async function startInspectionServer(
           return withCors(request, errorResponse(url.pathname, 409, "ACTION_ALREADY_RUNNING", "Another PCBoo action is already running"), canonicalOrigin);
         }
         actionRunning = true;
+        syncingEvidence = false;
+        markActivity();
         const actionController = new AbortController();
         const onClientAbort = () => actionController.abort("client-disconnected");
         const onShutdown = () => actionController.abort("server-stopping");
@@ -1927,12 +2108,18 @@ export async function startInspectionServer(
           request.signal.removeEventListener("abort", onClientAbort);
           shutdownController.signal.removeEventListener("abort", onShutdown);
           actionRunning = false;
+          markActivity();
           if (activeActionController === actionController) activeActionController = undefined;
           activeAction = undefined;
         }
       }
       if (request.method !== "GET" && request.method !== "HEAD") {
         return withCors(request, errorResponse(url.pathname, 405, "METHOD_NOT_ALLOWED", "Only fixed PCBoo inspection and action routes are allowed"), canonicalOrigin);
+      }
+      const modelResponse = await projectModelResponse(url.pathname, snapshot);
+      if (modelResponse !== undefined) {
+        const response = withCors(request, modelResponse, canonicalOrigin);
+        return request.method === "HEAD" ? asHeadResponse(response) : response;
       }
       await refreshCurrentProjectAuthority(url.pathname);
       const staleArtifactMessage = await verifyStoredRouteArtifacts(url.pathname);
@@ -1952,7 +2139,14 @@ export async function startInspectionServer(
       try {
         const response = withCors(
           request,
-          fixedRouteResponse(url, snapshot, { actionToken, actionRunning, actionsEnabled }),
+          fixedRouteResponse(url, snapshot, {
+            actionToken,
+            actionRunning,
+            actionsEnabled,
+            syncingEvidence,
+            activityRevision,
+            activityUpdatedAt,
+          }, webAssets),
           canonicalOrigin,
         );
         return request.method === "HEAD" ? asHeadResponse(response) : response;
@@ -1983,8 +2177,11 @@ export async function startInspectionServer(
   } catch (error) {
     stopped = true;
     if (rebuildTimer !== undefined) clearTimeout(rebuildTimer);
+    if (evidenceRefreshTimer !== undefined) clearTimeout(evidenceRefreshTimer);
     for (const watcher of watchers) watcher.close();
     watchers = [];
+    evidenceWatcher?.close();
+    evidenceWatcher = undefined;
     await server.stop(true);
     throw error;
   }
@@ -2001,11 +2198,15 @@ export async function startInspectionServer(
       stopped = true;
       shutdownController.abort();
       if (rebuildTimer !== undefined) clearTimeout(rebuildTimer);
+      if (evidenceRefreshTimer !== undefined) clearTimeout(evidenceRefreshTimer);
       activeRebuildController?.abort();
       activeActionController?.abort();
       for (const watcher of watchers) watcher.close();
       watchers = [];
+      evidenceWatcher?.close();
+      evidenceWatcher = undefined;
       await rebuildChain;
+      await evidenceRefreshChain;
       for (const watcher of watchers) watcher.close();
       watchers = [];
       if (activeAction !== undefined) await activeAction.catch(() => undefined);

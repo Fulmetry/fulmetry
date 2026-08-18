@@ -19,6 +19,8 @@ export * from "./licenses";
 export * from "./kicad";
 export * from "./result";
 export * from "./runtime";
+export * from "./routes";
+export * from "./routing";
 export * from "./status";
 export * from "./standards";
 export * from "./sourcing";

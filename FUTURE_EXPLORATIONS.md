@@ -76,6 +76,10 @@ Initial integration contracts are modular and capability-declared but experiment
 
 PCBoo initially detects separately installed tools and provides guidance. A future explicit installer may be evaluated for selected external executables. Any such feature must verify source provenance, versions, platform compatibility, checksums or signatures, license obligations, user consent, update behavior, and removal without silently downloading executables during ordinary builds.
 
+## Closed-loop clearance repair and router qualification
+
+The initial Freerouting adapter produces an authenticated, resource-bounded candidate from the current board and never silently replaces authored routes. Promotion converts an explicitly selected candidate into semantic TypeScript route modules in a fresh directory. A future workflow may iteratively classify clearance and connectivity findings, preserve accepted routing constraints and intentional topology, request a new router candidate, and compare the candidate against the prior board before a human or agent promotes it. This evaluation must distinguish router success from PCBoo's independent manufacturing checks, retain exact tool and input identity, and prove that a candidate cannot weaken the active manufacturing profile.
+
 ## Incremental inspection-server input authority
 
 The initial inspection server deliberately revalidates two stable project-input generations before a ready response. This closes false-ready races when a file is created or changed while the server is hashing inputs, including changes that an operating-system watcher does not report. Independent QA measured approximately 47–109 ms of request overhead on a synthetic 32 MiB, 256-file project.

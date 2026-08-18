@@ -404,6 +404,33 @@ export function assessCircuitFabrication(
           belowMinimum((element.outer_diameter - element.hole_diameter) / 2,
             profile.minimumAnnularRingMm)
       )) belowProfileMinimum.push(elementId(element));
+    } else if (
+      element.type === "pcb_plated_hole" &&
+      (element.shape === "pill_hole_with_rect_pad" ||
+        element.shape === "rotated_pill_hole_with_rect_pad")
+    ) {
+      const platedLayers = new Set<string>(element.layers);
+      valid = positive(
+        element.hole_width,
+        element.hole_height,
+        element.rect_pad_width,
+        element.rect_pad_height,
+      ) && element.rect_pad_width > element.hole_width &&
+        element.rect_pad_height > element.hole_height &&
+        platedLayers.size === expectedThroughLayers.length &&
+        expectedThroughLayers.every((layer) => platedLayers.has(layer)) &&
+        finiteWhenPresent(
+          element.soldermask_margin,
+          "ccw_rotation" in element ? element.ccw_rotation : undefined,
+        ) &&
+        Math.min(element.rect_pad_width, element.rect_pad_height) / 2 +
+          (element.soldermask_margin ?? 0) > 0;
+      if (
+        valid && profile !== undefined &&
+        (belowMinimum(Math.min(element.hole_width, element.hole_height), profile.minimumDrillMm) ||
+          belowMinimum((element.rect_pad_width - element.hole_width) / 2, profile.minimumAnnularRingMm) ||
+          belowMinimum((element.rect_pad_height - element.hole_height) / 2, profile.minimumAnnularRingMm))
+      ) belowProfileMinimum.push(elementId(element));
     } else if (element.type === "pcb_hole" && element.hole_shape === "circle") {
       valid = positive(element.hole_diameter) &&
         finiteWhenPresent(element.soldermask_margin) &&
@@ -637,6 +664,7 @@ export function assessCircuitFabrication(
     ["FAB_PAD_OWNER_INTEGRITY_001", "An owned pad or mechanical hole contradicts its component, courtyard, or PCB port", geometry?.padOwnerIntegrity],
     ["FAB_GEOMETRY_IDENTITY_001", "Manufactured geometry reuses a primary identity", geometry?.geometryIdentity],
     ["FAB_NET_IDENTITY_001", "Copper net identity fields alias or contradict authoritative logical ownership", netIdentityFailures],
+    ["FAB_KEEPOUT_001", "Copper intersects an authored rectangular layer keepout", geometry?.keepoutViolations],
   ] as const) {
     if (objects !== undefined && objects.length > 0) diagnostics.push(defineDiagnostic({
       id: diagnosticId(id),
@@ -681,7 +709,7 @@ export function assessCircuitFabrication(
     geometry.courtyardEdge.length > 0 || geometry.courtyardIntegrity.length > 0 ||
     geometry.pasteAperture.length > 0 || geometry.pasteCompleteness.length > 0 ||
     geometry.padOwnerIntegrity.length > 0 || geometry.geometryIdentity.length > 0 ||
-    geometry.netIdentity.length > 0
+    geometry.netIdentity.length > 0 || geometry.keepoutViolations.length > 0
   );
   const hasConnectivityFailure = authoritativeConnectivity.connectivityFailures.length > 0 ||
     authoritativeConnectivity.netIdentityFailures.length > 0;

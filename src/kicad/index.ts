@@ -303,6 +303,29 @@ function validateProjectName(projectName: string): void {
   }
 }
 
+function explicitViaCompatibleCircuitJson(
+  circuitJson: readonly AnyCircuitElement[],
+): AnyCircuitElement[] {
+  const explicit = new Set(circuitJson.flatMap((element) =>
+    element.type === "pcb_via" && typeof element.pcb_trace_id === "string"
+      ? [`${element.pcb_trace_id}:${element.x}:${element.y}`]
+      : []
+  ));
+  return circuitJson.map((element) => {
+    if (element.type !== "pcb_trace") return element;
+    let changed = false;
+    const route = element.route.flatMap((point) => {
+      if (
+        point.route_type !== "via" ||
+        !explicit.has(`${element.pcb_trace_id}:${point.x}:${point.y}`)
+      ) return [point];
+      changed = true;
+      return [];
+    });
+    return changed ? { ...element, route } as AnyCircuitElement : element;
+  });
+}
+
 export async function createKicadHandoff(
   circuitJson: readonly AnyCircuitElement[],
   options: { readonly projectName: string },
@@ -318,7 +341,7 @@ export async function createKicadHandoff(
 
   const schematic = new CircuitJsonToKicadSchConverter(circuitJson as AnyCircuitElement[]);
   schematic.runUntilFinished();
-  const pcb = new CircuitJsonToKicadPcbConverter(circuitJson as AnyCircuitElement[], {
+  const pcb = new CircuitJsonToKicadPcbConverter(explicitViaCompatibleCircuitJson(circuitJson), {
     includeBuiltin3dModels: false,
     projectName: options.projectName,
   });

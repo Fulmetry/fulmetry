@@ -23,6 +23,53 @@ export interface ElectricalAssessment {
 const ELECTRICAL_DIAGNOSTIC_CLASS_LIMIT = 64;
 const ELECTRICAL_FINDING_MEMBER_LIMIT = 16;
 
+// These records are useful authoring/placement hints, but they are not
+// electrical evidence. In particular, `connections` expands into unnamed
+// tscircuit Trace instances and custom connector CAD models can report an
+// insertion direction that is unrelated to the authored footprint rotation.
+const NON_ELECTRICAL_EMITTED_WARNING_TYPES = new Set([
+  "pcb_connector_not_in_accessible_orientation_warning",
+  "source_refdes_convention_warning",
+  "source_unnamed_trace_warning",
+]);
+
+function isQualifiedNonPoweredChipWarning(
+  circuitJson: readonly AnyCircuitElement[],
+  element: AnyCircuitElement,
+): boolean {
+  if (
+    element.type !== "source_no_power_pin_defined_warning" &&
+    element.type !== "source_no_ground_pin_defined_warning"
+  ) return false;
+  const sourceComponentId = (element as unknown as { source_component_id?: unknown })
+    .source_component_id;
+  if (typeof sourceComponentId !== "string") return false;
+  const component = circuitJson.find((candidate) =>
+    candidate.type === "source_component" &&
+    candidate.source_component_id === sourceComponentId
+  );
+  if (component?.type !== "source_component") return false;
+  const ports = circuitJson.filter((candidate) =>
+    candidate.type === "source_port" &&
+    candidate.source_component_id === sourceComponentId
+  );
+
+  // Ferrite beads are currently represented by a two-pin Chip because
+  // tscircuit has no ferrite-bead primitive. Requiring both terminals is the
+  // explicit evidence that this is a passive series element.
+  if (
+    /^FB\d+$/i.test(component.name ?? "") && ports.length === 2 &&
+    ports.every((port) => port.type === "source_port" && port.must_be_connected === true)
+  ) return true;
+
+  // Ground-referenced ESD/TVS arrays consume no supply rail. Their explicit
+  // display name and ground attribute distinguish them from powered ICs that
+  // accidentally omitted requiresPower metadata.
+  return element.type === "source_no_power_pin_defined_warning" &&
+    /\b(?:ESD|TVS) protection array\b/i.test(component.display_name ?? "") &&
+    ports.some((port) => port.type === "source_port" && port.requires_ground === true);
+}
+
 function boundedReference(value: string, limit = DIAGNOSTIC_REFERENCE_CHARACTER_LIMIT): string {
   if (value.length <= limit) return value;
   const digest = new Bun.CryptoHasher("sha256").update(value).digest("hex");
@@ -205,6 +252,10 @@ export function assessCircuitElectrical(
     if (!type.endsWith("_error") && !type.endsWith("_warning")) {
       continue;
     }
+    if (
+      NON_ELECTRICAL_EMITTED_WARNING_TYPES.has(type) ||
+      isQualifiedNonPoweredChipWarning(circuitJson, element)
+    ) continue;
     let group = grouped.get(type);
     if (
       type.length > 128 ||
@@ -598,6 +649,30 @@ export function assessCircuitElectrical(
     }
   }
 
+  const pointIntersectsPlatedPad = (
+    point: { x: number; y: number; width?: number; layer: string },
+    pad: (typeof platedPads)[number],
+  ): boolean => {
+    if (!pad.layers.includes(point.layer as never)) return false;
+    const margin = (point.width ?? 0) / 2;
+    if (pad.shape === "circle") {
+      return Math.hypot(point.x - pad.x, point.y - pad.y) <= pad.outer_diameter / 2 + margin;
+    }
+    if (pad.shape !== "pill_hole_with_rect_pad" && pad.shape !== "rotated_pill_hole_with_rect_pad") {
+      return false;
+    }
+    const rotation = pad.shape === "rotated_pill_hole_with_rect_pad"
+      ? pad.rect_ccw_rotation
+      : 0;
+    const radians = -rotation * Math.PI / 180;
+    const dx = point.x - pad.x;
+    const dy = point.y - pad.y;
+    const localX = dx * Math.cos(radians) - dy * Math.sin(radians);
+    const localY = dx * Math.sin(radians) + dy * Math.cos(radians);
+    return Math.abs(localX) <= pad.rect_pad_width / 2 + margin &&
+      Math.abs(localY) <= pad.rect_pad_height / 2 + margin;
+  };
+
   const endpointIntersectsPad = (
     point: { x: number; y: number; width: number; layer: string },
     pcbPortId: string,
@@ -621,9 +696,7 @@ export function assessCircuitElectrical(
         }
         return false;
       }
-      if (!pad.layers.includes(point.layer as never) || pad.shape !== "circle") return false;
-      return Math.hypot(point.x - pad.x, point.y - pad.y) <=
-        pad.outer_diameter / 2 + point.width / 2;
+      return pointIntersectsPlatedPad(point, pad);
     });
   };
 
@@ -657,8 +730,8 @@ export function assessCircuitElectrical(
     if (owners.length === 1) {
       const routedMatches = owners[0]!.route.filter((point) =>
         point.route_type === "via" && point.x === via.x && point.y === via.y &&
-        [via.from_layer, via.to_layer].includes(point.from_layer) &&
-        [via.from_layer, via.to_layer].includes(point.to_layer)
+        via.layers.includes(point.from_layer) &&
+        via.layers.includes(point.to_layer)
       );
       if (routedMatches.length !== 1) {
         connectivityFailures.pushLazy(() => `${via.pcb_via_id}:owner-route-membership`);
@@ -740,8 +813,6 @@ export function assessCircuitElectrical(
       const matchingVias = physicalVias.filter((via) =>
         via.pcb_trace_id === trace.pcb_trace_id && via.x === point.x && via.y === point.y &&
         new Set([via.from_layer, via.to_layer]).size === 2 &&
-        [via.from_layer, via.to_layer].includes(point.from_layer) &&
-        [via.from_layer, via.to_layer].includes(point.to_layer) &&
         via.layers.includes(point.from_layer) && via.layers.includes(point.to_layer)
       );
       if (
@@ -761,11 +832,8 @@ export function assessCircuitElectrical(
         ? []
         : platedPads.filter((pad) => pad.pcb_plated_hole_id === point.pcb_plated_hole_id);
       const validPad = plated.length === 1 && point.pcb_smtpad_id === undefined &&
-        plated[0]!.shape === "circle" &&
-        plated[0]!.layers.includes(point.start_layer as never) &&
-        plated[0]!.layers.includes(point.end_layer as never) &&
-        Math.hypot(point.start.x - plated[0]!.x, point.start.y - plated[0]!.y) <= plated[0]!.outer_diameter / 2 &&
-        Math.hypot(point.end.x - plated[0]!.x, point.end.y - plated[0]!.y) <= plated[0]!.outer_diameter / 2;
+        pointIntersectsPlatedPad({ ...point.start, layer: point.start_layer }, plated[0]!) &&
+        pointIntersectsPlatedPad({ ...point.end, layer: point.end_layer }, plated[0]!);
       const beforeConnected = before?.route_type === "wire" &&
         before.layer === point.start_layer && before.x === point.start.x && before.y === point.start.y;
       const afterConnected = after?.route_type === "wire" &&

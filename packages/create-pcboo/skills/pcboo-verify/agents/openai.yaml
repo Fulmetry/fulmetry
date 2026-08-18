@@ -1,0 +1,4 @@
+interface:
+  display_name: "PCBoo Verify"
+  short_description: "Verify logical and physical PCBoo evidence"
+  default_prompt: "Use $pcboo-verify to independently verify this PCBoo board and its physical readiness."

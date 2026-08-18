@@ -303,11 +303,12 @@ export async function inspectPackedConsumer(
   );
   record(manifest, "Packed consumer manifest");
   keys(manifest, [
-    "dependencies", "devDependencies", "engines", "name", "overrides", "packageManager", "private", "scripts", "type", "version",
+    "dependencies", "devDependencies", "engines", "name", "overrides", "packageManager", "private", "scripts", "trustedDependencies", "type", "version",
   ], "Packed consumer manifest");
   if (
     manifest.name !== "board" || manifest.version !== "0.0.0" || manifest.private !== true ||
-    manifest.type !== "module" || manifest.packageManager !== "bun@1.3.14"
+    manifest.type !== "module" || manifest.packageManager !== "bun@1.3.14" ||
+    !Array.isArray(manifest.trustedDependencies) || manifest.trustedDependencies.length !== 0
   ) {
     throw new TypeError("Packed consumer manifest identity is invalid");
   }
@@ -438,7 +439,7 @@ export async function inspectPackedConsumer(
   const pcbooTuple = lock.packages.pcboo;
   if (
     !Array.isArray(pcbooTuple) || pcbooTuple.length !== 3 ||
-    pcbooTuple[0] !== `pcboo@../../packages/pcboo-${options.expectedPcbooVersion}.tgz` ||
+    pcbooTuple[0] !== `@pcboo/pcboo@../../packages/pcboo-${options.expectedPcbooVersion}.tgz` ||
     pcbooTuple[1] === null || typeof pcbooTuple[1] !== "object" || Array.isArray(pcbooTuple[1]) ||
     !canonicalSri(pcbooTuple[2]) || pcbooTuple[2] !== sha512Sri(pcbooTarballRead.bytes)
   ) throw new TypeError("Packed consumer lock does not bind the exact packed PCBoo tarball");

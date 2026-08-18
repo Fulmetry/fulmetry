@@ -7,6 +7,7 @@ import {
   exportManufacturingFiles,
 } from "../src/manufacturing/export";
 import { deriveManufacturingExpectation } from "../src/manufacturing/expectation";
+import { verifyManufacturingDirectory } from "../src/manufacturing/verify";
 import { manufacturingFixture } from "./fixtures/manufacturing";
 
 const temporaryRoots: string[] = [];
@@ -68,6 +69,90 @@ describe("manufacturing export adapter", () => {
       expect(sources.has("pcb_plated_hole_1")).toBeTrue();
       expect([...sources].some((source) => source.startsWith("pcb_via_"))).toBeTrue();
     }
+  });
+
+  test("keeps test-point copper out of BOM and pick-and-place rows", async () => {
+    const circuitJson = await manufacturingFixture(2);
+    circuitJson.push(
+      {
+        type: "source_component",
+        source_component_id: "source_testpoint_1",
+        name: "TP1",
+        ftype: "simple_test_point",
+      } as any,
+      {
+        type: "pcb_component",
+        pcb_component_id: "pcb_testpoint_1",
+        source_component_id: "source_testpoint_1",
+        center: { x: 6, y: 0 },
+        width: 1.2,
+        height: 1.2,
+        rotation: 0,
+        layer: "top",
+        do_not_place: false,
+      } as any,
+      {
+        type: "pcb_port",
+        pcb_port_id: "pcb_testpoint_port_1",
+        source_port_id: "source_testpoint_port_1",
+        pcb_component_id: "pcb_testpoint_1",
+        x: 6,
+        y: 0,
+        layers: ["top"],
+      } as any,
+      {
+        type: "pcb_smtpad",
+        pcb_smtpad_id: "pcb_testpoint_pad_1",
+        pcb_port_id: "pcb_testpoint_port_1",
+        pcb_component_id: "pcb_testpoint_1",
+        x: 6,
+        y: 0,
+        radius: 0.6,
+        shape: "circle",
+        layer: "top",
+        is_covered_with_solder_mask: false,
+      } as any,
+    );
+    const files = await exportManufacturingFiles({ boardName: "test-point", circuitJson });
+    const assembly = files
+      .filter(({ path }) => path.startsWith("assembly/"))
+      .map(({ content }) => content)
+      .join("\n");
+    expect(assembly).not.toContain("TP1");
+  });
+
+  test("exports and independently reconciles four-layer plated slots", async () => {
+    const circuitJson = await manufacturingFixture(4);
+    const hole = circuitJson.find((element) => element.type === "pcb_plated_hole");
+    if (hole?.type !== "pcb_plated_hole") throw new Error("Fixture PTH missing");
+    const mutable = hole as unknown as Record<string, unknown>;
+    delete mutable.hole_diameter;
+    delete mutable.outer_diameter;
+    Object.assign(mutable, {
+      shape: "rotated_pill_hole_with_rect_pad",
+      hole_width: 0.6,
+      hole_height: 1.2,
+      rect_pad_width: 1.1,
+      rect_pad_height: 1.8,
+      rect_border_radius: 0.55,
+    });
+    const files = await exportManufacturingFiles({ boardName: "slotted", circuitJson });
+    const drill = files.find((file) => file.path.endsWith("drill-L1-L4.drl"));
+    expect(drill?.content).toContain("G85");
+    const expectation = deriveManufacturingExpectation({ boardName: "slotted", circuitJson });
+    expect(expectation.platedDrills.filter(({ slot }) => slot !== undefined)).toHaveLength(1);
+    expect(expectation.unsupported.join("\n")).not.toContain("only circular plated holes");
+
+    const parent = await mkdtemp(join(tmpdir(), "pcboo-slotted-"));
+    temporaryRoots.push(parent);
+    const root = join(parent, "draft");
+    await emitDraftManufacturingDirectory({ targetDirectory: root, files });
+    const verification = await verifyManufacturingDirectory({ root, expectation, circuitJson });
+    expect(verification.findings.filter(({ code }) =>
+      code === "DRILL_HIT_MISMATCH" || code === "DRILL_STATE_UNSUPPORTED" ||
+      code === "GERBER_FEATURE_MISMATCH" || code === "GERBER_FEATURE_MISSING" ||
+      code === "GERBER_PARSE_WARNING"
+    )).toEqual([]);
   });
 
   test("does not claim independent reconciliation for asymmetric mask margins", async () => {

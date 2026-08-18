@@ -25,7 +25,9 @@ interface ExpectedPad extends Point {
   readonly kind: "smd" | "plated" | "non-plated";
   readonly width: number;
   readonly height: number;
-  readonly drill: number;
+  readonly drillShape: "none" | "circle" | "oval";
+  readonly drillWidth: number;
+  readonly drillHeight: number;
   readonly copperLayers: readonly string[];
   readonly net: string;
 }
@@ -110,11 +112,9 @@ function padCenter(footprint: Footprint, pad: FootprintPad): Point {
   const local = pad.at;
   if (origin === undefined || local === undefined) fail("footprint or pad is missing a position");
   const angle = (("angle" in origin ? origin.angle : undefined) ?? 0) * Math.PI / 180;
-  const bottom = footprint.fpPads.some((candidate) => candidate.layers?.layers.includes("B.Cu")) &&
-    !footprint.fpPads.some((candidate) => candidate.layers?.layers.includes("F.Cu"));
   return Object.freeze({
-    x: origin.x + Math.cos(angle) * local.x + (bottom ? 1 : -1) * Math.sin(angle) * local.y,
-    y: origin.y + (bottom ? -1 : 1) * Math.sin(angle) * local.x + Math.cos(angle) * local.y,
+    x: origin.x + Math.cos(angle) * local.x + Math.sin(angle) * local.y,
+    y: origin.y - Math.sin(angle) * local.x + Math.cos(angle) * local.y,
   });
 }
 
@@ -174,7 +174,19 @@ function valueCandidates(element: Record<string, unknown>): readonly string[] {
 function expectedComponentValues(
   source: Record<string, unknown>,
   schematicComponent: Record<string, unknown> | undefined,
+  footprinter: string,
 ): Readonly<{ schematic: string; footprint: string }> {
+  if (
+    ((footprinter === "" &&
+      (source.ftype === "simple_chip" || source.ftype === "simple_switch")) ||
+      source.ftype === "simple_led") &&
+    typeof source.manufacturer_part_number === "string" &&
+    source.manufacturer_part_number !== ""
+  ) return Object.freeze({ schematic: source.manufacturer_part_number, footprint: source.manufacturer_part_number });
+  if (
+    footprinter === "" && source.ftype === "simple_connector" &&
+    typeof source.manufacturer_part_number === "string" && source.manufacturer_part_number !== ""
+  ) return Object.freeze({ schematic: source.manufacturer_part_number, footprint: String(source.name) });
   if (typeof schematicComponent?.symbol_display_value === "string") {
     return Object.freeze({
       schematic: schematicComponent.symbol_display_value,
@@ -183,31 +195,57 @@ function expectedComponentValues(
   }
   const candidates = valueCandidates(source);
   if (candidates.length === 1) return Object.freeze({ schematic: candidates[0]!, footprint: candidates[0]! });
+  if (
+    source.ftype === "simple_led" && typeof source.manufacturer_part_number === "string" &&
+    source.manufacturer_part_number !== ""
+  ) return Object.freeze({ schematic: source.manufacturer_part_number, footprint: source.manufacturer_part_number });
   if (source.ftype === "simple_led") return Object.freeze({ schematic: "", footprint: "LED" });
+  if (source.ftype === "simple_diode") return Object.freeze({ schematic: "D", footprint: "D" });
   if (source.ftype === "simple_pin_header") {
     const reference = String(source.name);
     return Object.freeze({ schematic: reference, footprint: reference });
+  }
+  if (
+    (source.ftype === "simple_connector" || source.ftype === "simple_chip" ||
+      source.ftype === "simple_switch") &&
+    typeof source.manufacturer_part_number === "string" &&
+    source.manufacturer_part_number !== ""
+  ) {
+    return Object.freeze({
+      schematic: source.manufacturer_part_number,
+      footprint: source.ftype === "simple_connector"
+        ? String(source.name)
+        : source.manufacturer_part_number,
+    });
   }
   fail(`component ${String(source.name)} lacks one authoritative KiCad value`);
 }
 
 function expectedFootprintLibraryId(source: Record<string, unknown>, footprinter: string): string {
-  if (footprinter === "") fail(`component ${String(source.name)} lacks an authoritative footprinter string`);
+  const partNumber = source.manufacturer_part_number;
+  if (typeof partNumber === "string" && /^[\x21-\x7e]{1,160}$/u.test(partNumber)) {
+    return `tscircuit:${partNumber}`;
+  }
+  if (footprinter === "") {
+    fail(`component ${String(source.name)} lacks an authoritative footprint or manufacturer part identity`);
+  }
   if (source.ftype === "simple_resistor") return `tscircuit:resistor_${footprinter}`;
   if (source.ftype === "simple_led") return `tscircuit:led_${footprinter}`;
   if (source.ftype === "simple_pin_header") return `tscircuit:pin_header_${footprinter}`;
-  fail(`component ${String(source.name)} has no qualified KiCad footprint identity mapping`);
+  return `tscircuit:${footprinter}`;
 }
 
 function expectedSchematicLibraryId(
   source: Record<string, unknown>,
   schematicComponent: Record<string, unknown> | undefined,
 ): string {
-  if (source.ftype === "simple_resistor" || source.ftype === "simple_led") {
-    if (typeof schematicComponent?.symbol_name !== "string" || schematicComponent.symbol_name === "") {
-      fail(`component ${String(source.name)} lacks an authoritative schematic symbol name`);
-    }
+  if (typeof schematicComponent?.symbol_name === "string" && schematicComponent.symbol_name !== "") {
     return `Device:${schematicComponent.symbol_name}`;
+  }
+  const partNumber = source.manufacturer_part_number;
+  if (typeof partNumber === "string" && /^[\x21-\x7e]{1,160}$/u.test(partNumber)) {
+    if (source.ftype === "simple_connector") return `Device:J_${partNumber}`;
+    if (source.ftype === "simple_chip") return `Device:U_${partNumber}`;
   }
   if (source.ftype === "simple_pin_header" && Number.isSafeInteger(source.pin_count) && Number(source.pin_count) > 0) {
     return `Connector_Generic:Conn_01x${String(source.pin_count)}`;
@@ -350,7 +388,7 @@ export function reconcileKicadHandoffSemantics(
     schematicLibraryIds.push(symbol.libraryId);
     const symbolValues = symbol.properties.filter(({ key }) => key === "Value").map(({ value }) => value);
     const footprintValues = footprint.properties.filter(({ key }) => key === "Value").map(({ value }) => value);
-    const expectedValues = expectedComponentValues(source, schematicComponent);
+    const expectedValues = expectedComponentValues(source, schematicComponent, expectedFootprinter);
     if (symbolValues.length !== 1 || footprintValues.length !== 1 ||
       symbolValues[0] !== expectedValues.schematic || footprintValues[0] !== expectedValues.footprint) {
       fail(`component ${reference} value was not preserved in schematic and footprint`);
@@ -574,7 +612,13 @@ export function reconcileKicadHandoffSemantics(
     const point = toKicad({ x: finite(element.x, `${element.type} x`), y: finite(element.y, `${element.type} y`) });
     if (element.type === "pcb_smtpad") {
       const net = padNetName(element.pcb_port_id);
-      expectedPads.push(Object.freeze({ ...point, kind: "smd", width: finite(element.width, "SMT pad width"), height: finite(element.height, "SMT pad height"), drill: 0, copperLayers: Object.freeze([layerName(String(element.layer))]), net }));
+      const width = element.shape === "circle"
+        ? finite(element.radius, "SMT pad radius") * 2
+        : finite(element.width, "SMT pad width");
+      const height = element.shape === "circle"
+        ? width
+        : finite(element.height, "SMT pad height");
+      expectedPads.push(Object.freeze({ ...point, kind: "smd", width, height, drillShape: "none", drillWidth: 0, drillHeight: 0, copperLayers: Object.freeze([layerName(String(element.layer))]), net }));
     } else if (element.type === "pcb_plated_hole") {
       const net = padNetName(element.pcb_port_id);
       const declaredLayers = Array.isArray(element.layers) ? element.layers.map(String).map(layerName) : [];
@@ -582,9 +626,29 @@ export function reconcileKicadHandoffSemantics(
         sortedUnique(declaredLayers).join("\0") !== sortedUnique(expectedCopperLayers).join("\0")) {
         fail("baseline plated holes must explicitly span every copper layer");
       }
-      expectedPads.push(Object.freeze({ ...point, kind: "plated", width: finite(element.outer_diameter, "plated pad width"), height: finite(element.outer_diameter, "plated pad height"), drill: finite(element.hole_diameter, "plated drill"), copperLayers: expectedCopperLayers, net }));
+      if (element.shape === "circle") {
+        const drill = finite(element.hole_diameter, "plated drill");
+        const diameter = finite(element.outer_diameter, "plated pad width");
+        expectedPads.push(Object.freeze({ ...point, kind: "plated", width: diameter, height: diameter, drillShape: "circle", drillWidth: drill, drillHeight: drill, copperLayers: expectedCopperLayers, net }));
+      } else if (
+        element.shape === "pill_hole_with_rect_pad" ||
+        element.shape === "rotated_pill_hole_with_rect_pad"
+      ) {
+        expectedPads.push(Object.freeze({
+          ...point,
+          kind: "plated",
+          width: finite(element.rect_pad_width, "plated slot pad width"),
+          height: finite(element.rect_pad_height, "plated slot pad height"),
+          drillShape: "oval",
+          drillWidth: finite(element.hole_width, "plated slot drill width"),
+          drillHeight: finite(element.hole_height, "plated slot drill height"),
+          copperLayers: expectedCopperLayers,
+          net,
+        }));
+      } else fail(`unsupported KiCad plated-hole shape ${String(element.shape)}`);
     } else {
-      expectedPads.push(Object.freeze({ ...point, kind: "non-plated", width: finite(element.hole_diameter, "hole width"), height: finite(element.hole_diameter, "hole height"), drill: finite(element.hole_diameter, "hole drill"), copperLayers: Object.freeze([]), net: "" }));
+      const drill = finite(element.hole_diameter, "hole drill");
+      expectedPads.push(Object.freeze({ ...point, kind: "non-plated", width: drill, height: drill, drillShape: "circle", drillWidth: drill, drillHeight: drill, copperLayers: Object.freeze([]), net: "" }));
     }
   }
   const actualPads: ExpectedPad[] = allPads.map(({ footprint, pad }) => {
@@ -602,13 +666,17 @@ export function reconcileKicadHandoffSemantics(
       kind,
       width: pad.size.width,
       height: pad.size.height,
-      drill: pad.drill?.diameter ?? 0,
+      drillShape: pad.drill === undefined ? "none" : pad.drill.oval ? "oval" : "circle",
+      drillWidth: pad.drill?.diameter ?? 0,
+      drillHeight: pad.drill?.width ?? pad.drill?.diameter ?? 0,
       copperLayers,
       net: pad.net?.id === undefined ? "" : actualNetNameById.get(pad.net.id) ?? "",
     });
   });
   consumeMultiset(actualPads, expectedPads, (actual, expected) => samePoint(actual, expected) && actual.kind === expected.kind &&
-    close(actual.width, expected.width) && close(actual.height, expected.height) && close(actual.drill, expected.drill) &&
+    close(actual.width, expected.width) && close(actual.height, expected.height) &&
+    actual.drillShape === expected.drillShape && close(actual.drillWidth, expected.drillWidth) &&
+    close(actual.drillHeight, expected.drillHeight) &&
     JSON.stringify(actual.copperLayers) === JSON.stringify(expected.copperLayers) && actual.net === expected.net,
   "KiCad pads and holes");
 

@@ -3,20 +3,22 @@
 // SPDX-License-Identifier: MIT
 import { scaffoldPcbooProject } from "./scaffold";
 
-export function parseCreateArguments(argv: readonly string[]): Readonly<{ directory: string; install: boolean }> {
+export function parseCreateArguments(argv: readonly string[]): Readonly<{ directory: string; install: boolean; skills: boolean }> {
   let directory: string | undefined;
   let install = true;
+  let skills = true;
   for (const argument of argv) {
     if (argument === "--no-install") install = false;
+    else if (argument === "--no-skills") skills = false;
     else if (argument === "--help" || argument === "-h") throw new Error("help");
     else if (argument.startsWith("-")) throw new TypeError(`Unknown option ${argument}`);
     else if (directory === undefined) directory = argument;
     else throw new TypeError("create-pcboo accepts at most one project directory");
   }
-  return Object.freeze({ directory: directory ?? "pcboo-project", install });
+  return Object.freeze({ directory: directory ?? "pcboo-project", install, skills });
 }
 
-export const CREATE_PCBOO_HELP = `create-pcboo [directory] [--no-install]\n\nCreate one composable PCBoo TypeScript project.\n`;
+export const CREATE_PCBOO_HELP = `create-pcboo [directory] [--no-install] [--no-skills]\n\nCreate one composable PCBoo TypeScript project with project-local Agent Skills by default.\n`;
 
 export async function main(
   argv: readonly string[] = process.argv.slice(2),

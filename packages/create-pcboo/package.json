@@ -17,11 +17,12 @@
   },
   "files": [
     "src",
+    "skills",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "prepack": "bun ../../scripts/validate-package-boundary.ts"
+    "prepack": "bun ../../scripts/validate-agent-skills.ts && bun ../../scripts/validate-package-boundary.ts"
   },
   "publishConfig": {
     "access": "public"

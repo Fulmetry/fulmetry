@@ -3,6 +3,7 @@
 import { lstat, readFile, realpath } from "node:fs/promises";
 import { resolve } from "node:path";
 import { MANUFACTURING_ADAPTER_VERSIONS } from "../manufacturing/export";
+import { parseJsonWithoutDuplicateKeys } from "../upgrade/jsonc";
 
 export const PCBOO_LOCK_SCHEMA_VERSION = 1 as const;
 export const SUPPORTED_TSCIRCUIT_VERSION = "0.0.2261" as const;
@@ -317,7 +318,7 @@ function parseSourcing(value: unknown): RecordedSourcingLock {
 export function parsePcbooLock(text: string): Readonly<PcbooLock> {
   let value: unknown;
   try {
-    value = JSON.parse(text);
+    value = parseJsonWithoutDuplicateKeys(text, "pcboo.lock");
   } catch (error) {
     throw new TypeError(`pcboo.lock is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
   }

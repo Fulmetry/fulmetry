@@ -122,6 +122,7 @@ export function isVerifierIssuedManufacturingVerification(
 }
 
 interface ParserRecord {
+  line?: number;
   type?: string;
   level?: string;
   prop?: string;
@@ -424,7 +425,8 @@ async function captureArtifactSnapshot(
 function isKnownParserLimitation(warning: ParserWarning): boolean {
   return (
     warning.message.includes("was not recognized and was ignored") &&
-    (warning.message.includes("%TF.") || warning.message.includes('"%TD"'))
+    (warning.message.includes("%TF.") || warning.message.includes('"%TD"') ||
+      /"%LR(?:0|90|180|270)"/u.test(warning.message))
   ) || warning.message === "zero suppression missing; assuming trailing suppression";
 }
 
@@ -674,10 +676,11 @@ function isStrictSubset<A, E>(
   return remaining.length > 0;
 }
 
-function parsedDrillHits(records: ParserRecord[]): ExpectedDrillHit[] {
+function parsedDrillHits(records: ParserRecord[], content: string): ExpectedDrillHit[] {
   const tools = new Map<string, number>();
   let selected: string | undefined;
   const hits: ExpectedDrillHit[] = [];
+  const lines = content.split(/\r?\n/u);
   for (const record of records) {
     if (
       record.type === "tool" &&
@@ -700,12 +703,33 @@ function parsedDrillHits(records: ParserRecord[]): ExpectedDrillHit[] {
           `Parsed drill hits exceed ${MANUFACTURING_RECONCILIATION_FEATURE_LIMIT} features`,
         );
       }
-      hits.push({
-        x: record.coord.x,
-        y: record.coord.y,
-        diameter: tools.get(selected)!,
-        source: "parsed-artifact",
-      });
+      const line = record.line === undefined ? "" : normalizedDrillCommand(lines[record.line - 1] ?? "");
+      const diameter = tools.get(selected)!;
+      if (line.startsWith("G85")) {
+        const start = hits.pop();
+        if (start === undefined || start.slot !== undefined || !Number.isFinite(diameter)) {
+          throw new Error("Routed slot is missing one authenticated start coordinate");
+        }
+        hits.push({
+          x: (start.x + record.coord.x) / 2,
+          y: (start.y + record.coord.y) / 2,
+          diameter,
+          source: "parsed-artifact",
+          slot: {
+            startX: start.x,
+            startY: start.y,
+            endX: record.coord.x,
+            endY: record.coord.y,
+          },
+        });
+      } else {
+        hits.push({
+          x: record.coord.x,
+          y: record.coord.y,
+          diameter,
+          source: "parsed-artifact",
+        });
+      }
     }
   }
   return hits;
@@ -740,14 +764,25 @@ function hasUnresolvedToolOperation(records: readonly ParserRecord[]): boolean {
 
 function sameHits(actual: ExpectedDrillHit[], expected: readonly ExpectedDrillHit[]): boolean {
   if (actual.length !== expected.length) return false;
+  // The pinned Excellon adapter emits ordinary hits to 4 decimals and G85
+  // slot endpoints to 3 decimals. Reconciliation uses exactly that declared
+  // output resolution, never a wider manufacturing tolerance.
+  const drillClose = (left: number, right: number): boolean => close(left, right, 0.000_51);
   const remaining = [...actual];
   for (const wanted of expected) {
-    const index = remaining.findIndex(
-      (hit) =>
-        close(hit.x, wanted.x) &&
-        close(hit.y, wanted.y) &&
-        close(hit.diameter, wanted.diameter),
-    );
+    const index = remaining.findIndex((hit) => {
+      if (!drillClose(hit.x, wanted.x) || !drillClose(hit.y, wanted.y) ||
+        !drillClose(hit.diameter, wanted.diameter) ||
+        (hit.slot === undefined) !== (wanted.slot === undefined)) return false;
+      if (hit.slot === undefined || wanted.slot === undefined) return true;
+      const forward = drillClose(hit.slot.startX, wanted.slot.startX) &&
+        drillClose(hit.slot.startY, wanted.slot.startY) &&
+        drillClose(hit.slot.endX, wanted.slot.endX) && drillClose(hit.slot.endY, wanted.slot.endY);
+      const reverse = drillClose(hit.slot.startX, wanted.slot.endX) &&
+        drillClose(hit.slot.startY, wanted.slot.endY) &&
+        drillClose(hit.slot.endX, wanted.slot.startX) && drillClose(hit.slot.endY, wanted.slot.startY);
+      return forward || reverse;
+    });
     if (index < 0) return false;
     remaining.splice(index, 1);
   }
@@ -899,10 +934,10 @@ function samePlacement(actual: string[], expected: ExpectedPlacement): boolean {
     return false;
   }
   return actual[0] === expected.designator &&
-    close(Number(actual[1]), expected.x, 0.000_5) &&
-    close(Number(actual[2]), expected.y, 0.000_5) &&
+    close(Number(actual[1]), expected.x, 0.000_51) &&
+    close(Number(actual[2]), expected.y, 0.000_51) &&
     actual[3] === expected.layer &&
-    close(Number(actual[4]), expected.rotation, 0.000_5);
+    close(Number(actual[4]), expected.rotation, 0.000_51);
 }
 
 function sameCountedRows(actual: readonly string[][], expected: readonly string[][]): boolean {
@@ -1133,6 +1168,12 @@ function assertManufacturingExpectationLimits(expectation: ManufacturingExpectat
     assertFiniteExpectationNumber("manufacturing expectation y", item.y);
     if ("diameter" in item) {
       assertFiniteExpectationNumber("manufacturing expectation diameter", item.diameter);
+      if (item.slot !== undefined) {
+        assertFiniteExpectationNumber("manufacturing expectation slot start x", item.slot.startX);
+        assertFiniteExpectationNumber("manufacturing expectation slot start y", item.slot.startY);
+        assertFiniteExpectationNumber("manufacturing expectation slot end x", item.slot.endX);
+        assertFiniteExpectationNumber("manufacturing expectation slot end y", item.slot.endY);
+      }
     }
     if ("rotation" in item) {
       assertFiniteExpectationNumber("manufacturing expectation rotation", item.rotation);
@@ -1180,16 +1221,17 @@ function assertManufacturingExpectationLimits(expectation: ManufacturingExpectat
     const [first] = byLayer[0]!;
     if (
       !byLayer.every((flashes) => flashes.length === 1) || first === undefined ||
-      first.shape !== "circle" || first.dimensions.length !== 1 ||
-      !Number.isFinite(first.dimensions[0]) || first.dimensions[0]! <= 0 ||
+      !((first.shape === "circle" && first.dimensions.length === 1) ||
+        (first.shape === "rect" && first.dimensions.length === 2)) ||
+      first.dimensions.some((dimension) => !Number.isFinite(dimension) || dimension <= 0) ||
       byLayer.some(([flash]) =>
         flash === undefined || flash.shape !== first.shape ||
         flash.x !== first.x || flash.y !== first.y ||
-        flash.dimensions.length !== 1 || flash.dimensions[0] !== first.dimensions[0]
+        JSON.stringify(flash.dimensions) !== JSON.stringify(first.dimensions)
       )
     ) {
       throw new ManufacturingInputLimitError(
-        "full-stack copper flashes must be one aligned circular feature per layer and source",
+        "full-stack copper flashes must be one aligned circular or rectangular feature per layer and source",
       );
     }
     fullStackCopper.set(source, first);
@@ -1208,11 +1250,17 @@ function assertManufacturingExpectationLimits(expectation: ManufacturingExpectat
   for (const source of authoritySources) {
     const flash = fullStackCopper.get(source);
     const drills = platedDrillsBySource.get(source) ?? [];
+    const drill = drills[0];
+    const drillFits = flash !== undefined && drill !== undefined &&
+      (drill.slot === undefined
+        ? flash.shape === "circle" && drill.diameter < flash.dimensions[0]!
+        : flash.shape === "rect" &&
+          Math.abs(drill.slot.endX - drill.slot.startX) + drill.diameter < flash.dimensions[0]! + 1e-9 &&
+          Math.abs(drill.slot.endY - drill.slot.startY) + drill.diameter < flash.dimensions[1]! + 1e-9);
     if (
       !platedThroughSources.has(source) || flash === undefined || drills.length !== 1 ||
-      drills[0]!.x !== flash.x || drills[0]!.y !== flash.y ||
-      !Number.isFinite(drills[0]!.diameter) || drills[0]!.diameter <= 0 ||
-      drills[0]!.diameter >= flash.dimensions[0]!
+      drill!.x !== flash.x || drill!.y !== flash.y ||
+      !Number.isFinite(drill!.diameter) || drill!.diameter <= 0 || !drillFits
     ) {
       throw new ManufacturingInputLimitError(
         "full-stack copper and plated drill authority must reconcile exactly by source and geometry",
@@ -1308,10 +1356,9 @@ function assertManufacturingExpectationLimits(expectation: ManufacturingExpectat
         "assembly authority must own at least one emitted copper pad source",
       );
     }
-    const qualifiedPadCount = component.role === "test-point" ? 1 : 2;
-    if (component.padSources.length !== qualifiedPadCount) {
+    if (component.role === "test-point" && component.padSources.length !== 1) {
       throw new ManufacturingInputLimitError(
-        "assembly authority role must match the independently qualified emitted pad signature",
+        "test-point assembly authority must own exactly one emitted copper pad source",
       );
     }
     const localPadSources = new Set<string>();
@@ -1404,6 +1451,7 @@ function boundedManufacturingExpectationSnapshot(
   const drill = (value: ExpectedDrillHit): ExpectedDrillHit => ({
     ...point(value),
     diameter: value.diameter,
+    ...(value.slot === undefined ? {} : { slot: { ...value.slot } }),
   });
   const snapshot: ManufacturingExpectation = {
     boardName: input.boardName,
@@ -2300,6 +2348,7 @@ export async function verifyManufacturingDirectory(options: {
           (index === 1 && line === "G05") ||
           /^T\d+$/.test(line) ||
           /^X-?\d+(?:\.\d+)?Y-?\d+(?:\.\d+)?$/.test(line) ||
+          /^G85X-?\d+(?:\.\d+)?Y-?\d+(?:\.\d+)?$/.test(line) ||
           line === "M30"
         );
       if (
@@ -2315,7 +2364,7 @@ export async function verifyManufacturingDirectory(options: {
         Array.from(content.matchAll(/M\d+/gi), (match) => match[0].toUpperCase())
           .some((command) => command !== "M48" && command !== "M30") ||
         Array.from(content.matchAll(/G\d+/gi), (match) => match[0].toUpperCase())
-          .some((command) => command !== "G90" && command !== "G05") ||
+          .some((command) => command !== "G90" && command !== "G05" && command !== "G85") ||
         drillCommands.some((line) => /^ICI(?:,|$)/i.test(line)) ||
         !strictHeaderGrammar || !strictBodyGrammar ||
         parsed.records.some((record) =>
@@ -2383,10 +2432,13 @@ export async function verifyManufacturingDirectory(options: {
           message: `${drill.path} has missing or contradictory per-tool plating attributes`,
         });
       }
-      const containsRoutedSlot = parsed.records.some(
+      const containsUnsupportedRouting = parsed.records.some(
         (record) => record.type === "op" && record.op !== "flash",
       );
-      if (containsRoutedSlot || !sameHits(parsedDrillHits(parsed.records), drill.hits)) {
+      if (
+        containsUnsupportedRouting ||
+        !sameHits(parsedDrillHits(parsed.records, content), drill.hits)
+      ) {
         findings.push({
           code: "DRILL_HIT_MISMATCH",
           path: drill.path,

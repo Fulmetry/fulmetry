@@ -943,7 +943,7 @@ describe("baseline fabrication profile", () => {
     expect(codes(pthAttack)).toContain("FAB_DIMENSION_001");
   });
 
-  test("fails closed on an explicit PCB keep-out until keep-out routing is independently qualified", () => {
+  test("qualifies rectangular layer keepouts and rejects copper intersections", () => {
     const keepout = {
       type: "pcb_keepout",
       pcb_keepout_id: "keepout-1",
@@ -957,7 +957,33 @@ describe("baseline fabrication profile", () => {
       [geometryBoundaryBoard(), keepout],
       BASELINE_FABRICATION_PROFILE,
     );
-    expect(assessment.unsupported).toContain("keepout-1:pcb_keepout");
+    expect(assessment.unsupported).toEqual([]);
+    expect(assessment.keepoutViolations).toEqual([]);
+
+    const copper = {
+      type: "pcb_smtpad",
+      pcb_smtpad_id: "pad-in-keepout",
+      pcb_component_id: null,
+      pcb_port_id: null,
+      layer: "top",
+      shape: "rect",
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 1,
+    } as unknown as AnyCircuitElement;
+    const blocked = assessBaselineGeometry(
+      [geometryBoundaryBoard(), keepout, copper],
+      BASELINE_FABRICATION_PROFILE,
+    );
+    expect(blocked.keepoutViolations).toContain("top:keepout-1:pad-in-keepout:0.000000mm");
+
+    const unsupportedKeepout = structuredClone(keepout) as unknown as Record<string, unknown>;
+    unsupportedKeepout.shape = "circle";
+    expect(assessBaselineGeometry(
+      [geometryBoundaryBoard(), unsupportedKeepout as unknown as AnyCircuitElement],
+      BASELINE_FABRICATION_PROFILE,
+    ).unsupported).toContain("keepout-1:keepout-geometry-or-layers");
   });
 
   test("uses expanded solder-mask openings when checking mask slivers", async () => {
@@ -1477,6 +1503,23 @@ describe("baseline fabrication profile", () => {
     expect(assessment.status.state).toBe("incomplete");
     expect(assessment.diagnostics.map(({ id }) => String(id))).toContain(
       "FAB_GEOMETRY_UNSUPPORTED_001",
+    );
+  });
+
+  test("does not classify PCB diagnostic records as unsupported geometry", async () => {
+    const circuitJson = clone(await manufacturingFixture(2));
+    circuitJson.push({
+      type: "pcb_connector_not_in_accessible_orientation_warning",
+      pcb_connector_not_in_accessible_orientation_warning_id: "connector-warning-1",
+      pcb_component_id: "pcb_component_0",
+      message: "Connector orientation requires review",
+    } as AnyCircuitElement);
+    const geometry = assessBaselineGeometry(
+      circuitJson,
+      BASELINE_FABRICATION_PROFILE,
+    );
+    expect(geometry.unsupported).not.toContain(
+      "connector-warning-1:pcb_connector_not_in_accessible_orientation_warning",
     );
   });
 

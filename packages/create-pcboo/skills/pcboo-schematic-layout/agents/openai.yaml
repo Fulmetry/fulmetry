@@ -1,0 +1,4 @@
+interface:
+  display_name: "PCBoo Schematic Layout"
+  short_description: "Clean and verify readable PCBoo schematics"
+  default_prompt: "Use $pcboo-schematic-layout to organize this schematic and prove it is readable."

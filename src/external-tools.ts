@@ -11,7 +11,7 @@ export const EXTERNAL_TOOL_PROBE_OUTPUT_LIMIT = 64 * 1024;
 export const EXTERNAL_TOOL_EXECUTABLE_BYTES_LIMIT = 256 * 1024 * 1024;
 export const NGSPICE_EXECUTABLE_BYTES_LIMIT = 64 * 1024 * 1024;
 export const NGSPICE_MIN_MAJOR = 42;
-export const NGSPICE_MAX_MAJOR = 46;
+export const NGSPICE_MAX_MAJOR = 47;
 
 export interface ExternalToolProbe {
   readonly tool: string;

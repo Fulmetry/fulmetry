@@ -147,7 +147,8 @@ describe("external executable boundary", () => {
     expect(parseNgspiceVersionOutput("ngspice-44.2\nCopyright")).toBe("44.2");
     expect(parseNgspiceVersionOutput("ngspice 42")).toBe("42");
     expect(parseNgspiceVersionOutput("definitely-not-ngspice 999")).toBeNull();
-    expect(isSupportedNgspiceVersion("46")).toBeTrue();
+    expect(isSupportedNgspiceVersion("47")).toBeTrue();
+    expect(isSupportedNgspiceVersion("48")).toBeFalse();
     expect(isSupportedNgspiceVersion("999999")).toBeFalse();
   });
 

@@ -290,6 +290,8 @@ describe("PCBoo project discovery and loading", () => {
   test("parses an exact versioned lock contract and rejects drift or extra fields", async () => {
     const root = await project();
     expect((await loadPcbooLock(root)).tscircuit.version).toBe(SUPPORTED_TSCIRCUIT_VERSION);
+    expect(() => parsePcbooLock('{"schemaVersion":1,"schemaVersion":1}'))
+      .toThrow("duplicate key");
     expect(() => parsePcbooLock(lock({
       tscircuit: { version: "999.0.0", integrity: "sha512-drift" },
     }))).toThrow(`supports tscircuit ${SUPPORTED_TSCIRCUIT_VERSION}`);

@@ -91,6 +91,32 @@ describe("detached KiCad handoff", () => {
     expect(handoff.report.semanticReconciliation.netNames).toContain("GND");
   });
 
+  test("reconciles four-layer plated routed slots without flattening their drill shape", async () => {
+    const circuitJson = await manufacturingFixture(4);
+    const hole = circuitJson.find((element) => element.type === "pcb_plated_hole");
+    if (hole?.type !== "pcb_plated_hole") throw new Error("Fixture PTH missing");
+    const mutable = hole as unknown as Record<string, unknown>;
+    delete mutable.hole_diameter;
+    delete mutable.outer_diameter;
+    Object.assign(mutable, {
+      shape: "rotated_pill_hole_with_rect_pad",
+      hole_width: 0.6,
+      hole_height: 1.2,
+      rect_pad_width: 1.1,
+      rect_pad_height: 1.8,
+      rect_border_radius: 0.55,
+    });
+
+    const handoff = await createKicadHandoff(circuitJson, { projectName: "semantic-slot" });
+    expect(handoff.report.semanticReconciliation).toMatchObject({
+      state: "passed",
+      layerCount: 4,
+      counts: { platedHoles: 2 },
+    });
+    const board = handoff.files.find(({ path }) => path.endsWith(".kicad_pcb"))?.content ?? "";
+    expect(board).toContain("(drill oval 0.6 1.2)");
+  });
+
   test("rejects independently parsed handoffs with removed or disconnected four-layer semantics", async () => {
     const circuitJson = await manufacturingFixture(4);
     const handoff = await createKicadHandoff(circuitJson, { projectName: "semantic-negative" });

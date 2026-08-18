@@ -305,7 +305,14 @@ function matchesAcAxis(
   const base = analysis.scale === "decade" ? 10 : 2;
   const intervalCount = Math.floor((Math.log(analysis.stopHz / analysis.startHz) / Math.log(base)) * analysis.points + 1e-9);
   if (axis.values.length !== intervalCount + 1) return false;
-  return axis.values.every((value, index) => approximately(value, analysis.startHz * base ** (index / analysis.points)));
+  // ngspice keeps the computed interval count for a fractional decade/octave
+  // span, then distributes those intervals geometrically across the exact
+  // requested endpoints. This differs from fixed points-per-base spacing only
+  // when stop/start is not an integral power of the selected base.
+  return axis.values.every((value, index) => approximately(
+    value,
+    analysis.startHz * (analysis.stopHz / analysis.startHz) ** (index / intervalCount),
+  ));
 }
 
 function matchesTransientAxis(

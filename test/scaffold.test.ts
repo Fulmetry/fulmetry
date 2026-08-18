@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, rm, symlink } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, readFile, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseCreateArguments } from "../packages/create-pcboo/src/cli";
@@ -24,8 +24,12 @@ describe("create-pcboo scaffold", () => {
   });
 
   test("parses one bounded non-interactive invocation", () => {
-    expect(parseCreateArguments([])).toEqual({ directory: "pcboo-project", install: true });
-    expect(parseCreateArguments(["my-board", "--no-install"])).toEqual({ directory: "my-board", install: false });
+    expect(parseCreateArguments([])).toEqual({ directory: "pcboo-project", install: true, skills: true });
+    expect(parseCreateArguments(["my-board", "--no-install", "--no-skills"])).toEqual({
+      directory: "my-board",
+      install: false,
+      skills: false,
+    });
     expect(() => parseCreateArguments(["a", "b"])).toThrow("at most one");
     expect(() => parseCreateArguments(["--force"])).toThrow("Unknown option");
   });
@@ -36,6 +40,32 @@ describe("create-pcboo scaffold", () => {
     const result = await scaffoldPcbooProject({ cwd: parent, directory: "agent-board", install: false });
     expect(result.files).toContain("circuit/components/power-indicator.ts");
     expect(result.files).toContain("AGENTS.md");
+    expect(result.files).toContain(".agents/skills/pcboo-best-practices/SKILL.md");
+    expect(result.files).toContain(".claude/skills/pcboo-best-practices/SKILL.md");
+    expect(result.files).toContain(".agents/skills/pcboo-design/references/completion-and-preview.md");
+    expect(result.files).toContain(".claude/skills/pcboo-design/references/completion-and-preview.md");
+    expect(result.files).toContain(".agents/skills/pcboo-resolve-models/scripts/audit-cad-models.ts");
+    expect(result.files).toContain(".claude/skills/pcboo-resolve-models/scripts/audit-cad-models.ts");
+    expect(await readFile(join(result.root, ".agents/skills/pcboo-design/SKILL.md"), "utf8"))
+      .toBe(await readFile(join(result.root, ".claude/skills/pcboo-design/SKILL.md"), "utf8"));
+    const designSkill = await readFile(join(result.root, ".agents/skills/pcboo-design/SKILL.md"), "utf8");
+    const completionGate = await readFile(
+      join(result.root, ".agents/skills/pcboo-design/references/completion-and-preview.md"),
+      "utf8",
+    );
+    expect(designSkill).toContain("create a circuit` means completing both the logical circuit and its physical PCB representation");
+    expect(designSkill).toContain("Only after the completion gate and `pcboo-resolve-models` audit pass, start `bun run dev`");
+    expect(completionGate).toContain("zero `pcb_missing_footprint_error` records");
+    expect(completionGate).toContain("logical connectivity with zero PCB traces is incomplete");
+    expect(completionGate).toContain("Leave the server running");
+    expect(await readFile(join(result.root, ".claude/skills/pcboo-design/references/completion-and-preview.md"), "utf8"))
+      .toBe(completionGate);
+    expect(await readFile(join(result.root, "AGENTS.md"), "utf8"))
+      .toContain("Start bun run dev as the final handoff only after");
+    expect(await readFile(join(result.root, "AGENTS.md"), "utf8"))
+      .toContain("Before any final browser preview, load pcboo-resolve-models");
+    expect((await lstat(join(result.root, ".agents/skills/pcboo-design"))).isDirectory()).toBeTrue();
+    expect((await lstat(join(result.root, ".claude/skills/pcboo-design"))).isDirectory()).toBeTrue();
     expect(await readFile(join(result.root, "bunfig.toml"), "utf8").then((text) => text.trim())).toBe(
       '[install]\nlinker = "hoisted"\nbackend = "copyfile"',
     );
@@ -59,6 +89,22 @@ describe("create-pcboo scaffold", () => {
       trustedDependencies: [],
     });
     await expect(scaffoldPcbooProject({ cwd: parent, directory: "agent-board", install: false })).rejects.toThrow("Refusing to overwrite");
+  });
+
+  test("can omit all agent skills without changing runtime dependencies", async () => {
+    const parent = await mkdtemp(join(tmpdir(), "create-pcboo-no-skills-"));
+    roots.push(parent);
+    const result = await scaffoldPcbooProject({ cwd: parent, directory: "human-board", install: false, skills: false });
+    expect(result.files.some((path) => path.startsWith(".agents/skills/"))).toBeFalse();
+    expect(result.files.some((path) => path.startsWith(".claude/skills/"))).toBeFalse();
+    expect(await Bun.file(join(result.root, ".agents")).exists()).toBeFalse();
+    expect(await Bun.file(join(result.root, ".claude")).exists()).toBeFalse();
+    expect(await readFile(join(result.root, "AGENTS.md"), "utf8")).not.toContain("Project-local PCBoo skills");
+    expect(await readFile(join(result.root, "README.md"), "utf8")).not.toContain("Project-local Agent Skills");
+    expect(JSON.parse(await readFile(join(result.root, "package.json"), "utf8")).dependencies).toEqual({
+      pcboo: "npm:@pcboo/pcboo@0.1.2",
+      tscircuit: SUPPORTED_TSCIRCUIT_VERSION,
+    });
   });
 
   test("the generated source builds and checks through the real PCBoo command", async () => {

@@ -60,6 +60,7 @@ async function fixture(): Promise<Readonly<{ root: string; lock: Record<string, 
     dependencies: { pcboo: "file:../../packages/pcboo-0.0.0.tgz", tscircuit: "0.0.2261" },
     devDependencies: { "@types/bun": "1.3.14", "@types/node": "24.13.3" },
     overrides: { "@tscircuit/cli": "0.1.1858", "bun-match-svg": "0.0.15" },
+    trustedDependencies: [],
   };
   await writeFile(join(root, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
   await cp(join(repositoryRoot, "test", "fixtures", "canonical", "led-2layer", "pcboo.lock"), join(root, "pcboo.lock"));
@@ -69,7 +70,7 @@ async function fixture(): Promise<Readonly<{ root: string; lock: Record<string, 
     overrides: { "@tscircuit/cli": "0.1.1858", "bun-match-svg": "0.0.15" },
     workspaces: { "": { name: "board", dependencies: manifest.dependencies, devDependencies: manifest.devDependencies } },
     packages: {
-      pcboo: ["pcboo@../../packages/pcboo-0.0.0.tgz", { peerDependencies: { tscircuit: "0.0.2261" } }, sri(tarballBytes)],
+      pcboo: ["@pcboo/pcboo@../../packages/pcboo-0.0.0.tgz", { peerDependencies: { tscircuit: "0.0.2261" } }, sri(tarballBytes)],
       tscircuit: ["tscircuit@0.0.2261", "", {}, SUPPORTED_TSCIRCUIT_INTEGRITY],
       "@tscircuit/cli": ["@tscircuit/cli@0.1.1858", "", {
         peerDependencies: { "circuit-json": "^0.0.464", tscircuit: "*" },
@@ -139,6 +140,14 @@ test("rejects changed scaffold dependency overrides in the manifest or lock", as
   (lockChanged.lock.overrides as Record<string, string>)["bun-match-svg"] = "0.0.16";
   await writeFile(join(lockChanged.root, "bun.lock"), `${JSON.stringify(lockChanged.lock)}\n`);
   await expect(inspect(lockChanged.root)).rejects.toThrow("lock overrides are not qualified");
+});
+
+test("rejects any trusted dependency install script in the packed consumer", async () => {
+  const value = await fixture();
+  const manifest = await Bun.file(join(value.root, "package.json")).json();
+  manifest.trustedDependencies = ["three"];
+  await writeFile(join(value.root, "package.json"), `${JSON.stringify(manifest)}\n`);
+  await expect(inspect(value.root)).rejects.toThrow("identity is invalid");
 });
 
 test("rejects a symlinked tscircuit CLI package slot", async () => {

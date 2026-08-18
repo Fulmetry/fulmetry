@@ -27,6 +27,7 @@ export interface FabricationGeometryAssessment {
   readonly padOwnerIntegrity: readonly string[];
   readonly geometryIdentity: readonly string[];
   readonly netIdentity: readonly string[];
+  readonly keepoutViolations: readonly string[];
   readonly unsupported: readonly string[];
 }
 
@@ -35,6 +36,7 @@ export interface BaselineGeometryWorkload {
   readonly maskFeatures: number;
   readonly componentBodies: number;
   readonly courtyards: number;
+  readonly keepouts: number;
   readonly pairwiseFeatures: number;
 }
 
@@ -244,6 +246,7 @@ export function baselineGeometryWorkload(
   let maskFeatures = 0;
   let componentBodies = 0;
   let courtyards = 0;
+  let keepouts = 0;
   for (const element of circuitJson) {
     if (element.type === "pcb_courtyard_rect") {
       const rotation = ((element.ccw_rotation ?? 0) % 360 + 360) % 360;
@@ -254,6 +257,12 @@ export function baselineGeometryWorkload(
           (emittedCourtyardsByOwner.get(element.pcb_component_id) ?? 0) + 1,
         );
       }
+    } else if (element.type === "pcb_keepout") {
+      const record = element as unknown as Record<string, unknown>;
+      const layers = Array.isArray(record.layers)
+        ? record.layers
+        : typeof record.layer === "string" ? [record.layer] : [];
+      if (record.shape === "rect" && layers.length > 0) keepouts += 1;
     } else if (element.type === "pcb_component") {
       if (
         Number.isFinite(element.width) && Number.isFinite(element.height) &&
@@ -265,7 +274,10 @@ export function baselineGeometryWorkload(
         if (!element.is_covered_with_solder_mask) maskFeatures += 1;
       }
     } else if (element.type === "pcb_plated_hole") {
-      if (element.shape === "circle") {
+      if (
+        element.shape === "circle" || element.shape === "pill_hole_with_rect_pad" ||
+        element.shape === "rotated_pill_hole_with_rect_pad"
+      ) {
         copperFeatures += element.layers.length;
         if (!element.is_covered_with_solder_mask) {
           maskFeatures += element.layers.filter((layer) =>
@@ -309,7 +321,8 @@ export function baselineGeometryWorkload(
     maskFeatures,
     componentBodies,
     courtyards,
-    pairwiseFeatures: Math.max(copperFeatures, maskFeatures, componentBodies, courtyards),
+    keepouts,
+    pairwiseFeatures: Math.max(copperFeatures, maskFeatures, componentBodies, courtyards, keepouts),
   });
 }
 
@@ -322,6 +335,7 @@ export function assessBaselineGeometry(
   const mask: CopperFeature[] = [];
   const paste = new Map<string, AreaFeature>();
   const courtyards: Extract<CopperFeature, { kind: "rect" }>[] = [];
+  const keepouts: Extract<CopperFeature, { kind: "rect" }>[] = [];
   const unsupported = new Set<string>();
   const netIdentity = new Set<string>();
   const geometryIdentity = new Set<string>();
@@ -384,7 +398,43 @@ export function assessBaselineGeometry(
 
   for (const element of circuitJson) {
     const id = idOf(element);
-    if (element.type.includes("keepout")) {
+    if (element.type === "pcb_keepout") {
+      const record = element as unknown as Record<string, unknown>;
+      const keepoutCenter = record.center as { x?: unknown; y?: unknown } | undefined;
+      const keepoutLayers = Array.isArray(record.layers)
+        ? record.layers
+        : typeof record.layer === "string" ? [record.layer] : [];
+      if (
+        record.shape !== "rect" || keepoutCenter === undefined ||
+        typeof keepoutCenter.x !== "number" || !Number.isFinite(keepoutCenter.x) ||
+        typeof keepoutCenter.y !== "number" || !Number.isFinite(keepoutCenter.y) ||
+        typeof record.width !== "number" || !Number.isFinite(record.width) || record.width <= 0 ||
+        typeof record.height !== "number" || !Number.isFinite(record.height) || record.height <= 0 ||
+        keepoutLayers.length === 0 || !keepoutLayers.every((layer) => typeof layer === "string") ||
+        new Set(keepoutLayers).size !== keepoutLayers.length ||
+        keepoutLayers.some((layer) => !boardLayers.includes(layer as string))
+      ) {
+        unsupported.add(`${id}:keepout-geometry-or-layers`);
+        continue;
+      }
+      for (const layer of keepoutLayers as string[]) {
+        const keepout = {
+          kind: "rect" as const,
+          id,
+          net: `keepout:${id}`,
+          layer,
+          x: keepoutCenter.x,
+          y: keepoutCenter.y,
+          halfWidth: record.width / 2,
+          halfHeight: record.height / 2,
+        };
+        if (edgeClearance(keepout, board) < -EPSILON_MM) {
+          unsupported.add(`${id}:keepout-outside-board`);
+        } else {
+          keepouts.push(keepout);
+        }
+      }
+    } else if (element.type.includes("keepout")) {
       unsupported.add(`${id}:${element.type}`);
     } else if (element.type === "pcb_courtyard_rect") {
       const rotation = ((element.ccw_rotation ?? 0) % 360 + 360) % 360;
@@ -443,7 +493,9 @@ export function assessBaselineGeometry(
         }
       }
     } else if (element.type === "pcb_plated_hole") {
-      if (element.shape !== "circle") {
+      const isRectSlot = element.shape === "pill_hole_with_rect_pad" ||
+        element.shape === "rotated_pill_hole_with_rect_pad";
+      if (element.shape !== "circle" && !isRectSlot) {
         unsupported.add(`${id}:plated-hole-shape`);
         continue;
       }
@@ -459,11 +511,31 @@ export function assessBaselineGeometry(
         netIdentity.add(`${id}:connectivity-map-key`);
       }
       const net = portNet ?? declaredIdentity ?? `unresolved-copper:${id}`;
+      const slotPadWidth = isRectSlot && element.shape === "rotated_pill_hole_with_rect_pad"
+        ? element.rect_pad_height
+        : isRectSlot ? element.rect_pad_width : 0;
+      const slotPadHeight = isRectSlot && element.shape === "rotated_pill_hole_with_rect_pad"
+        ? element.rect_pad_width
+        : isRectSlot ? element.rect_pad_height : 0;
       for (const layer of element.layers) {
-        const feature: CopperFeature = { kind: "circle", id, net, layer, x: element.x, y: element.y, radius: element.outer_diameter / 2 };
+        const feature: CopperFeature = isRectSlot
+          ? {
+              kind: "rect",
+              id,
+              net,
+              layer,
+              x: element.x,
+              y: element.y,
+              halfWidth: slotPadWidth / 2,
+              halfHeight: slotPadHeight / 2,
+            }
+          : { kind: "circle", id, net, layer, x: element.x, y: element.y, radius: element.outer_diameter / 2 };
         copper.push(feature);
         if (!element.is_covered_with_solder_mask && (layer === "top" || layer === "bottom")) {
-          mask.push({ ...feature, radius: feature.radius + (element.soldermask_margin ?? 0) });
+          const margin = element.soldermask_margin ?? 0;
+          mask.push(feature.kind === "circle"
+            ? { ...feature, radius: feature.radius + margin }
+            : { ...feature, halfWidth: feature.halfWidth + margin, halfHeight: feature.halfHeight + margin });
         }
       }
     } else if (element.type === "pcb_via") {
@@ -586,9 +658,11 @@ export function assessBaselineGeometry(
     } else if (
       element.type === "pcb_board" || element.type === "pcb_component" ||
       element.type === "pcb_port" || element.type === "pcb_silkscreen_path" ||
-      element.type === "pcb_silkscreen_text"
+      element.type === "pcb_silkscreen_text" || element.type.endsWith("_warning") ||
+      element.type.endsWith("_error")
     ) {
-      // These records are checked elsewhere in this profile or by exact artifact reconciliation.
+      // These records are checked elsewhere in this profile, by the electrical
+      // assessor, or by exact artifact reconciliation.
     } else if (element.type.startsWith("pcb_")) {
       unsupported.add(`${id}:${element.type}`);
     }
@@ -656,6 +730,17 @@ export function assessBaselineGeometry(
     const actual = edgeClearance(feature, board);
     if (below(actual, profile.minimumCopperEdgeClearanceMm)) {
       edgeViolations.add(`${feature.layer}:${feature.id}:${actual.toFixed(6)}mm`);
+    }
+  }
+
+  const keepoutViolations = new BoundedPairFindings();
+  for (const keepout of keepouts) {
+    for (const feature of copper) {
+      if (keepout.layer !== feature.layer) continue;
+      const actual = clearance(keepout, feature);
+      if (actual <= EPSILON_MM) {
+        keepoutViolations.add(`${keepout.layer}:${keepout.id}:${feature.id}:${actual.toFixed(6)}mm`);
+      }
     }
   }
 
@@ -816,16 +901,25 @@ export function assessBaselineGeometry(
       }
       return undefined;
     }
-    if (parent.shape !== "circle" || !parent.layers.includes(layer as never)) return undefined;
-    return {
-      kind: "circle",
-      id: parentId,
-      net,
-      layer,
-      x: parent.x,
-      y: parent.y,
-      radius: parent.outer_diameter / 2,
-    };
+    if (!parent.layers.includes(layer as never)) return undefined;
+    if (parent.shape === "circle") {
+      return {
+        kind: "circle", id: parentId, net, layer,
+        x: parent.x, y: parent.y, radius: parent.outer_diameter / 2,
+      };
+    }
+    if (
+      parent.shape === "pill_hole_with_rect_pad" ||
+      parent.shape === "rotated_pill_hole_with_rect_pad"
+    ) {
+      const rotated = parent.shape === "rotated_pill_hole_with_rect_pad";
+      return {
+        kind: "rect", id: parentId, net, layer, x: parent.x, y: parent.y,
+        halfWidth: (rotated ? parent.rect_pad_height : parent.rect_pad_width) / 2,
+        halfHeight: (rotated ? parent.rect_pad_width : parent.rect_pad_height) / 2,
+      };
+    }
+    return undefined;
   };
   type PasteParent = (typeof smtPads)[number] | (typeof platedHoles)[number];
   const pasteParentsByLocation = new Map<string, PasteParent[]>();
@@ -931,7 +1025,10 @@ export function assessBaselineGeometry(
       ownerCourtyards.length !== 1 || padGeometry === undefined ||
       !containsFeature(ownerCourtyards[0]!, padGeometry)
     ) padOwnerIntegrity.add(`${pad.pcb_smtpad_id}:outside-owner-courtyard`);
-    if (pad.pcb_port_id !== undefined) {
+    if (
+      pad.port_hints?.includes("pcboo:mechanical") !== true &&
+      pad.pcb_port_id !== undefined
+    ) {
       const ports = pcbPortsById.get(pad.pcb_port_id) ?? [];
       if (
         ports.length !== 1 || ports[0]!.pcb_component_id !== owner.pcb_component_id ||
@@ -956,19 +1053,21 @@ export function assessBaselineGeometry(
       ownerCourtyards.length !== 1 || holeGeometry === undefined ||
       !containsFeature(ownerCourtyards[0]!, holeGeometry)
     ) padOwnerIntegrity.add(`${hole.pcb_plated_hole_id}:outside-owner-courtyard`);
-    if (hole.pcb_port_id === undefined) {
-      padOwnerIntegrity.add(`${hole.pcb_plated_hole_id}:missing-pcb-port`);
-      continue;
+    if (hole.port_hints?.includes("pcboo:mechanical") !== true) {
+      if (hole.pcb_port_id === undefined) {
+        padOwnerIntegrity.add(`${hole.pcb_plated_hole_id}:missing-pcb-port`);
+        continue;
+      }
+      const ports = pcbPortsById.get(hole.pcb_port_id) ?? [];
+      const holeLayers = new Set<string>(hole.layers);
+      const portLayers = ports.length === 1 ? new Set<string>(ports[0]!.layers) : new Set<string>();
+      if (
+        ports.length !== 1 || ports[0]!.pcb_component_id !== owner.pcb_component_id ||
+        holeLayers.size !== hole.layers.length || portLayers.size !== ports[0]!.layers.length ||
+        holeLayers.size !== portLayers.size ||
+        [...holeLayers].some((layer) => !portLayers.has(layer))
+      ) padOwnerIntegrity.add(`${hole.pcb_plated_hole_id}:pcb-port-layers-or-owner`);
     }
-    const ports = pcbPortsById.get(hole.pcb_port_id) ?? [];
-    const holeLayers = new Set<string>(hole.layers);
-    const portLayers = ports.length === 1 ? new Set<string>(ports[0]!.layers) : new Set<string>();
-    if (
-      ports.length !== 1 || ports[0]!.pcb_component_id !== owner.pcb_component_id ||
-      holeLayers.size !== hole.layers.length || portLayers.size !== ports[0]!.layers.length ||
-      holeLayers.size !== portLayers.size ||
-      [...holeLayers].some((layer) => !portLayers.has(layer))
-    ) padOwnerIntegrity.add(`${hole.pcb_plated_hole_id}:pcb-port-layers-or-owner`);
   }
   for (const hole of nonPlatedHoles) {
     if (hole.pcb_component_id === null || hole.pcb_component_id === undefined) continue;
@@ -1010,6 +1109,7 @@ export function assessBaselineGeometry(
     padOwnerIntegrity: Object.freeze([...padOwnerIntegrity].sort()),
     geometryIdentity: Object.freeze([...geometryIdentity].sort()),
     netIdentity: Object.freeze([...netIdentity].sort()),
+    keepoutViolations: keepoutViolations.toArray("keepout"),
     unsupported: Object.freeze([...unsupported].sort()),
   });
 }

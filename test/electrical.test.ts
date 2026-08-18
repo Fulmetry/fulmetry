@@ -358,6 +358,27 @@ describe("electrical evidence assessment", () => {
     )?.objects).toContain(
       "cross_component_internal_connection:internal-port-owner-mismatch",
     );
+
+    const qualifiedInternal = cloneCircuitJson(await manufacturingFixture(2));
+    const qualifiedOwner = qualifiedInternal.find(
+      (element) => element.type === "source_component" &&
+        element.source_component_id === "source_component_1",
+    );
+    if (qualifiedOwner?.type !== "source_component") {
+      throw new Error("Fixture qualified internal owner missing");
+    }
+    qualifiedOwner.manufacturer_part_number = "QUALIFIED-SWITCH-1";
+    qualifiedInternal.push({
+      type: "source_component_internal_connection",
+      source_component_internal_connection_id: "qualified_internal_connection",
+      source_component_id: qualifiedOwner.source_component_id,
+      source_port_ids: ["source_port_2", "source_port_3"],
+    });
+    expect(assessCircuitElectrical(qualifiedInternal).diagnostics.find(
+      ({ id }) => id === "ELECTRICAL_CONNECTIVITY_UNSUPPORTED_001",
+    )?.objects ?? []).not.toContain(
+      "qualified_internal_connection:internal-connectivity-requires-component-qualified-physical-proof",
+    );
   });
 
   test("matches large multi-component provider and consumer sets without quadratic ownership scans", async () => {
@@ -669,6 +690,28 @@ describe("electrical evidence assessment", () => {
     expect(connectivityCodes(attacked)).toContain("ELECTRICAL_CONNECTIVITY_001");
   });
 
+  test("accepts routed endpoints at rotated plated slots", async () => {
+    const circuitJson = cloneCircuitJson(await manufacturingFixture(4));
+    const pth = circuitJson.find((element) => element.type === "pcb_plated_hole");
+    if (pth?.type !== "pcb_plated_hole" || typeof pth.pcb_port_id !== "string") {
+      throw new Error("Fixture connected PTH missing");
+    }
+    const slot = pth as unknown as Record<string, unknown>;
+    delete slot.hole_diameter;
+    delete slot.outer_diameter;
+    Object.assign(slot, {
+      shape: "rotated_pill_hole_with_rect_pad",
+      hole_width: 0.4,
+      hole_height: 1.4,
+      rect_pad_width: 1.2,
+      rect_pad_height: 2.2,
+      rect_border_radius: 0.6,
+      hole_ccw_rotation: 90,
+      rect_ccw_rotation: 90,
+    });
+    expect(connectivityCodes(circuitJson)).not.toContain("ELECTRICAL_CONNECTIVITY_001");
+  });
+
   test("treats emitted electrical warnings as incomplete", async () => {
     const attacked = cloneCircuitJson(await manufacturingFixture(4));
     attacked.push({
@@ -680,6 +723,111 @@ describe("electrical evidence assessment", () => {
       message: "A source port is missing a trace",
     });
     expect(assessCircuitElectrical(attacked).status.state).toBe("incomplete");
+  });
+
+  test("does not treat naming and connector-orientation hints as electrical failures", async () => {
+    const circuitJson = cloneCircuitJson(await manufacturingFixture(4));
+    circuitJson.push(
+      {
+        type: "source_unnamed_trace_warning",
+        source_unnamed_trace_warning_id: "unnamed-generated-trace",
+        warning_type: "source_unnamed_trace_warning",
+        source_trace_id: "source_trace_0",
+        message: "Generated trace has no author-supplied name",
+      },
+      {
+        type: "source_refdes_convention_warning",
+        source_refdes_convention_warning_id: "ferrite-refdes",
+        warning_type: "source_refdes_convention_warning",
+        source_component_id: "source_component_0",
+        message: "Use a different primitive",
+        refdes: "FB1",
+        source_component_ftype: "simple_chip",
+        expected_prefixes: ["U", "IC"],
+      },
+      {
+        type: "pcb_connector_not_in_accessible_orientation_warning",
+        pcb_connector_not_in_accessible_orientation_warning_id: "custom-model-direction",
+        warning_type: "pcb_connector_not_in_accessible_orientation_warning",
+        pcb_component_id: "pcb_component_0",
+        message: "Custom CAD insertion vector disagrees with the footprint",
+        facing_direction: "y+",
+        recommended_facing_direction: "x-",
+      },
+    );
+    expect(assessCircuitElectrical(circuitJson).status.state).toBe("passed");
+  });
+
+  test("qualifies explicitly described passive beads and unpowered protection arrays", () => {
+    const circuitJson = [
+      {
+        type: "source_component",
+        source_component_id: "bead",
+        ftype: "simple_chip",
+        name: "FB1",
+      },
+      {
+        type: "source_port",
+        source_port_id: "bead-in",
+        source_component_id: "bead",
+        name: "IN",
+        pin_number: 1,
+        port_hints: ["IN", "pin1"],
+        must_be_connected: true,
+      },
+      {
+        type: "source_port",
+        source_port_id: "bead-out",
+        source_component_id: "bead",
+        name: "OUT",
+        pin_number: 2,
+        port_hints: ["OUT", "pin2"],
+        must_be_connected: true,
+      },
+      {
+        type: "source_no_power_pin_defined_warning",
+        source_no_power_pin_defined_warning_id: "bead-power",
+        warning_type: "source_no_power_pin_defined_warning",
+        source_component_id: "bead",
+        source_port_ids: ["bead-in", "bead-out"],
+        message: "FB1 has no power pin",
+      },
+      {
+        type: "source_no_ground_pin_defined_warning",
+        source_no_ground_pin_defined_warning_id: "bead-ground",
+        warning_type: "source_no_ground_pin_defined_warning",
+        source_component_id: "bead",
+        source_port_ids: ["bead-in", "bead-out"],
+        message: "FB1 has no ground pin",
+      },
+      {
+        type: "source_component",
+        source_component_id: "esd",
+        ftype: "simple_chip",
+        name: "U1",
+        display_name: "ESD protection array",
+      },
+      {
+        type: "source_port",
+        source_port_id: "esd-gnd",
+        source_component_id: "esd",
+        name: "GND",
+        pin_number: 2,
+        port_hints: ["GND", "pin2"],
+        requires_ground: true,
+      },
+      {
+        type: "source_no_power_pin_defined_warning",
+        source_no_power_pin_defined_warning_id: "esd-power",
+        warning_type: "source_no_power_pin_defined_warning",
+        source_component_id: "esd",
+        source_port_ids: ["esd-gnd"],
+        message: "U1 has no power pin",
+      },
+    ] as unknown as AnyCircuitElement[];
+    const diagnosticIds = assessCircuitElectrical(circuitJson).diagnostics.map(({ id }) => id);
+    expect(diagnosticIds).not.toContain("ELECTRICAL_SOURCE_NO_POWER_PIN_DEFINED_WARNING_001");
+    expect(diagnosticIds).not.toContain("ELECTRICAL_SOURCE_NO_GROUND_PIN_DEFINED_WARNING_001");
   });
 
   test("proves ordinary VCC/GND fanout by grouped net graph coverage", async () => {

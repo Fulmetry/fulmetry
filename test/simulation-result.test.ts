@@ -145,6 +145,29 @@ describe("simulation result evidence", () => {
     expect(assessment.status.state).toBe("incomplete");
   });
 
+  test("accepts ngspice logarithmic coverage across a fractional decade span", () => {
+    const raw = structuredClone(definition()) as unknown as Record<string, unknown>;
+    raw.analysis = { kind: "ac", scale: "decade", startHz: 20, stopHz: 100_000, points: 30 };
+    (raw.stimuli as Record<string, unknown>[])[0]!.ac = { magnitude: 1, phaseDegrees: 0 };
+    raw.assertions = [{ expression: { kind: "vector", operand: { vector: "v(VOUT)", projection: "magnitude", unit: "V" } }, sample: { kind: "last" }, unit: "V", expected: 5, absoluteTolerance: 0, relativeTolerance: 0 }];
+    const acDefinition = parseSimulationDefinition(raw);
+    const intervalCount = 110;
+    const frequencies = Array.from(
+      { length: intervalCount + 1 },
+      (_, index) => 20 * (100_000 / 20) ** (index / intervalCount),
+    );
+    const assessment = assessSimulationResult(acDefinition, evidence({
+      definitionDigest: simulationDefinitionDigest(acDefinition),
+      analysisKind: "ac",
+      axis: { name: "frequency", unit: "Hz", values: frequencies },
+      vectors: [{ name: "v(VOUT)", unit: "V", samples: frequencies.map(() => ({ real: 3, imaginary: 4 })) }],
+    }), binding());
+    expect(assessment.status.state).toBe("incomplete");
+    expect(assessment.diagnostics.map(({ id }) => String(id))).toEqual([
+      "SIM_EXECUTION_ADAPTER_UNAVAILABLE_001",
+    ]);
+  });
+
   test("evaluates magnitude and phase projections from one physical AC vector", () => {
     const raw = structuredClone(definition()) as unknown as Record<string, unknown>;
     raw.analysis = { kind: "ac", scale: "linear", startHz: 10, stopHz: 20, points: 2 };

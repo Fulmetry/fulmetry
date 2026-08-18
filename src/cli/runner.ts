@@ -56,6 +56,16 @@ import { enrichDiagnosticProvenance } from "../project/provenance";
 import { evaluateProjectCircuitTwice } from "../project/evaluate";
 import { loadPcbooLock, type PcbooLock } from "../project/lock";
 import {
+  canonicalCircuitJson,
+  parseCanonicalCircuitJson,
+  parseCanonicalRouteCandidateCircuitJson,
+} from "../circuit-json";
+import {
+  FREEROUTING_SUPPORTED_VERSION,
+  renderPromotedRouteSourceSet,
+  runFreeroutingCandidate,
+} from "../routing";
+import {
   bindArtifactDigests,
   captureRunEvidenceAuthority,
   captureSelectedEvidenceAuthority,
@@ -215,11 +225,13 @@ Usage:
   pcboo test [--offline] [--json] [--run-id ID]
   pcboo inspect [TARGET] [--status DIMENSION] [--rule ID] [--offline] [--json] [--run-id ID]
   pcboo simulate [NAME] [--offline] [--json] [--run-id ID]
+  pcboo route freerouting --jar PATH --jar-sha256 SHA256 [--clearance-mm MM] [--heap-mb MB] [--threads N] [--passes N] [--timeout-ms MS] [--offline] [--json] [--run-id ID]
+  pcboo route promote CANDIDATE --output DIRECTORY --via-hole-mm MM --via-outer-mm MM [--json]
   pcboo export kicad [--offline] [--json] [--run-id ID]
   pcboo export gerbers [--offline] [--json] [--run-id ID]
   pcboo verify manufacturing [--offline] [--json] [--run-id ID]
 
-The browser and commands inspect or write generated .pcboo output; they do not edit circuit source.`;
+Freerouting output is always a generated candidate. Only \`route promote\` writes a fresh authored route directory, and it refuses to overwrite an existing path.`;
 
 export interface RunCliOptions {
   readonly argv: readonly string[];
@@ -227,7 +239,11 @@ export interface RunCliOptions {
   readonly runId?: string;
   readonly signal?: AbortSignal;
   /** Test and embedding boundary for an explicitly configured local tool path. */
-  readonly externalToolPaths?: Readonly<{ ngspice?: string | null; kicadCli?: string | null }>;
+  readonly externalToolPaths?: Readonly<{
+    ngspice?: string | null;
+    kicadCli?: string | null;
+    java?: string | null;
+  }>;
   /** @internal Bounded process controls for deterministic CLI tests and embeddings. */
   readonly projectTestOptions?: Readonly<{
     timeoutMs?: number;
@@ -296,6 +312,114 @@ interface ParsedInvocation {
   readonly offline: boolean;
   readonly runId?: string;
   readonly words: readonly string[];
+}
+
+interface ParsedFreeroutingInvocation {
+  readonly jarPath: string;
+  readonly jarSha256: string;
+  readonly clearanceMm: number;
+  readonly heapMb?: number;
+  readonly threads?: number;
+  readonly maxPasses?: number;
+  readonly timeoutMs?: number;
+}
+
+interface ParsedRoutePromotionInvocation {
+  readonly candidatePath: string;
+  readonly outputDirectory: string;
+  readonly viaHoleMm: number;
+  readonly viaOuterMm: number;
+}
+
+function numericOption(value: string | undefined, option: string): number {
+  if (value === undefined || value.startsWith("--")) throw new TypeError(`${option} requires a value`);
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) throw new TypeError(`${option} requires a finite number`);
+  return parsed;
+}
+
+function parseFreeroutingInvocation(words: readonly string[]): ParsedFreeroutingInvocation {
+  let jarPath: string | undefined;
+  let jarSha256: string | undefined;
+  let clearanceMm = 0.2;
+  let clearanceSeen = false;
+  let heapMb: number | undefined;
+  let threads: number | undefined;
+  let maxPasses: number | undefined;
+  let timeoutMs: number | undefined;
+  const assignOnce = <T>(current: T | undefined, value: T, option: string): T => {
+    if (current !== undefined) throw new TypeError(`${option} may be specified only once`);
+    return value;
+  };
+  for (let index = 2; index < words.length; index += 1) {
+    const option = words[index]!;
+    const value = words[index + 1];
+    switch (option) {
+      case "--jar":
+        if (value === undefined || value.startsWith("--")) throw new TypeError("--jar requires a path");
+        jarPath = assignOnce(jarPath, value, option);
+        break;
+      case "--jar-sha256":
+        if (value === undefined || value.startsWith("--")) throw new TypeError("--jar-sha256 requires a digest");
+        jarSha256 = assignOnce(jarSha256, value, option);
+        break;
+      case "--clearance-mm":
+        if (clearanceSeen) throw new TypeError(`${option} may be specified only once`);
+        clearanceSeen = true;
+        clearanceMm = numericOption(value, option);
+        break;
+      case "--heap-mb": heapMb = assignOnce(heapMb, numericOption(value, option), option); break;
+      case "--threads": threads = assignOnce(threads, numericOption(value, option), option); break;
+      case "--passes": maxPasses = assignOnce(maxPasses, numericOption(value, option), option); break;
+      case "--timeout-ms": timeoutMs = assignOnce(timeoutMs, numericOption(value, option), option); break;
+      default: throw new TypeError(`Unknown route option ${option}`);
+    }
+    index += 1;
+  }
+  if (jarPath === undefined || jarSha256 === undefined) {
+    throw new TypeError("route freerouting requires --jar and --jar-sha256");
+  }
+  return Object.freeze({
+    jarPath,
+    jarSha256,
+    clearanceMm,
+    ...(heapMb === undefined ? {} : { heapMb }),
+    ...(threads === undefined ? {} : { threads }),
+    ...(maxPasses === undefined ? {} : { maxPasses }),
+    ...(timeoutMs === undefined ? {} : { timeoutMs }),
+  });
+}
+
+function parseRoutePromotionInvocation(words: readonly string[]): ParsedRoutePromotionInvocation {
+  const candidatePath = words[2];
+  if (candidatePath === undefined || candidatePath.startsWith("--")) {
+    throw new TypeError("route promote requires a candidate Circuit JSON path");
+  }
+  let outputDirectory: string | undefined;
+  let viaHoleMm: number | undefined;
+  let viaOuterMm: number | undefined;
+  for (let index = 3; index < words.length; index += 1) {
+    const option = words[index]!;
+    const value = words[index + 1];
+    if (value === undefined || value.startsWith("--")) throw new TypeError(`${option} requires a value`);
+    if (option === "--output") {
+      if (outputDirectory !== undefined) throw new TypeError("--output may be specified only once");
+      outputDirectory = value;
+    } else if (option === "--via-hole-mm") {
+      if (viaHoleMm !== undefined) throw new TypeError("--via-hole-mm may be specified only once");
+      viaHoleMm = numericOption(value, option);
+    } else if (option === "--via-outer-mm") {
+      if (viaOuterMm !== undefined) throw new TypeError("--via-outer-mm may be specified only once");
+      viaOuterMm = numericOption(value, option);
+    } else {
+      throw new TypeError(`Unknown route promotion option ${option}`);
+    }
+    index += 1;
+  }
+  if (outputDirectory === undefined || viaHoleMm === undefined || viaOuterMm === undefined) {
+    throw new TypeError("route promote requires --output, --via-hole-mm, and --via-outer-mm");
+  }
+  return Object.freeze({ candidatePath, outputDirectory, viaHoleMm, viaOuterMm });
 }
 
 interface PreparedRun {
@@ -1509,6 +1633,171 @@ async function writeCircuitArtifact(
   });
 }
 
+async function runRouteFreerouting(
+  prepared: PreparedRun,
+  json: boolean,
+  invocation: ParsedFreeroutingInvocation,
+  javaExecutable?: string | null,
+  signal?: AbortSignal,
+): Promise<CliRun> {
+  const inputAuthority = await captureProjectInputAuthority(prepared, signal);
+  const evaluated = await evaluateProjectCircuitTwice(prepared.project.root, {
+    expectedConfig: prepared.config,
+    ...(signal === undefined ? {} : { signal }),
+  });
+  const candidate = await runFreeroutingCandidate({
+    circuitJson: evaluated.circuitJson,
+    runDirectory: prepared.runDirectory,
+    clearanceMm: invocation.clearanceMm,
+    jarPath: invocation.jarPath,
+    jarSha256: invocation.jarSha256,
+    freeroutingVersion: FREEROUTING_SUPPORTED_VERSION,
+    ...(javaExecutable === undefined ? {} : { javaExecutable }),
+    ...(invocation.heapMb === undefined ? {} : { heapMb: invocation.heapMb }),
+    ...(invocation.threads === undefined ? {} : { threads: invocation.threads }),
+    ...(invocation.maxPasses === undefined ? {} : { maxPasses: invocation.maxPasses }),
+    ...(invocation.timeoutMs === undefined ? {} : { timeoutMs: invocation.timeoutMs }),
+    ...(signal === undefined ? {} : { signal }),
+  });
+  const evidencePath = join(prepared.runDirectory, "freerouting-evidence.json");
+  const evidenceBytes = `${JSON.stringify({
+    schemaVersion: 1,
+    state: candidate.state,
+    message: candidate.message,
+    evidence: candidate.evidence,
+  }, null, 2)}\n`;
+  await atomicWrite(evidencePath, evidenceBytes);
+  const artifacts: ArtifactReference[] = [{
+    kind: "freerouting-evidence",
+    path: projectRelative(prepared.project.root, evidencePath),
+    digest: sha256(evidenceBytes),
+  }];
+  for (const artifact of candidate.workspaceArtifacts ?? []) {
+    artifacts.push({
+      kind: artifact.kind,
+      path: projectRelative(prepared.project.root, artifact.path),
+      digest: artifact.digest,
+    });
+  }
+  if (candidate.candidateCircuitJson !== undefined) {
+    const candidatePath = join(prepared.runDirectory, "candidate-circuit.json");
+    const candidateBytes = canonicalCircuitJson(candidate.candidateCircuitJson);
+    await atomicWrite(candidatePath, candidateBytes);
+    artifacts.push({
+      kind: "candidate-circuit-json",
+      path: projectRelative(prepared.project.root, candidatePath),
+      digest: sha256(candidateBytes),
+    });
+  }
+  const diagnostic = defineDiagnostic({
+    id: diagnosticId(candidate.state === "candidate"
+      ? "ROUTE_CANDIDATE_REVIEW_REQUIRED_001"
+      : candidate.state === "unavailable"
+      ? "ROUTE_FREEROUTING_UNAVAILABLE_001"
+      : "ROUTE_FREEROUTING_FAILED_001"),
+    severity: candidate.state === "candidate" ? "warning" : "error",
+    dimension: "functional",
+    message: candidate.message,
+    waiverPolicy: "forbidden",
+    objects: [],
+    sourceLocations: [],
+    evidence: [`freerouting:adapter:${candidate.evidence.adapter.version}`],
+    nextCommand: candidate.state === "candidate"
+      ? "Review candidate-circuit.json, then promote stable semantic routes into source"
+      : "Inspect freerouting-evidence.json and correct the qualified tool setup",
+  });
+  return finishEvidenceRun(prepared, commandResult({
+    command: "pcboo route freerouting",
+    runId: prepared.runId,
+    exitClassification: candidate.state === "candidate"
+      ? "incomplete"
+      : candidate.state === "failed"
+      ? "failure"
+      : "unavailable",
+    requestedDimensions: [],
+    statuses: unassessedStatusSet(),
+    diagnostics: [diagnostic],
+    artifacts,
+  }), json, inputAuthority);
+}
+
+async function runRoutePromote(
+  cwd: string,
+  json: boolean,
+  invocation: ParsedRoutePromotionInvocation,
+): Promise<CliRun> {
+  const project = await discoverProject(cwd);
+  const config = await loadProjectConfig(project.root);
+  const candidatePath = resolve(project.root, invocation.candidatePath);
+  const candidateRelative = relative(project.root, candidatePath).replaceAll("\\", "/");
+  if (candidateRelative === "" || candidateRelative === ".." || candidateRelative.startsWith("../")) {
+    throw new Error("Route candidate must be a file inside the PCBoo project");
+  }
+  const candidateStat = await lstat(candidatePath);
+  if (!candidateStat.isFile() || candidateStat.isSymbolicLink()) {
+    throw new Error("Route candidate must be a regular, non-symlink file");
+  }
+  const candidateBytes = await readBoundedRegularFile(candidatePath, 64 * 1024 * 1024);
+  const candidateText = new TextDecoder("utf-8", { fatal: true }).decode(candidateBytes);
+  const circuitJson = parseCanonicalRouteCandidateCircuitJson(candidateText);
+  const sourceSet = renderPromotedRouteSourceSet(circuitJson, {
+    defaultViaHoleDiameter: invocation.viaHoleMm,
+    defaultViaOuterDiameter: invocation.viaOuterMm,
+  });
+  const outputDirectory = resolve(project.root, invocation.outputDirectory);
+  const outputRelative = relative(project.root, outputDirectory).replaceAll("\\", "/");
+  if (outputRelative === "" || outputRelative === ".." || outputRelative.startsWith("../")) {
+    throw new Error("Route source output must be a new directory inside the PCBoo project");
+  }
+  const generatedPrefix = config.outputDirectory.replaceAll("\\", "/").replace(/\/$/u, "");
+  if (outputRelative === generatedPrefix || outputRelative.startsWith(`${generatedPrefix}/`)) {
+    throw new Error("Promoted authored routes cannot be written inside generated PCBoo output");
+  }
+  await assertNoSymlinkOutputPath(project.root, outputRelative);
+  let created = false;
+  try {
+    await mkdir(outputDirectory, { recursive: false });
+    created = true;
+    const artifacts: ArtifactReference[] = [];
+    for (const module of sourceSet.modules) {
+      const path = join(outputDirectory, module.fileName);
+      await writeFile(path, module.source, { flag: "wx" });
+      artifacts.push({
+        kind: "authored-route-source",
+        path: projectRelative(project.root, path),
+        digest: sha256(module.source),
+      });
+    }
+    const indexPath = join(outputDirectory, "index.ts");
+    await writeFile(indexPath, sourceSet.indexSource, { flag: "wx" });
+    artifacts.push({
+      kind: "authored-route-index",
+      path: projectRelative(project.root, indexPath),
+      digest: sha256(sourceSet.indexSource),
+    });
+    const result = commandResult({
+      command: "pcboo route promote",
+      runId: "source-promotion",
+      exitClassification: "success",
+      requestedDimensions: [],
+      statuses: unassessedStatusSet(),
+      artifacts,
+    });
+    return Object.freeze({
+      exitCode: CLI_EXIT_CODES.success,
+      stdout: json
+        ? `${JSON.stringify(result, null, 2)}\n`
+        : `Promoted ${sourceSet.routes.length} candidate traces into ${sourceSet.modules.length} semantic net modules at ${outputRelative}\n`,
+      stderr: "",
+      result,
+      projectRoot: project.root,
+    });
+  } catch (error) {
+    if (created) await rm(outputDirectory, { recursive: true, force: true });
+    throw error;
+  }
+}
+
 async function runCheck(prepared: PreparedRun, json: boolean, signal?: AbortSignal): Promise<CliRun> {
   const inputAuthority = await captureProjectInputAuthority(prepared, signal);
   const assessment = await assessProject(prepared, inputAuthority, signal);
@@ -2698,6 +2987,7 @@ export async function runCli(options: RunCliOptions): Promise<CliRun> {
   const command = words[0]!;
   const recognized = command === "build" || command === "check" || command === "test" ||
     command === "inspect" || command === "simulate" ||
+    (command === "route" && (words[1] === "freerouting" || words[1] === "promote")) ||
     (command === "export" && (words[1] === "kicad" || words[1] === "gerbers")) ||
     (command === "verify" && words[1] === "manufacturing");
   if (!recognized) {
@@ -2716,9 +3006,25 @@ export async function runCli(options: RunCliOptions): Promise<CliRun> {
     return argumentFailure("simulate accepts at most one simulation name", invocation.json);
   }
   let inspectFilters: InspectFilters = {};
+  let freeroutingInvocation: ParsedFreeroutingInvocation | undefined;
+  let routePromotionInvocation: ParsedRoutePromotionInvocation | undefined;
   if (command === "inspect") {
     try {
       inspectFilters = parseInspect(words);
+    } catch (error) {
+      return argumentFailure(
+        error instanceof Error ? error.message : String(error),
+        invocation.json,
+      );
+    }
+  }
+  if (command === "route") {
+    try {
+      if (words[1] === "freerouting") {
+        freeroutingInvocation = parseFreeroutingInvocation(words);
+      } else {
+        routePromotionInvocation = parseRoutePromotionInvocation(words);
+      }
     } catch (error) {
       return argumentFailure(
         error instanceof Error ? error.message : String(error),
@@ -2745,6 +3051,18 @@ export async function runCli(options: RunCliOptions): Promise<CliRun> {
       );
     }
     throw error;
+  }
+
+  if (routePromotionInvocation !== undefined) {
+    try {
+      return await runRoutePromote(
+        options.cwd ?? process.cwd(),
+        invocation.json,
+        routePromotionInvocation,
+      );
+    } catch (error) {
+      return argumentFailure(error instanceof Error ? error.message : String(error), invocation.json);
+    }
   }
 
   let prepared: PreparedRun;
@@ -2785,6 +3103,15 @@ export async function runCli(options: RunCliOptions): Promise<CliRun> {
         invocation.json,
         words[1],
         options.externalToolPaths?.ngspice,
+        options.signal,
+      );
+    }
+    if (command === "route") {
+      return await runRouteFreerouting(
+        prepared,
+        invocation.json,
+        freeroutingInvocation!,
+        options.externalToolPaths?.java,
         options.signal,
       );
     }
