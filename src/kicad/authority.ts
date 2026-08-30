@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import type { KicadHandoff, KicadLiveValidation } from "./index";
 
@@ -16,7 +16,7 @@ export function markAuthenticKicadHandoff<T extends Readonly<KicadHandoff>>(hand
 /** @internal Package-private authenticity boundary. */
 export function assertAuthenticKicadHandoff(handoff: Readonly<KicadHandoff>): void {
   if (!PRISTINE_WEAKSET_HAS(AUTHENTIC_HANDOFFS, handoff)) {
-    throw new TypeError("KiCad handoff envelope was not created by this PCBoo runtime");
+    throw new TypeError("KiCad handoff envelope was not created by this Fulmetry runtime");
   }
 }
 
@@ -29,6 +29,6 @@ export function markAuthenticKicadLiveValidation<T extends Readonly<KicadLiveVal
 /** @internal Package-private authenticity boundary. */
 export function assertAuthenticKicadLiveValidation(validation: Readonly<KicadLiveValidation>): void {
   if (!PRISTINE_WEAKSET_HAS(AUTHENTIC_LIVE_VALIDATIONS, validation)) {
-    throw new TypeError("KiCad live-validation envelope was not produced by PCBoo's live validator");
+    throw new TypeError("KiCad live-validation envelope was not produced by Fulmetry's live validator");
   }
 }

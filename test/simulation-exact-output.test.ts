@@ -18,7 +18,7 @@ function sha256(bytes: Uint8Array | string): string {
 
 describe("exact simulation output authority", () => {
   test("captures the exact root/models tree and rejects an unexpected broad subtree without entering it", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-simulation-output-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-simulation-output-")); roots.push(root);
     await mkdir(join(root, "models"));
     await Bun.write(join(root, "input.cir"), "deck\n");
     await Bun.write(join(root, "models", "r.model"), "model\n");
@@ -68,7 +68,7 @@ describe("exact simulation output authority", () => {
   });
 
   test("rejects oversized sparse files and a same-path replacement root", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-simulation-limit-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-simulation-limit-")); roots.push(root);
     const path = join(root, "result.raw");
     await Bun.write(path, "raw\n");
     const identity = await captureSimulationDirectoryIdentity(root);
@@ -94,7 +94,7 @@ describe("exact simulation output authority", () => {
   });
 
   test("does not accept changed bytes through Map prototype poisoning", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-simulation-map-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-simulation-map-")); roots.push(root);
     await Bun.write(join(root, "result.raw"), "evil");
     const identity = await captureSimulationDirectoryIdentity(root);
     const originalGet = Map.prototype.get;

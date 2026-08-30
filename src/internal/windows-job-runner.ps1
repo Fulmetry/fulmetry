@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 PCBoo contributors
+# SPDX-FileCopyrightText: 2026 Fulmetry contributors
 # SPDX-License-Identifier: MIT
 param(
   [Parameter(Mandatory = $true)]
@@ -15,7 +15,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 
-public static class PcbooWindowsJob
+public static class FulmetryWindowsJob
 {
     private const uint CREATE_SUSPENDED = 0x00000004;
     private const uint STARTF_USESTDHANDLES = 0x00000100;
@@ -418,7 +418,7 @@ try {
     [IO.FileShare]::None
   )
   $arguments = @($request.arguments | ForEach-Object { [string]$_ })
-  $result = [PcbooWindowsJob]::Run(
+  $result = [FulmetryWindowsJob]::Run(
     [string]$request.executable,
     [string[]]$arguments,
     [string]$request.workingDirectory

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -30,7 +30,7 @@ import {
   Resistor,
   Trace,
   VoltageSource,
-} from "@pcboo/pcboo/authoring";
+} from "fulmetry/authoring";
 import { deriveAuthoritativeConnectivity } from "../src/authoritative-connectivity";
 import { canonicalCircuitJson } from "../src/circuit-json";
 import { assessCircuitElectrical } from "../src/electrical";
@@ -445,7 +445,7 @@ function referenceSilkscreenSources(
 }
 
 async function exportAndVerify(circuitJson: AnyCircuitElement[], label: string) {
-  const parent = await mkdtemp(join(tmpdir(), `pcboo-semantic-${label}-`));
+  const parent = await mkdtemp(join(tmpdir(), `fulmetry-semantic-${label}-`));
   roots.push(parent);
   try {
     const root = join(parent, "manufacturing");
@@ -481,7 +481,7 @@ describe("seeded unit and source-semantic properties", () => {
       expect(supportedQuantityUnits(quantity).join("\0"))
         .toBe(Object.keys(scales).sort().join("\0"));
     }
-    const seed = propertySeed(process.env.PCBOO_PROPERTY_SEED, 0x554e_4954);
+    const seed = propertySeed(process.env.FULMETRY_PROPERTY_SEED, 0x554e_4954);
     await runSeededProperty({
       name: "unit-representation-round-trip",
       seed,
@@ -574,7 +574,7 @@ describe("seeded unit and source-semantic properties", () => {
       { includeSilkscreen: true },
     );
 
-    const seed = propertySeed(process.env.PCBOO_PROPERTY_SEED, 0x4f52_4445);
+    const seed = propertySeed(process.env.FULMETRY_PROPERTY_SEED, 0x4f52_4445);
     await runSeededProperty({
       name: "unordered-declaration-invariance",
       seed,

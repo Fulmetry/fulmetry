@@ -5,7 +5,7 @@ import {
   Resistor,
   Trace,
   type AnyCircuitElement,
-} from "@pcboo/pcboo/authoring";
+} from "fulmetry/authoring";
 import { DIAGNOSTIC_REFERENCE_LIMIT } from "../src/diagnostics";
 import { assessCircuitElectrical } from "../src/electrical";
 import { deriveManufacturingExpectation } from "../src/manufacturing/expectation";

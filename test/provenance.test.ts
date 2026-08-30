@@ -18,7 +18,7 @@ afterEach(async () => {
 
 describe("nearest honest TypeScript provenance", () => {
   test("derives hierarchical instance paths for nested generated manufacturing entities", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-provenance-hierarchy-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-provenance-hierarchy-"));
     roots.push(root);
     await mkdir(join(root, "src", "channels"), { recursive: true });
     await Bun.write(
@@ -90,7 +90,7 @@ describe("nearest honest TypeScript provenance", () => {
   });
 
   test("rejects contradictory direct and referenced entity ownership", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-provenance-conflict-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-provenance-conflict-"));
     roots.push(root);
     await mkdir(join(root, "src"));
     await Bun.write(join(root, "src/board.ts"), "export default { name: 'R1' }\n");
@@ -163,7 +163,7 @@ describe("nearest honest TypeScript provenance", () => {
   });
 
   test("follows parent-subcircuit-only ancestry and rejects contradictory parents", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-provenance-parent-subcircuit-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-provenance-parent-subcircuit-"));
     roots.push(root);
     await mkdir(join(root, "src"));
     await Bun.write(join(root, "src/board.ts"), "export default { name: 'R1' }\n");
@@ -203,7 +203,7 @@ describe("nearest honest TypeScript provenance", () => {
   });
 
   test("indexes literal component names across composed source files and maps generated IDs", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-provenance-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-provenance-"));
     roots.push(root);
     await mkdir(join(root, "src", "components"), { recursive: true });
     await Bun.write(
@@ -240,7 +240,7 @@ describe("nearest honest TypeScript provenance", () => {
   });
 
   test("labels evidence as generated or unavailable instead of inventing a location", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-provenance-empty-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-provenance-empty-"));
     roots.push(root);
     await mkdir(join(root, "src"));
     await Bun.write(join(root, "src/board.ts"), "export default []\n");
@@ -264,7 +264,7 @@ describe("nearest honest TypeScript provenance", () => {
   });
 
   test("does not invent one source location for a reused ambiguous name", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-provenance-ambiguous-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-provenance-ambiguous-"));
     roots.push(root);
     await mkdir(join(root, "src"));
     await Bun.write(
@@ -294,7 +294,7 @@ describe("nearest honest TypeScript provenance", () => {
   });
 
   test("does not accept a unique authored decoy that is absent from Circuit JSON", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-provenance-decoy-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-provenance-decoy-"));
     roots.push(root);
     await mkdir(join(root, "src"));
     await Bun.write(
@@ -321,7 +321,7 @@ describe("nearest honest TypeScript provenance", () => {
   });
 
   test("does not resolve fabricated selector suffixes through a valid base object", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-provenance-selector-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-provenance-selector-"));
     roots.push(root);
     await mkdir(join(root, "src"));
     await Bun.write(
@@ -354,8 +354,8 @@ describe("nearest honest TypeScript provenance", () => {
     )).toBeTrue();
   });
 
-  test("can locate colon detail tokens only when they are trusted PCBoo assessment output", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-provenance-internal-detail-"));
+  test("can locate colon detail tokens only when they are trusted Fulmetry assessment output", async () => {
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-provenance-internal-detail-"));
     roots.push(root);
     await mkdir(join(root, "src"));
     await Bun.write(
@@ -366,7 +366,7 @@ describe("nearest honest TypeScript provenance", () => {
       id: diagnosticId("ELECTRICAL_INTERNAL_DETAIL_001"),
       severity: "error",
       dimension: "electrical",
-      message: "PCBoo generated a trace detail token",
+      message: "Fulmetry generated a trace detail token",
       waiverPolicy: "forbidden",
       objects: ["pcb_component_1:dangling-start"],
       sourceLocations: [],

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { constants } from "node:fs";
 import { lstat, open, opendir, realpath } from "node:fs/promises";
@@ -187,7 +187,7 @@ export async function digestProjectInputs(options: {
   readonly projectRoot: string;
   readonly entry: string;
   readonly outputDirectory?: string;
-  /** Canonical active profile names from the resolved pcboo.config.ts. */
+  /** Canonical active profile names from the resolved fulmetry.config.ts. */
   readonly profiles: readonly string[];
   /** Canonical source-controlled board revision from the resolved config, when present. */
   readonly boardRevision?: string;
@@ -209,11 +209,11 @@ export async function digestProjectInputs(options: {
   }
   const [sourcePaths, configPaths, simulationNames, authoritativeProjectPaths] = await Promise.all([
     discoverProjectSourceGraph(options.projectRoot, options.entry),
-    discoverProjectSourceGraph(options.projectRoot, "pcboo.config.ts"),
+    discoverProjectSourceGraph(options.projectRoot, "fulmetry.config.ts"),
     discoverSimulationNames(options.projectRoot),
     collectAuthoritativeProjectFiles(
       options.projectRoot,
-      options.outputDirectory ?? ".pcboo",
+      options.outputDirectory ?? ".fulmetry",
     ),
   ]);
   const simulationPaths = new Set<string>([
@@ -261,12 +261,12 @@ export async function digestProjectInputs(options: {
   const [sourceDigest, configSourceDigest, lockDigest, simulationDigest] = await Promise.all([
     digestFiles(options.projectRoot, authoritativeProjectPaths),
     digestFiles(options.projectRoot, configPaths),
-    digestFiles(options.projectRoot, ["pcboo.lock"]),
+    digestFiles(options.projectRoot, ["fulmetry.lock"]),
     digestFiles(options.projectRoot, orderedSimulationPaths),
   ]);
   const finalAuthoritativeProjectPaths = await collectAuthoritativeProjectFiles(
     options.projectRoot,
-    options.outputDirectory ?? ".pcboo",
+    options.outputDirectory ?? ".fulmetry",
   );
   if (
     finalAuthoritativeProjectPaths.length !== authoritativeProjectPaths.length ||
@@ -282,7 +282,7 @@ export async function digestProjectInputs(options: {
   const resolvedConfig = JSON.stringify({
     schemaVersion: 1,
     entry: options.entry,
-    outputDirectory: options.outputDirectory ?? ".pcboo",
+    outputDirectory: options.outputDirectory ?? ".fulmetry",
     profiles,
     ...(options.boardRevision === undefined
       ? {}
@@ -300,7 +300,7 @@ export async function digestProjectInputs(options: {
       ...authoritativeProjectPaths,
       ...sourcePaths,
       ...configPaths,
-      "pcboo.lock",
+      "fulmetry.lock",
       ...orderedSimulationPaths,
     ])].sort()),
     simulationNames,

@@ -72,9 +72,9 @@ function circuitJson(r2Resistance = 10_000): any[] {
 }
 
 const RC_MODEL_BYTES = Object.freeze({
-  resistor: "* PCBoo built-in resistor provenance fixture\n",
-  capacitor: "* PCBoo built-in capacitor provenance fixture\n",
-  inductor: "* PCBoo built-in inductor provenance fixture\n",
+  resistor: "* Fulmetry built-in resistor provenance fixture\n",
+  capacitor: "* Fulmetry built-in capacitor provenance fixture\n",
+  inductor: "* Fulmetry built-in inductor provenance fixture\n",
 });
 
 function rcTransientDefinition(options: {
@@ -92,7 +92,7 @@ function rcTransientDefinition(options: {
         device: { kind: "primitive", name: "resistor" },
         bindings: [{ componentId: "R1", pinMap: { "1": "1", "2": "2" }, parameters: { resistance: "1k" } }],
         path: "models/rc-resistor.model",
-        source: "PCBoo analytical RC fixture",
+        source: "Fulmetry analytical RC fixture",
         digest: options.resistorDigest,
         license: "CC0-1.0",
         redistribution: "allowed",
@@ -102,7 +102,7 @@ function rcTransientDefinition(options: {
         device: { kind: "primitive", name: "capacitor" },
         bindings: [{ componentId: "C1", pinMap: { "1": "1", "2": "2" }, parameters: { capacitance: options.capacitance ?? "1u" } }],
         path: "models/rc-capacitor.model",
-        source: "PCBoo analytical RC fixture",
+        source: "Fulmetry analytical RC fixture",
         digest: options.capacitorDigest,
         license: "CC0-1.0",
         redistribution: "allowed",
@@ -173,7 +173,7 @@ const RC_TEN_MILLISECOND_DEFECT_SAMPLES = Object.freeze([
 function transientRaw(samples: readonly number[]): string {
   if (samples.length !== 12) throw new Error("RC transient fixture must contain exactly 12 points");
   return [
-    "Title: PCBoo analytical RC fixture",
+    "Title: Fulmetry analytical RC fixture",
     "Date: ignored",
     "Plotname: Transient Analysis",
     "Flags: real",
@@ -211,7 +211,7 @@ function rcAcDefinition(options: {
         device: { kind: "primitive", name: "resistor" },
         bindings: [{ componentId: "R1", pinMap: { "1": "1", "2": "2" }, parameters: { resistance: String(RC_AC_RESISTANCE) } }],
         path: "models/rc-resistor.model",
-        source: "PCBoo analytical AC fixture",
+        source: "Fulmetry analytical AC fixture",
         digest: options.resistorDigest,
         license: "CC0-1.0",
         redistribution: "allowed",
@@ -221,7 +221,7 @@ function rcAcDefinition(options: {
         device: { kind: "primitive", name: "capacitor" },
         bindings: [{ componentId: "C1", pinMap: { "1": "1", "2": "2" }, parameters: { capacitance: options.capacitance ?? "1u" } }],
         path: "models/rc-capacitor.model",
-        source: "PCBoo analytical AC fixture",
+        source: "Fulmetry analytical AC fixture",
         digest: options.capacitorDigest,
         license: "CC0-1.0",
         redistribution: "allowed",
@@ -260,7 +260,7 @@ function acRaw(samples: readonly Readonly<{ real: number; imaginary: number }>[]
   if (samples.length !== 3) throw new Error("RC AC fixture must contain exactly three decade points");
   const frequencies = [10, 100, 1_000] as const;
   return [
-    "Title: PCBoo analytical AC fixture",
+    "Title: Fulmetry analytical AC fixture",
     "Date: ignored",
     "Plotname: AC Analysis",
     "Flags: complex",
@@ -305,19 +305,19 @@ function rlcAcDefinition(options: {
       {
         id: "rlc-resistor", device: { kind: "primitive", name: "resistor" },
         bindings: [{ componentId: "R1", pinMap: { "1": "1", "2": "2" }, parameters: { resistance: options.resistance ?? "10" } }],
-        path: "models/rlc-resistor.model", source: "PCBoo analytical RLC fixture",
+        path: "models/rlc-resistor.model", source: "Fulmetry analytical RLC fixture",
         digest: options.resistorDigest, license: "CC0-1.0", redistribution: "allowed",
       },
       {
         id: "rlc-inductor", device: { kind: "primitive", name: "inductor" },
         bindings: [{ componentId: "L1", pinMap: { "1": "1", "2": "2" }, parameters: { inductance: "10m" } }],
-        path: "models/rlc-inductor.model", source: "PCBoo analytical RLC fixture",
+        path: "models/rlc-inductor.model", source: "Fulmetry analytical RLC fixture",
         digest: options.inductorDigest, license: "CC0-1.0", redistribution: "allowed",
       },
       {
         id: "rlc-capacitor", device: { kind: "primitive", name: "capacitor" },
         bindings: [{ componentId: "C1", pinMap: { "1": "1", "2": "2" }, parameters: { capacitance: "1u" } }],
-        path: "models/rlc-capacitor.model", source: "PCBoo analytical RLC fixture",
+        path: "models/rlc-capacitor.model", source: "Fulmetry analytical RLC fixture",
         digest: options.capacitorDigest, license: "CC0-1.0", redistribution: "allowed",
       },
     ],
@@ -377,7 +377,7 @@ const RLC_Q1_DEFECT_SAMPLES = Object.freeze([
 function rlcAcRaw(samples: readonly Readonly<{ real: number; imaginary: number }>[]): string {
   if (samples.length !== RLC_AC_FREQUENCIES.length) throw new Error("RLC AC fixture point count changed");
   return [
-    "Title: PCBoo analytical RLC fixture", "Date: ignored", "Plotname: AC Analysis", "Flags: complex",
+    "Title: Fulmetry analytical RLC fixture", "Date: ignored", "Plotname: AC Analysis", "Flags: complex",
     "No. Variables: 2", `No. Points: ${samples.length}`, "Variables:",
     "  0 frequency frequency grid=3", "  1 v(vout) voltage", "Values:",
     ...samples.flatMap((sample, index) => [
@@ -389,7 +389,7 @@ function rlcAcRaw(samples: readonly Readonly<{ real: number; imaginary: number }
 
 function operatingPointRaw(value = "2.5000"): string {
   return [
-    "Title: PCBoo fixture", "Date: ignored", "Plotname: Operating Point", "Flags: real",
+    "Title: Fulmetry fixture", "Date: ignored", "Plotname: Operating Point", "Flags: real",
     "No. Variables: 1", "No. Points: 1", "Variables:", "  0 v(vout) voltage",
     "Values:", `0 ${value}`, "",
   ].join("\n");
@@ -404,7 +404,7 @@ const DIVIDER_TWO_THIRDS_DEFECT_SAMPLES = Object.freeze([
 function dcSweepRaw(voutSamples: readonly number[]): string {
   if (voutSamples.length !== DIVIDER_DC_AXIS.length) throw new Error("DC sweep fixture point count changed");
   return [
-    "Title: PCBoo analytical divider sweep", "Date: ignored",
+    "Title: Fulmetry analytical divider sweep", "Date: ignored",
     "Plotname: DC transfer characteristic", "Flags: real",
     "No. Variables: 3", `No. Points: ${voutSamples.length}`, "Variables:",
     "  0 v(v-sweep) voltage", "  1 v(vin) voltage", "  2 v(vout) voltage", "Values:",
@@ -429,7 +429,7 @@ async function fakeNgspice(root: string, raw = operatingPointRaw(), mode: "ok" |
 
 describe("qualified ngspice adapter", () => {
   test("checks an analytical RC charge/discharge response through bounded execution and preserves electrical failures", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-rc-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-rc-")); roots.push(root);
     await mkdir(join(root, "models"));
     await Bun.write(join(root, "models/rc-resistor.model"), RC_MODEL_BYTES.resistor);
     await Bun.write(join(root, "models/rc-capacitor.model"), RC_MODEL_BYTES.capacitor);
@@ -504,7 +504,7 @@ describe("qualified ngspice adapter", () => {
   });
 
   test("checks an analytical RC AC response and rejects a shifted cutoff despite valid solver evidence", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-ac-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-ac-")); roots.push(root);
     await mkdir(join(root, "models"));
     await Bun.write(join(root, "models/rc-resistor.model"), RC_MODEL_BYTES.resistor);
     await Bun.write(join(root, "models/rc-capacitor.model"), RC_MODEL_BYTES.capacitor);
@@ -580,7 +580,7 @@ describe("qualified ngspice adapter", () => {
   });
 
   test("checks an analytical resonant RLC response and rejects a Q-changing mutation", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-rlc-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-rlc-")); roots.push(root);
     await mkdir(join(root, "models"));
     await Bun.write(join(root, "models/rlc-resistor.model"), RC_MODEL_BYTES.resistor);
     await Bun.write(join(root, "models/rlc-inductor.model"), RC_MODEL_BYTES.inductor);
@@ -656,9 +656,9 @@ describe("qualified ngspice adapter", () => {
   });
 
   test("checks an analytical divider DC sweep and rejects a ratio mutation", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-dc-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-dc-")); roots.push(root);
     await mkdir(join(root, "models"));
-    const model = "* PCBoo built-in divider provenance fixture\n";
+    const model = "* Fulmetry built-in divider provenance fixture\n";
     await Bun.write(join(root, "models/resistors.model"), model);
     const modelDigest = sha256(model);
 
@@ -833,7 +833,7 @@ describe("qualified ngspice adapter", () => {
   });
 
   test("binds tool, circuit, netlist, models, stdio, and raw bytes before passing numeric assertions", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-")); roots.push(root);
     const outputRoot = join(root, "output"); const runDirectory = join(outputRoot, "run"); await mkdir(join(root, "models")); await mkdir(runDirectory, { recursive: true });
     const model = ".model fixture R\n"; await Bun.write(join(root, "models/resistors.model"), model);
     const definition = parseSimulationDefinition(rawDefinition(sha256(model)));
@@ -856,7 +856,7 @@ describe("qualified ngspice adapter", () => {
 
   test("fails process crashes and timeouts and never treats output absence as a skip", async () => {
     for (const mode of ["crash", "timeout", "fatal"] as const) {
-      const root = await mkdtemp(join(tmpdir(), `pcboo-ngspice-${mode}-`)); roots.push(root);
+      const root = await mkdtemp(join(tmpdir(), `fulmetry-ngspice-${mode}-`)); roots.push(root);
       const outputRoot = join(root, "output"); const runDirectory = join(outputRoot, "run"); await mkdir(join(root, "models")); await mkdir(runDirectory, { recursive: true });
       const model = ".model fixture R\n"; await Bun.write(join(root, "models/resistors.model"), model);
       const raw = rawDefinition(sha256(model)); raw.timeoutMs = 50;
@@ -870,7 +870,7 @@ describe("qualified ngspice adapter", () => {
   });
 
   test("keeps unqualified component models incomplete instead of silently substituting behavior", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-unsupported-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-unsupported-")); roots.push(root);
     const outputRoot = join(root, "output"); const runDirectory = join(outputRoot, "run"); await mkdir(join(root, "models")); await mkdir(runDirectory, { recursive: true });
     const model = ".model fixture D\n"; await Bun.write(join(root, "models/resistors.model"), model);
     const raw = rawDefinition(sha256(model));
@@ -881,7 +881,7 @@ describe("qualified ngspice adapter", () => {
   });
 
   test("rejects aggregate model artifacts before creating a simulation directory", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-model-budget-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-model-budget-")); roots.push(root);
     const outputRoot = join(root, "output"); const runDirectory = join(outputRoot, "run");
     await mkdir(join(root, "models")); await mkdir(runDirectory, { recursive: true });
     const modelPath = join(root, "models/shared.model");
@@ -916,7 +916,7 @@ describe("qualified ngspice adapter", () => {
   test("rejects raw symlinks and recursive extra artifacts before publishing evidence", async () => {
     if (process.platform === "win32") return;
     for (const mode of ["raw-symlink", "extra", "tool-extra"] as const) {
-      const root = await mkdtemp(join(tmpdir(), `pcboo-ngspice-${mode}-`)); roots.push(root);
+      const root = await mkdtemp(join(tmpdir(), `fulmetry-ngspice-${mode}-`)); roots.push(root);
       const outputRoot = join(root, "output"); const runDirectory = join(outputRoot, "run");
       await mkdir(join(root, "models")); await mkdir(runDirectory, { recursive: true });
       const model = ".model fixture R\n"; await Bun.write(join(root, "models/resistors.model"), model);
@@ -931,7 +931,7 @@ describe("qualified ngspice adapter", () => {
 
   test("rejects final simulation byte and root replacement without publishing artifact references", async () => {
     for (const attack of ["bytes", "root"] as const) {
-      const root = await mkdtemp(join(tmpdir(), `pcboo-ngspice-final-${attack}-`)); roots.push(root);
+      const root = await mkdtemp(join(tmpdir(), `fulmetry-ngspice-final-${attack}-`)); roots.push(root);
       const outputRoot = join(root, "output"); const runDirectory = join(outputRoot, "run");
       await mkdir(join(root, "models")); await mkdir(runDirectory, { recursive: true });
       const model = ".model fixture R\n"; await Bun.write(join(root, "models/resistors.model"), model);
@@ -959,7 +959,7 @@ describe("qualified ngspice adapter", () => {
   });
 
   test("treats ordinary failure prose containing cancelled as a failed simulation", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-cancelled-prose-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-cancelled-prose-")); roots.push(root);
     const outputRoot = join(root, "output"); const runDirectory = join(outputRoot, "run");
     await mkdir(join(root, "models")); await mkdir(runDirectory, { recursive: true });
     const model = ".model fixture R\n"; await Bun.write(join(root, "models/resistors.model"), model);
@@ -982,7 +982,7 @@ describe("qualified ngspice adapter", () => {
   });
 
   test("honors cancellation after solver exit and removes unpublished simulation evidence", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-late-cancel-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-late-cancel-")); roots.push(root);
     const outputRoot = join(root, "output"); const runDirectory = join(outputRoot, "run");
     await mkdir(join(root, "models")); await mkdir(runDirectory, { recursive: true });
     const model = ".model fixture R\n"; await Bun.write(join(root, "models/resistors.model"), model);
@@ -1002,7 +1002,7 @@ describe("qualified ngspice adapter", () => {
   });
 
   test("binds delayed solver evidence to immutable entry snapshots despite caller mutation", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-snapshot-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-snapshot-")); roots.push(root);
     const outputRoot = join(root, "output"); const runDirectory = join(outputRoot, "run");
     await mkdir(join(root, "models")); await mkdir(runDirectory, { recursive: true });
     const model = ".model fixture R\n"; await Bun.write(join(root, "models/resistors.model"), model);
@@ -1020,7 +1020,7 @@ describe("qualified ngspice adapter", () => {
 
   test("kills solver descendants at the timeout boundary", async () => {
     if (process.platform === "win32") return;
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-child-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-child-")); roots.push(root);
     const outputRoot = join(root, "output"); const runDirectory = join(outputRoot, "run");
     await mkdir(join(root, "models")); await mkdir(runDirectory, { recursive: true });
     const model = ".model fixture R\n"; await Bun.write(join(root, "models/resistors.model"), model);
@@ -1038,7 +1038,7 @@ describe("qualified ngspice adapter", () => {
   });
 
   test("rejects project model changes and removes unpublished solver evidence", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-model-snapshot-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-model-snapshot-")); roots.push(root);
     const outputRoot = join(root, "output"); const runDirectory = join(outputRoot, "run");
     await mkdir(join(root, "models")); await mkdir(runDirectory, { recursive: true });
     const model = ".model fixture R\n"; const sourceModel = join(root, "models/resistors.model"); await Bun.write(sourceModel, model);
@@ -1056,7 +1056,7 @@ describe("qualified ngspice adapter", () => {
   });
 
   test("keeps issued qualification authority fail-closed under WeakSet prototype poisoning", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-set-poison-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-set-poison-")); roots.push(root);
     const outputRoot = join(root, "output"); const runDirectory = join(outputRoot, "run");
     await mkdir(join(root, "models")); await mkdir(runDirectory, { recursive: true });
     const model = ".model fixture R\n"; await Bun.write(join(root, "models/resistors.model"), model);

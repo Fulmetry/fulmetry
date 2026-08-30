@@ -25,7 +25,7 @@ function minimalBoardCircuitFixture(): unknown[] {
 }
 
 async function createProject(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-privacy-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-privacy-"));
   temporaryRoots.push(root);
   await mkdir(join(root, "circuit"));
   await mkdir(join(root, "node_modules"));
@@ -39,14 +39,14 @@ async function createProject(): Promise<string> {
     `export default ${JSON.stringify(minimalBoardCircuitFixture())};\n`,
   );
   await Bun.write(
-    join(root, "pcboo.config.ts"),
+    join(root, "fulmetry.config.ts"),
     `export default ${JSON.stringify({
       entry: "circuit/board.ts",
       profiles: [BASELINE_FABRICATION_PROFILE.name],
     })};\n`,
   );
   await Bun.write(
-    join(root, "pcboo.lock"),
+    join(root, "fulmetry.lock"),
     `${JSON.stringify({
       schemaVersion: 1,
       tscircuit: {
@@ -117,7 +117,7 @@ describe("default privacy and offline policy", () => {
     }
   }, 120_000);
 
-  test("a proxy-observed default and offline build send no PCBoo traffic and keep identical circuit identity", async () => {
+  test("a proxy-observed default and offline build send no Fulmetry traffic and keep identical circuit identity", async () => {
     const projectRoot = await createProject();
     const requests: string[] = [];
     const proxy = Bun.serve({
@@ -188,11 +188,11 @@ describe("default privacy and offline policy", () => {
   test("a sensitivity-checked runtime observer sees no default-workflow socket or DNS egress", async () => {
     const projectRoot = await createProject();
     const observerPreload = join(import.meta.dir, "helpers/network-egress-observer-preload.ts");
-    const observationRoot = await mkdtemp(join(tmpdir(), "pcboo-network-observer-"));
+    const observationRoot = await mkdtemp(join(tmpdir(), "fulmetry-network-observer-"));
     temporaryRoots.push(observationRoot);
     const observerLog = join(observationRoot, "network-egress.jsonl");
     const readyLog = join(observationRoot, "observer-ready.jsonl");
-    const marker = "pcboo-sensitive-project-data-canary";
+    const marker = "fulmetry-sensitive-project-data-canary";
     let received = "";
     let resolveReceived!: () => void;
     const receivedCanary = new Promise<void>((resolve) => {
@@ -233,8 +233,8 @@ describe("default privacy and offline policy", () => {
         {
           env: {
             ...process.env,
-            PCBOO_NETWORK_OBSERVER_LOG: observerLog,
-            PCBOO_NETWORK_OBSERVER_READY_LOG: readyLog,
+            FULMETRY_NETWORK_OBSERVER_LOG: observerLog,
+            FULMETRY_NETWORK_OBSERVER_READY_LOG: readyLog,
           },
           stdin: "ignore", stdout: "pipe", stderr: "pipe",
         },
@@ -257,8 +257,8 @@ describe("default privacy and offline policy", () => {
         {
           env: {
             ...process.env,
-            PCBOO_NETWORK_OBSERVER_LOG: observerLog,
-            PCBOO_NETWORK_OBSERVER_READY_LOG: readyLog,
+            FULMETRY_NETWORK_OBSERVER_LOG: observerLog,
+            FULMETRY_NETWORK_OBSERVER_READY_LOG: readyLog,
           },
           stdin: "ignore", stdout: "pipe", stderr: "pipe",
         },
@@ -286,8 +286,8 @@ describe("default privacy and offline policy", () => {
           {
             env: {
               ...process.env,
-              PCBOO_NETWORK_OBSERVER_LOG: observerLog,
-              PCBOO_NETWORK_OBSERVER_READY_LOG: readyLog,
+              FULMETRY_NETWORK_OBSERVER_LOG: observerLog,
+              FULMETRY_NETWORK_OBSERVER_READY_LOG: readyLog,
             },
             stdin: "ignore", stdout: "pipe", stderr: "pipe",
           },
@@ -331,8 +331,8 @@ describe("default privacy and offline policy", () => {
           cwd: projectRoot,
           env: {
             ...process.env,
-            PCBOO_NETWORK_OBSERVER_LOG: observerLog,
-            PCBOO_NETWORK_OBSERVER_READY_LOG: readyLog,
+            FULMETRY_NETWORK_OBSERVER_LOG: observerLog,
+            FULMETRY_NETWORK_OBSERVER_READY_LOG: readyLog,
           },
           stdin: "ignore", stdout: "pipe", stderr: "pipe",
         },

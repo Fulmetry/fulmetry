@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -251,8 +251,8 @@ export default function Board3D({ circuit }: { circuit: readonly CircuitElement[
       void addCadModels(scene, circuit, selectable, () => disposed).then(({ loaded, failed }) => {
         if (disposed) return;
         setModelState({ loaded, total: totalModels, failed });
-        host.dataset.pcbooLoadedModels = String(loaded);
-        host.dataset.pcbooFailedModels = String(failed.length);
+        host.dataset.fulmetryLoadedModels = String(loaded);
+        host.dataset.fulmetryFailedModels = String(failed.length);
       });
       const resize = () => {
         const width = Math.max(host.clientWidth, 1);
@@ -281,9 +281,9 @@ export default function Board3D({ circuit }: { circuit: readonly CircuitElement[
       const render = () => {
         controls.update();
         renderer.render(scene, camera);
-        host.dataset.pcbooSceneObjects = String(scene.children.length);
-        host.dataset.pcbooRenderCalls = String(renderer.info.render.calls);
-        host.dataset.pcbooRenderTriangles = String(renderer.info.render.triangles);
+        host.dataset.fulmetrySceneObjects = String(scene.children.length);
+        host.dataset.fulmetryRenderCalls = String(renderer.info.render.calls);
+        host.dataset.fulmetryRenderTriangles = String(renderer.info.render.triangles);
         animation = requestAnimationFrame(render);
       };
       render();
@@ -322,11 +322,11 @@ export default function Board3D({ circuit }: { circuit: readonly CircuitElement[
 
   if (!dimensions) return <div className="p-6"><EmptyState icon={<Box size={22} />} title="No board geometry" description="Add a PCB board to the circuit before opening the assembled 3D view." /></div>;
   if (error) return <div className="p-6"><EmptyState icon={<Box size={22} />} title="WebGL rendering unavailable" description={`${error}. The 2D PCB and structured board data remain available.`} /></div>;
-  return <div className="relative isolate h-full min-h-80 overflow-hidden bg-[#080b0a]" data-pcboo-3d-viewer>
-    <div ref={hostRef} className="absolute inset-0 z-0" data-pcboo-3d-host />
+  return <div className="relative isolate h-full min-h-80 overflow-hidden bg-[#080b0a]" data-fulmetry-3d-viewer>
+    <div ref={hostRef} className="absolute inset-0 z-0" data-fulmetry-3d-host />
     <div className="absolute left-3 top-3 z-10 flex gap-1 rounded-lg border border-slate-700/70 bg-slate-950/85 p-1 backdrop-blur"><Button variant="ghost" size="sm" onClick={() => cameraPreset("iso")}><Rotate3D size={14} /> Isometric</Button><Button variant="ghost" size="sm" onClick={() => cameraPreset("top")}><Focus size={14} /> Top</Button><Button variant="ghost" size="sm" onClick={() => controlsRef.current?.reset()}><ScanLine size={14} /> Reset</Button></div>
     {selected && <div className="absolute right-3 top-3 z-10 w-72 rounded-lg border border-slate-700/70 bg-slate-950/90 p-3 text-xs shadow-xl backdrop-blur"><div className="flex items-center justify-between"><span className="font-semibold text-white">Component feedback</span><Badge tone="info">{titleCase(String(selected.type ?? "object"))}</Badge></div><dl className="mt-3 max-h-52 space-y-2 overflow-auto">{Object.entries(selected).filter(([, value]) => value !== undefined).map(([key, value]) => <div key={key}><dt className="text-[10px] uppercase tracking-wider text-slate-600">{key}</dt><dd className="mt-0.5 truncate font-mono text-slate-300">{String(value)}</dd></div>)}</dl>{canCopyComponentMoveFeedback(selected) ? <><Button className="mt-3 w-full" size="sm" onClick={() => void navigator.clipboard.writeText(componentMoveFeedbackPrompt(selected))}><MessageSquareText size={14} /> Copy move request</Button><p className="mt-2 text-[11px] leading-4 text-slate-500">Paste into your coding-agent chat and replace the bracketed instruction.</p></> : <p className="mt-3 rounded-md border border-amber-400/20 bg-amber-400/10 px-2.5 py-2 text-[11px] leading-4 text-amber-100/80">Select a component body, pad, or plated hole. Board geometry, traces, and vias cannot be moved as components.</p>}</div>}
-    <div className="absolute left-3 top-14 z-10 rounded-md border border-slate-700/70 bg-slate-950/85 px-2.5 py-1.5 text-[11px] text-slate-300 backdrop-blur" data-pcboo-model-status>{modelState.failed.length > 0 ? `${modelState.loaded}/${modelState.total} models loaded · ${modelState.failed.length} failed` : modelState.loaded === modelState.total ? `${modelState.loaded} realistic models loaded` : `Loading models ${modelState.loaded}/${modelState.total}`}</div>
+    <div className="absolute left-3 top-14 z-10 rounded-md border border-slate-700/70 bg-slate-950/85 px-2.5 py-1.5 text-[11px] text-slate-300 backdrop-blur" data-fulmetry-model-status>{modelState.failed.length > 0 ? `${modelState.loaded}/${modelState.total} models loaded · ${modelState.failed.length} failed` : modelState.loaded === modelState.total ? `${modelState.loaded} realistic models loaded` : `Loading models ${modelState.loaded}/${modelState.total}`}</div>
     <div className="absolute bottom-3 right-3 z-10 hidden max-h-48 w-72 overflow-auto rounded-lg border border-slate-700/70 bg-slate-950/85 p-2 shadow-xl backdrop-blur sm:block"><p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Scene objects</p>{sceneObjects.map((object, index) => <button key={`${String(object.id)}-${index}`} className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left hover:bg-slate-800 hover:text-white" onClick={() => setSelected(object)}><span className="shrink-0 font-mono text-xs font-bold text-slate-200">{String(object.reference ?? object.id ?? titleCase(String(object.type)))}</span>{(object.description ?? object.manufacturerPartNumber) !== undefined && <span className="min-w-0 truncate text-[10px] leading-4 text-slate-500">— {String(object.description ?? object.manufacturerPartNumber)}</span>}</button>)}</div>
     <div className="pointer-events-none absolute bottom-3 left-3 z-10 flex items-center gap-2 rounded-md border border-slate-700/70 bg-slate-950/85 px-2.5 py-1.5 text-[11px] text-slate-300 backdrop-blur"><Rotate3D size={13} className="text-[#9cff57]" /> Drag to orbit · Scroll to zoom · Right-drag to pan</div>
   </div>;

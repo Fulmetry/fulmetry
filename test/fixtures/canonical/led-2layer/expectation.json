@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "fixtureName": "led-2layer",
   "boardName": "led-2layer",
-  "manufacturingExpectationSha256": "219763b387557005a1bc2fe945fc31bab4e5f8ce129a874ed1e3183bc3fd90c9",
+  "manufacturingExpectationSha256": "598f618fff20b223b7a10781db8356447b5b027146b4535122af1dc4e99a25ae",
   "expectedFiles": [
     "assembly/bom.csv",
     "assembly/positions.csv",

@@ -16,7 +16,7 @@ afterEach(async () => {
 });
 
 async function lockFixture(): Promise<{ root: string; lockPath: string }> {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-lock-test-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-lock-test-"));
   roots.push(root);
   await mkdir(join(root, "node_modules"));
   await symlink(CANDIDATE, join(root, "node_modules", "tscircuit"), process.platform === "win32" ? "junction" : undefined);

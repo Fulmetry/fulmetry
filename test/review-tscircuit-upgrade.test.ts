@@ -33,7 +33,7 @@ afterEach(async () => {
 });
 
 async function copiedCandidate(): Promise<string> {
-  const parent = await mkdtemp(join(tmpdir(), "pcboo-review-candidate-"));
+  const parent = await mkdtemp(join(tmpdir(), "fulmetry-review-candidate-"));
   temporaryRoots.push(parent);
   const modules = join(parent, "node_modules");
   await mkdir(modules);
@@ -75,7 +75,7 @@ async function repositoryBytesSha256(): Promise<string> {
     const entries = await readdir(directory, { withFileTypes: true });
     entries.sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
     for (const entry of entries) {
-      if (directory === PROJECT_ROOT && [".git", ".pcboo", "node_modules"].includes(entry.name)) continue;
+      if (directory === PROJECT_ROOT && [".git", ".fulmetry", "node_modules"].includes(entry.name)) continue;
       const path = join(directory, entry.name);
       const stat = await lstat(path);
       if (stat.isDirectory()) await walk(path);
@@ -95,7 +95,7 @@ async function repositoryBytesSha256(): Promise<string> {
 }
 
 function output(name: string): { relative: string; absolute: string } {
-  const relativePath = `.pcboo/upgrade-reviews/${name}-${crypto.randomUUID()}.json`;
+  const relativePath = `.fulmetry/upgrade-reviews/${name}-${crypto.randomUUID()}.json`;
   const absolute = join(PROJECT_ROOT, ...relativePath.split("/"));
   reportPaths.push(absolute);
   return { relative: relativePath, absolute };
@@ -115,13 +115,13 @@ describe("offline tscircuit upgrade review runner", () => {
     expect(parseReviewTscircuitUpgradeArguments([
       "review", "--candidate-package", "/tmp/candidate", "--candidate-lock", "/tmp/bun.lock", "--integrity", DIFFERENT_INTEGRITY,
       "--candidate-packed-package", "/tmp/packed/node_modules/tscircuit",
-      "--output", ".pcboo/upgrade-reviews/review.json",
+      "--output", ".fulmetry/upgrade-reviews/review.json",
     ])).toEqual({
       candidatePackageDirectory: "/tmp/candidate",
       candidateLockPath: "/tmp/bun.lock",
       candidatePackedPackageDirectory: "/tmp/packed/node_modules/tscircuit",
       integrity: DIFFERENT_INTEGRITY,
-      output: ".pcboo/upgrade-reviews/review.json",
+      output: ".fulmetry/upgrade-reviews/review.json",
     });
     expect(() => parseReviewTscircuitUpgradeArguments(["accept"])).toThrow("Usage:");
     expect(() => parseReviewTscircuitUpgradeArguments([
@@ -242,7 +242,7 @@ describe("offline tscircuit upgrade review runner", () => {
     expect(await Bun.file(selected.absolute).exists()).toBeFalse();
   }, 90_000);
 
-  containmentTest("does not publish when pcboo and direct imports resolve duplicate physical engines", async () => {
+  containmentTest("does not publish when fulmetry and direct imports resolve duplicate physical engines", async () => {
     const selected = output("duplicate-root");
     const duplicateCandidate = await copiedCandidate();
     await expect(reviewTscircuitUpgrade({
@@ -290,7 +290,7 @@ describe("offline tscircuit upgrade review runner", () => {
   }, 30_000);
 
   test("rejects a stale compatibility anchor before qualification", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-anchor-test-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-anchor-test-"));
     temporaryRoots.push(root);
     const stalePath = join(root, "tscircuit.json");
     const stale = JSON.parse(await Bun.file(join(PROJECT_ROOT, "compatibility", "tscircuit.json")).text());
@@ -306,7 +306,7 @@ describe("offline tscircuit upgrade review runner", () => {
   }, 90_000);
 
   test("rejects a non-strict compatibility anchor before qualification", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-anchor-test-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-anchor-test-"));
     temporaryRoots.push(root);
     const malformedPath = join(root, "malformed.json");
     await writeFile(malformedPath, '{"schemaVersion":1,}');

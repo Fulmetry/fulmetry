@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 /** Evidence dimensions are deliberately independent. There is no universal ready state. */
 export const STATUS_DIMENSIONS = [

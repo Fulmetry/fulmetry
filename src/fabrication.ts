@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import type { AnyCircuitElement } from "tscircuit";
 import { defineDiagnostic, diagnosticId, type Diagnostic } from "./diagnostics";
@@ -197,7 +197,7 @@ export function assessCircuitFabrication(
       objects: workloadOverflow,
       sourceLocations: [],
       evidence: workloadOverflow.map((item) => `circuit-json:${item}`),
-      nextCommand: "pcboo inspect --status fabrication --rule FAB_RESOURCE_LIMIT_001",
+      nextCommand: "fulmetry inspect --status fabrication --rule FAB_RESOURCE_LIMIT_001",
     });
     return Object.freeze({
       status: assuranceStatus("fabrication", "failed", {
@@ -517,18 +517,18 @@ export function assessCircuitFabrication(
     id: diagnosticId("FAB_BOARD_COUNT_001"),
     severity: "error",
     dimension: "fabrication",
-    message: `PCBoo requires exactly one manufactured board; Circuit JSON contains ${boards.length}`,
+    message: `Fulmetry requires exactly one manufactured board; Circuit JSON contains ${boards.length}`,
     waiverPolicy: "forbidden",
     objects: [`pcb-board-count:${boards.length}`],
     sourceLocations: [],
     evidence: [`circuit-json:pcb_board:${boards.length}`],
-    nextCommand: "pcboo inspect --status fabrication --rule FAB_BOARD_COUNT_001",
+    nextCommand: "fulmetry inspect --status fabrication --rule FAB_BOARD_COUNT_001",
   }));
   if (!sourceBoardStructureValid) diagnostics.push(defineDiagnostic({
     id: diagnosticId("FAB_BOARD_STRUCTURE_001"),
     severity: "error",
     dimension: "fabrication",
-    message: "PCBoo requires exactly one authored source board mapped to the one manufactured PCB board",
+    message: "Fulmetry requires exactly one authored source board mapped to the one manufactured PCB board",
     waiverPolicy: "forbidden",
     objects: [
       ...sourceBoards.map(({ source_board_id }) => source_board_id),
@@ -539,7 +539,7 @@ export function assessCircuitFabrication(
       `circuit-json:source_board:${sourceBoards.length}`,
       `circuit-json:pcb_board:${boards.length}`,
     ],
-    nextCommand: "pcboo inspect --status fabrication --rule FAB_BOARD_STRUCTURE_001",
+    nextCommand: "fulmetry inspect --status fabrication --rule FAB_BOARD_STRUCTURE_001",
   }));
   if (unsupportedBoardMaterials.length > 0) diagnostics.push(defineDiagnostic({
     id: diagnosticId("FAB_BOARD_MATERIAL_001"),
@@ -553,7 +553,7 @@ export function assessCircuitFabrication(
       `profile:${profile!.digest}`,
       `supported-board-materials:${profile!.supportedBoardMaterials.join(",")}`,
     ],
-    nextCommand: "pcboo inspect --status fabrication --rule FAB_BOARD_MATERIAL_001",
+    nextCommand: "fulmetry inspect --status fabrication --rule FAB_BOARD_MATERIAL_001",
   }));
   if (componentMappingFailures.length > 0) diagnostics.push(defineDiagnostic({
     id: diagnosticId("FAB_COMPONENT_MAPPING_001"),
@@ -564,7 +564,7 @@ export function assessCircuitFabrication(
     objects: componentMappingFailures,
     sourceLocations: [],
     evidence: componentMappingFailures.map((object) => `circuit-json:${object}`),
-    nextCommand: "pcboo inspect --status fabrication --rule FAB_COMPONENT_MAPPING_001",
+    nextCommand: "fulmetry inspect --status fabrication --rule FAB_COMPONENT_MAPPING_001",
   }));
   if (invalid.length > 0) diagnostics.push(defineDiagnostic({
       id: diagnosticId("FAB_DIMENSION_001"),
@@ -575,7 +575,7 @@ export function assessCircuitFabrication(
       objects: invalid,
       sourceLocations: [],
       evidence: invalid.map((id) => `circuit-json:${id}`),
-      nextCommand: "pcboo inspect --status fabrication --rule FAB_DIMENSION_001",
+      nextCommand: "fulmetry inspect --status fabrication --rule FAB_DIMENSION_001",
     }));
   if (belowProfileMinimum.length > 0) diagnostics.push(defineDiagnostic({
     id: diagnosticId("FAB_PROFILE_MINIMUM_001"),
@@ -586,7 +586,7 @@ export function assessCircuitFabrication(
     objects: [...new Set(belowProfileMinimum)].sort(),
     sourceLocations: [],
     evidence: [`profile:${profile!.digest}`],
-    nextCommand: "pcboo inspect --status fabrication --rule FAB_PROFILE_MINIMUM_001",
+    nextCommand: "fulmetry inspect --status fabrication --rule FAB_PROFILE_MINIMUM_001",
   }));
   if (routeConstraintFailures.length > 0) diagnostics.push(defineDiagnostic({
     id: diagnosticId("FAB_ROUTE_CONSTRAINT_001"),
@@ -597,7 +597,7 @@ export function assessCircuitFabrication(
     objects: [...new Set(routeConstraintFailures)].sort(),
     sourceLocations: [],
     evidence: routeConstraintFailures.map((object) => `circuit-json:${object}`),
-    nextCommand: "pcboo inspect --status fabrication --rule FAB_ROUTE_CONSTRAINT_001",
+    nextCommand: "fulmetry inspect --status fabrication --rule FAB_ROUTE_CONSTRAINT_001",
   }));
   if (routeConstraintUnsupported.length > 0) diagnostics.push(defineDiagnostic({
     id: diagnosticId("FAB_ROUTE_CONSTRAINT_UNSUPPORTED_001"),
@@ -608,7 +608,7 @@ export function assessCircuitFabrication(
     objects: [...new Set(routeConstraintUnsupported)].sort(),
     sourceLocations: [],
     evidence: routeConstraintUnsupported.map((object) => `circuit-json:${object}`),
-    nextCommand: "pcboo inspect --status fabrication --rule FAB_ROUTE_CONSTRAINT_UNSUPPORTED_001",
+    nextCommand: "fulmetry inspect --status fabrication --rule FAB_ROUTE_CONSTRAINT_UNSUPPORTED_001",
   }));
   if (temporaryManufacturedNames.length > 0) diagnostics.push(defineDiagnostic({
     id: diagnosticId("FAB_TEMPORARY_COMPONENT_NAME_001"),
@@ -619,7 +619,7 @@ export function assessCircuitFabrication(
     objects: temporaryManufacturedNames,
     sourceLocations: [],
     evidence: temporaryManufacturedNames.map((object) => `circuit-json:${object}`),
-    nextCommand: "pcboo inspect --status fabrication --rule FAB_TEMPORARY_COMPONENT_NAME_001",
+    nextCommand: "fulmetry inspect --status fabrication --rule FAB_TEMPORARY_COMPONENT_NAME_001",
   }));
   const geometry = profile === undefined
     ? undefined
@@ -633,7 +633,7 @@ export function assessCircuitFabrication(
     objects: authoritativeConnectivity.connectivityFailures,
     sourceLocations: [],
     evidence: authoritativeConnectivity.connectivityFailures.map((item) => `circuit-json:${item}`),
-    nextCommand: "pcboo inspect --status fabrication --rule FAB_CONNECTIVITY_001",
+    nextCommand: "fulmetry inspect --status fabrication --rule FAB_CONNECTIVITY_001",
   }));
   if (authoritativeConnectivity.unsupported.length > 0) diagnostics.push(defineDiagnostic({
     id: diagnosticId("FAB_CONNECTIVITY_UNSUPPORTED_001"),
@@ -644,7 +644,7 @@ export function assessCircuitFabrication(
     objects: authoritativeConnectivity.unsupported,
     sourceLocations: [],
     evidence: authoritativeConnectivity.unsupported.map((item) => `circuit-json:${item}`),
-    nextCommand: "pcboo inspect --status fabrication --rule FAB_CONNECTIVITY_UNSUPPORTED_001",
+    nextCommand: "fulmetry inspect --status fabrication --rule FAB_CONNECTIVITY_UNSUPPORTED_001",
   }));
   const netIdentityFailures = [
     ...authoritativeConnectivity.netIdentityFailures,
@@ -677,7 +677,7 @@ export function assessCircuitFabrication(
       evidence: profile === undefined
         ? objects.map((object) => `circuit-json:${object}`)
         : [`profile:${profile.digest}`],
-      nextCommand: `pcboo inspect --status fabrication --rule ${id}`,
+      nextCommand: `fulmetry inspect --status fabrication --rule ${id}`,
     }));
   }
   if (geometry !== undefined && geometry.unsupported.length > 0) diagnostics.push(defineDiagnostic({
@@ -689,7 +689,7 @@ export function assessCircuitFabrication(
     objects: geometry.unsupported,
     sourceLocations: [],
     evidence: [`profile:${profile!.digest}`],
-    nextCommand: "pcboo inspect --status fabrication --rule FAB_GEOMETRY_UNSUPPORTED_001",
+    nextCommand: "fulmetry inspect --status fabrication --rule FAB_GEOMETRY_UNSUPPORTED_001",
   }));
   if (profile === undefined && invalid.length === 0) diagnostics.push(defineDiagnostic({
     id: diagnosticId("FAB_PROFILE_REQUIRED_001"),
@@ -700,7 +700,7 @@ export function assessCircuitFabrication(
     objects: [],
     sourceLocations: [],
     evidence: [],
-    nextCommand: "pcboo inspect --status fabrication --rule FAB_PROFILE_REQUIRED_001",
+    nextCommand: "fulmetry inspect --status fabrication --rule FAB_PROFILE_REQUIRED_001",
   }));
   const hasGeometryFailure = geometry !== undefined && (
     geometry.copperClearance.length > 0 || geometry.edgeClearance.length > 0 ||

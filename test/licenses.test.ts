@@ -48,7 +48,7 @@ describe("distribution licensing and attribution", () => {
       nodeModulesRoot: join(root, "node_modules"),
     })).resolves.toBeUndefined();
     await expect(requireDistributionPackageReady({
-      packageRoot: join(root, "packages/create-pcboo"),
+      packageRoot: join(root, "packages/create-fulmetry"),
       nodeModulesRoot: join(root, "node_modules"),
     })).resolves.toBeUndefined();
 
@@ -56,7 +56,7 @@ describe("distribution licensing and attribution", () => {
       bin?: Record<string, string>;
       scripts?: Record<string, string>;
     };
-    const creatorManifest = await Bun.file(join(root, "packages/create-pcboo/package.json")).json() as {
+    const creatorManifest = await Bun.file(join(root, "packages/create-fulmetry/package.json")).json() as {
       bin?: Record<string, string>;
       scripts?: Record<string, string>;
     };
@@ -64,24 +64,24 @@ describe("distribution licensing and attribution", () => {
     expect(creatorManifest.scripts?.prepack).toBe(
       "bun ../../scripts/validate-agent-skills.ts && bun ../../scripts/validate-package-boundary.ts",
     );
-    expect(rootManifest.bin).toEqual({ pcboo: "src/cli/pcboo.js" });
-    expect(creatorManifest.bin).toEqual({ "create-pcboo": "src/create-pcboo.js" });
+    expect(rootManifest.bin).toEqual({ fulmetry: "src/cli/fulmetry.js" });
+    expect(creatorManifest.bin).toEqual({ "create-fulmetry": "src/create-fulmetry.js" });
   });
 
   test("rejects unqualified optional dependencies at both registry package boundaries", async () => {
     const repositoryRoot = join(import.meta.dir, "..");
     for (const [packageName, sourceRoot] of [
-      ["@pcboo/pcboo", repositoryRoot],
-      ["create-pcboo", join(repositoryRoot, "packages/create-pcboo")],
+      ["fulmetry", repositoryRoot],
+      ["create-fulmetry", join(repositoryRoot, "packages/create-fulmetry")],
     ] as const) {
-      const root = await mkdtemp(join(tmpdir(), `pcboo-optional-${packageName.replaceAll("/", "-")}-`));
+      const root = await mkdtemp(join(tmpdir(), `fulmetry-optional-${packageName.replaceAll("/", "-")}-`));
       try {
         const manifest = await Bun.file(join(sourceRoot, "package.json")).json() as Record<string, unknown>;
         manifest.optionalDependencies = { "unreviewed-optional-package": "1.0.0" };
         await Bun.write(join(root, "package.json"), `${JSON.stringify(manifest)}\n`);
         await Bun.write(join(root, "LICENSE"), await Bun.file(join(sourceRoot, "LICENSE")).text());
         await Bun.write(join(root, "README.md"), "fixture\n");
-        if (packageName === "@pcboo/pcboo") {
+        if (packageName === "fulmetry") {
           await Bun.write(
             join(root, "THIRD_PARTY_NOTICES.md"),
             await Bun.file(join(repositoryRoot, "THIRD_PARTY_NOTICES.md")).text(),
@@ -90,14 +90,14 @@ describe("distribution licensing and attribution", () => {
         await mkdir(join(root, "src"));
         await Bun.write(
           join(root, "src/index.ts"),
-          "// SPDX-FileCopyrightText: 2026 PCBoo contributors\n// SPDX-License-Identifier: MIT\nexport {};\n",
+          "// SPDX-FileCopyrightText: 2026 Fulmetry contributors\n// SPDX-License-Identifier: MIT\nexport {};\n",
         );
 
         await expect(requireDistributionPackageReady({
           packageRoot: root,
           nodeModulesRoot: join(repositoryRoot, "node_modules"),
         }), packageName).rejects.toThrow(
-          packageName === "@pcboo/pcboo"
+          packageName === "fulmetry"
             ? "qualified notice graph"
             : "explicit notice policy",
         );
@@ -108,13 +108,13 @@ describe("distribution licensing and attribution", () => {
   });
 
   test("rejects an incomplete own license and an unqualified package inventory before packing", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-package-boundary-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-package-boundary-"));
     try {
       await Bun.write(join(root, "LICENSE"), "MIT License\nPermission is hereby granted, free of charge\n");
       await Bun.write(join(root, "README.md"), "fixture\n");
       await mkdir(join(root, "src"));
       await Bun.write(join(root, "package.json"), JSON.stringify({
-        name: "create-pcboo",
+        name: "create-fulmetry",
         version: "1.0.0",
         license: "MIT",
         files: ["src", "README.md", "LICENSE"],
@@ -124,7 +124,7 @@ describe("distribution licensing and attribution", () => {
 
       await Bun.write(join(root, "LICENSE"), await Bun.file(join(import.meta.dir, "../LICENSE")).text());
       await Bun.write(join(root, "package.json"), JSON.stringify({
-        name: "create-pcboo",
+        name: "create-fulmetry",
         version: "1.0.0",
         license: "MIT",
         files: ["src", "README.md", "LICENSE", "vendor"],
@@ -137,7 +137,7 @@ describe("distribution licensing and attribution", () => {
   });
 
   test("rejects a nested unqualified code or dependency addition under the packaged source tree", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-packaged-source-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-packaged-source-"));
     try {
       const repositoryRoot = join(import.meta.dir, "..");
       await Bun.write(join(root, "package.json"), await Bun.file(join(repositoryRoot, "package.json")).text());
@@ -150,7 +150,7 @@ describe("distribution licensing and attribution", () => {
       await mkdir(join(root, "src/vendor"), { recursive: true });
       await Bun.write(
         join(root, "src/index.ts"),
-        "// SPDX-FileCopyrightText: 2026 PCBoo contributors\n// SPDX-License-Identifier: MIT\nexport {};\n",
+        "// SPDX-FileCopyrightText: 2026 Fulmetry contributors\n// SPDX-License-Identifier: MIT\nexport {};\n",
       );
       await Bun.write(
         join(root, "src/vendor/gpl-helper.ts"),
@@ -164,7 +164,7 @@ describe("distribution licensing and attribution", () => {
       await rm(join(root, "src/vendor"), { recursive: true });
       await Bun.write(
         join(root, "src/index.ts"),
-        "// SPDX-FileCopyrightText: 2026 PCBoo contributors\n// SPDX-License-Identifier: MIT\nimport \"unnoticed-package\";\n",
+        "// SPDX-FileCopyrightText: 2026 Fulmetry contributors\n// SPDX-License-Identifier: MIT\nimport \"unnoticed-package\";\n",
       );
       await expect(requireDistributionPackageReady({
         packageRoot: root,
@@ -173,7 +173,7 @@ describe("distribution licensing and attribution", () => {
 
       await Bun.write(
         join(root, "src/index.ts"),
-        "// SPDX-FileCopyrightText: 2026 PCBoo contributors\n// SPDX-License-Identifier: MIT\nexport {};\n",
+        "// SPDX-FileCopyrightText: 2026 Fulmetry contributors\n// SPDX-License-Identifier: MIT\nexport {};\n",
       );
       await Bun.write(join(root, "src/unqualified.ps1"), "# arbitrary packaged program\n");
       await expect(requireDistributionPackageReady({
@@ -190,23 +190,23 @@ describe("distribution licensing and attribution", () => {
       await expect(requireDistributionPackageReady({
         packageRoot: root,
         nodeModulesRoot: join(repositoryRoot, "node_modules"),
-      })).rejects.toThrow("lacks reviewed PCBoo provenance headers: internal/windows-job-runner.ps1");
+      })).rejects.toThrow("lacks reviewed Fulmetry provenance headers: internal/windows-job-runner.ps1");
     } finally {
       await rm(root, { recursive: true });
     }
   });
 
-  test("applies the recursive source-provenance boundary to create-pcboo", async () => {
-    const root = await mkdtemp(join(tmpdir(), "create-pcboo-packaged-source-"));
+  test("applies the recursive source-provenance boundary to create-fulmetry", async () => {
+    const root = await mkdtemp(join(tmpdir(), "create-fulmetry-packaged-source-"));
     try {
-      const creatorRoot = join(import.meta.dir, "../packages/create-pcboo");
+      const creatorRoot = join(import.meta.dir, "../packages/create-fulmetry");
       await Bun.write(join(root, "package.json"), await Bun.file(join(creatorRoot, "package.json")).text());
       await Bun.write(join(root, "LICENSE"), await Bun.file(join(creatorRoot, "LICENSE")).text());
       await Bun.write(join(root, "README.md"), "fixture\n");
       await mkdir(join(root, "src/vendor"), { recursive: true });
       await Bun.write(
         join(root, "src/cli.ts"),
-        "#!/usr/bin/env bun\n// SPDX-FileCopyrightText: 2026 PCBoo contributors\n// SPDX-License-Identifier: MIT\nexport {};\n",
+        "#!/usr/bin/env bun\n// SPDX-FileCopyrightText: 2026 Fulmetry contributors\n// SPDX-License-Identifier: MIT\nexport {};\n",
       );
       await Bun.write(
         join(root, "src/vendor/gpl-helper.ts"),
@@ -218,21 +218,21 @@ describe("distribution licensing and attribution", () => {
       await rm(join(root, "src/vendor"), { recursive: true });
       await Bun.write(
         join(root, "src/cli.ts"),
-        "#!/usr/bin/env bun\n// SPDX-FileCopyrightText: 2026 PCBoo contributors\n// SPDX-License-Identifier: MIT\nimport {\n  default as helper\n} from \"unnoticed-multiline-package\";\nvoid helper;\n",
+        "#!/usr/bin/env bun\n// SPDX-FileCopyrightText: 2026 Fulmetry contributors\n// SPDX-License-Identifier: MIT\nimport {\n  default as helper\n} from \"unnoticed-multiline-package\";\nvoid helper;\n",
       );
       await expect(requireDistributionPackageReady({ packageRoot: root })).rejects
         .toThrow("imports unqualified package unnoticed-multiline-package");
 
       await Bun.write(
         join(root, "src/cli.ts"),
-        "#!/usr/bin/env bun\n// SPDX-FileCopyrightText: 2026 PCBoo contributors\n// SPDX-License-Identifier: MIT\nconst value = `${(await import(\"unnoticed-interpolation-package\")).default}`;\nvoid value;\n",
+        "#!/usr/bin/env bun\n// SPDX-FileCopyrightText: 2026 Fulmetry contributors\n// SPDX-License-Identifier: MIT\nconst value = `${(await import(\"unnoticed-interpolation-package\")).default}`;\nvoid value;\n",
       );
       await expect(requireDistributionPackageReady({ packageRoot: root })).rejects
         .toThrow("imports unqualified package unnoticed-interpolation-package");
 
       await Bun.write(
         join(root, "src/cli.ts"),
-        "#!/usr/bin/env bun\n// SPDX-FileCopyrightText: 2026 PCBoo contributors\n// SPDX-License-Identifier: MIT\nconst packageName = process.env.PCBOO_HELPER ?? \"unnoticed-variable-package\";\nawait import(packageName);\n",
+        "#!/usr/bin/env bun\n// SPDX-FileCopyrightText: 2026 Fulmetry contributors\n// SPDX-License-Identifier: MIT\nconst packageName = process.env.FULMETRY_HELPER ?? \"unnoticed-variable-package\";\nawait import(packageName);\n",
       );
       await expect(requireDistributionPackageReady({ packageRoot: root })).rejects
         .toThrow("uses non-literal dynamic import");
@@ -242,7 +242,7 @@ describe("distribution licensing and attribution", () => {
   });
 
   test("rejects runtime module loaders that can hide undeclared packaged dependencies", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-hidden-runtime-loader-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-hidden-runtime-loader-"));
     try {
       const repositoryRoot = join(import.meta.dir, "..");
       await Bun.write(join(root, "package.json"), await Bun.file(join(repositoryRoot, "package.json")).text());
@@ -253,7 +253,7 @@ describe("distribution licensing and attribution", () => {
         await Bun.file(join(repositoryRoot, "THIRD_PARTY_NOTICES.md")).text(),
       );
       await mkdir(join(root, "src"));
-      const header = "// SPDX-FileCopyrightText: 2026 PCBoo contributors\n// SPDX-License-Identifier: MIT\n";
+      const header = "// SPDX-FileCopyrightText: 2026 Fulmetry contributors\n// SPDX-License-Identifier: MIT\n";
       const attacks = [
         'import { createRequire as makeLoader } from "node:module";\nconst load = makeLoader(import.meta.url);\nexport const hidden = load("react");',
         'import * as moduleApi from "node:module";\nconst load = moduleApi.createRequire(import.meta.url);\nexport const hidden = load("react");',
@@ -282,7 +282,7 @@ describe("distribution licensing and attribution", () => {
   });
 
   test("fails a packaging boundary with missing or unproven licenses", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-licenses-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-licenses-"));
     try {
       for (const dependency of DISTRIBUTED_PACKAGE_LICENSES) {
         const packageRoot = join(root, ...dependency.name.split("/"));
@@ -304,7 +304,7 @@ describe("distribution licensing and attribution", () => {
   });
 
   test("requires both exact metadata and pinned SPDX evidence when package text is missing", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-missing-license-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-missing-license-"));
     try {
       for (const dependency of DISTRIBUTED_PACKAGE_LICENSES) {
         const packageRoot = join(root, ...dependency.name.split("/"));
@@ -337,7 +337,7 @@ describe("distribution licensing and attribution", () => {
   });
 
   test("rejects arbitrary bytes that copy a fallback package's name, version, and SPDX id", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-forged-license-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-forged-license-"));
     try {
       const packageRoot = join(root, "circuit-json");
       await mkdir(packageRoot, { recursive: true });
@@ -355,7 +355,7 @@ describe("distribution licensing and attribution", () => {
   });
 
   test("does not let a marker-only license file bypass pinned fallback package identity", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-forged-license-text-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-forged-license-text-"));
     try {
       const packageRoot = join(root, "circuit-json");
       await mkdir(packageRoot, { recursive: true });

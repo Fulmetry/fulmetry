@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { defineDiagnostic, diagnosticId, type Diagnostic } from "../diagnostics";
 import { requireSupportedBunRuntime } from "../runtime";
@@ -33,8 +33,8 @@ import { readBoundedRegularFile } from "../internal/bounded-file";
 import { assessCircuitElectrical } from "../electrical";
 import { assessCircuitFabrication } from "../fabrication";
 import { evaluateProjectCircuitTwice } from "../project/evaluate";
-import { loadProjectConfig, type PcbooConfig } from "../project/config";
-import { parsePcbooLock, type PcbooLock } from "../project/lock";
+import { loadProjectConfig, type FulmetryConfig } from "../project/config";
+import { parseFulmetryLock, type FulmetryLock } from "../project/lock";
 import { requireTscircuitIdentity } from "../engine-identity";
 import {
   requireRuntimeEvidencePackageIdentity,
@@ -93,7 +93,7 @@ import {
   type IssuedFunctionalSimulationAuthority,
 } from "../simulation/ngspice";
 import type { SimulationResultEvidence } from "../simulation/result";
-import { requirePcbooVersion } from "../version";
+import { requireFulmetryVersion } from "../version";
 import { isValidWaiverDate, loadDeclaredWaivers } from "../waivers";
 import {
   BUILD_INPUT_ROLES,
@@ -197,7 +197,7 @@ export interface FunctionalSimulationManifestEvidence {
   readonly netlistDigest: string;
   readonly qualificationSha256: string;
   readonly modelDigests: Readonly<Record<string, string>>;
-  readonly adapter: Readonly<{ name: "pcboo-ngspice"; version: string }>;
+  readonly adapter: Readonly<{ name: "fulmetry-ngspice"; version: string }>;
   readonly tool: Readonly<{ name: "ngspice"; version: string; executableSha256: string }>;
   readonly execution: Readonly<{
     stdoutSha256: string;
@@ -219,7 +219,7 @@ export interface VerifiedBundleManifest {
     readonly reason: string;
   };
   readonly toolVersions: {
-    readonly pcboo: string;
+    readonly fulmetry: string;
     readonly bun: string;
   };
   readonly inputSnapshot: BuildInputSnapshot;
@@ -264,7 +264,7 @@ export interface VerifiedBundleManifest {
   readonly runtimeEvidencePackages: Readonly<
     Record<keyof typeof RUNTIME_EVIDENCE_PACKAGE_PINS, RuntimeEvidencePackageIdentity>
   >;
-  /** PCBoo does not currently create or imply cryptographic signatures. */
+  /** Fulmetry does not currently create or imply cryptographic signatures. */
   readonly cryptographicSignature: "absent";
 }
 
@@ -437,8 +437,8 @@ function renderAssetNotices(notices: readonly VerifiedAssetNotice[]): string {
   const lines = [
     "# Third-Party Asset Notices",
     "",
-    "This file covers third-party assets represented in this PCBoo production bundle.",
-    "It does not apply PCBoo's MIT license to circuit source or manufacturing output.",
+    "This file covers third-party assets represented in this Fulmetry production bundle.",
+    "It does not apply Fulmetry's MIT license to circuit source or manufacturing output.",
     "",
   ];
   for (const asset of notices) {
@@ -474,7 +474,7 @@ function assetNoticeEntry(notices: readonly VerifiedAssetNotice[]): ArtifactEntr
 }
 
 async function assetRightsEvidence(
-  lock: PcbooLock,
+  lock: FulmetryLock,
   circuitJson: ReturnType<typeof parseCanonicalCircuitJson> | undefined,
   inputSnapshot: BuildInputSnapshot,
   projectRoot: string,
@@ -510,7 +510,7 @@ async function assetRightsEvidence(
     if (!isQualifiedRedistributableAssetLicense(asset.license)) {
       findings.push({
         code: "ASSET_LICENSE_EVIDENCE_INVALID",
-        message: `Locked asset ${name} uses license ${asset.license}, which PCBoo has not qualified for redistribution`,
+        message: `Locked asset ${name} uses license ${asset.license}, which Fulmetry has not qualified for redistribution`,
       });
       continue;
     }
@@ -586,7 +586,7 @@ async function assetRightsEvidence(
     if (!assetNoticeSatisfiesLicense(asset.license, licenseNoticeText, asset.attribution)) {
       findings.push({
         code: "ASSET_LICENSE_EVIDENCE_INVALID",
-        message: `Locked asset ${name} license/notice text does not satisfy PCBoo's ${asset.license} notice requirements`,
+        message: `Locked asset ${name} license/notice text does not satisfy Fulmetry's ${asset.license} notice requirements`,
       });
       continue;
     }
@@ -922,7 +922,7 @@ export function boardRevisionSilkscreenDiagnostic(
     objects: ["pcb_board_0"],
     sourceLocations: [],
     evidence: [`board-revision:${boardRevision}`, "provenance:synthetic-generated"],
-    nextCommand: "pcboo inspect --rule FAB_BOARD_REVISION_SILKSCREEN_001",
+    nextCommand: "fulmetry inspect --rule FAB_BOARD_REVISION_SILKSCREEN_001",
   });
 }
 
@@ -937,7 +937,7 @@ async function evaluate(options: PromoteProductionBundleOptions): Promise<Evalua
   let projectEntry: string | undefined;
   let projectOutputDirectory: string | undefined;
   let projectProfiles: readonly string[] = [];
-  let projectConfig: Readonly<PcbooConfig> | undefined;
+  let projectConfig: Readonly<FulmetryConfig> | undefined;
   let designBoardRevision: string | undefined;
   let manufacturingPackages: Evaluation["manufacturingPackages"];
   let runtimeEvidencePackages: Evaluation["runtimeEvidencePackages"];
@@ -946,7 +946,7 @@ async function evaluate(options: PromoteProductionBundleOptions): Promise<Evalua
   let functionalEvidence: Evaluation["functionalEvidence"];
   let assetNotices: readonly VerifiedAssetNotice[] = Object.freeze([]);
   let entityProvenance: readonly VerifiedEntityProvenance[] = Object.freeze([]);
-  let projectLock: PcbooLock | undefined;
+  let projectLock: FulmetryLock | undefined;
   let verifiedLayerCount: 2 | 4 | undefined;
   let independentlyTypedArtifacts: readonly ArtifactEntry[] | undefined;
   if (options.draftManifest.lifecycle !== "draft") {
@@ -963,29 +963,29 @@ async function evaluate(options: PromoteProductionBundleOptions): Promise<Evalua
   }
   try {
     const lockInput = options.inputSnapshot.inputs.filter(({ role, path }) =>
-      role === "lockfile" && path.replaceAll("\\", "/") === "pcboo.lock"
+      role === "lockfile" && path.replaceAll("\\", "/") === "fulmetry.lock"
     );
     if (lockInput.length !== 1) {
-      throw new Error("Build input snapshot must contain exactly one pcboo.lock lockfile entry");
+      throw new Error("Build input snapshot must contain exactly one fulmetry.lock lockfile entry");
     }
-    const lockPath = join(options.projectRoot, "pcboo.lock");
+    const lockPath = join(options.projectRoot, "fulmetry.lock");
     const lockStat = await lstat(lockPath);
     throwIfPromotionCancelled(options.signal);
     if (lockStat.isSymbolicLink() || !lockStat.isFile()) {
-      throw new Error("pcboo.lock must be a regular file, not a symlink");
+      throw new Error("fulmetry.lock must be a regular file, not a symlink");
     }
     const lockBytes = await readFile(lockPath);
     throwIfPromotionCancelled(options.signal);
     const lockSha256 = new Bun.CryptoHasher("sha256").update(lockBytes).digest("hex");
     if (lockBytes.byteLength !== lockInput[0]!.size || lockSha256 !== lockInput[0]!.sha256) {
-      throw new Error("pcboo.lock bytes do not match the snapped lockfile evidence");
+      throw new Error("fulmetry.lock bytes do not match the snapped lockfile evidence");
     }
     const [config, lock] = await Promise.all([
       loadProjectConfig(
         options.projectRoot,
         options.signal === undefined ? {} : { signal: options.signal },
       ),
-      Promise.resolve(parsePcbooLock(lockBytes.toString("utf8"))),
+      Promise.resolve(parseFulmetryLock(lockBytes.toString("utf8"))),
     ]);
     throwIfPromotionCancelled(options.signal);
     const engineIdentity = await requireTscircuitIdentity({
@@ -1010,7 +1010,7 @@ async function evaluate(options: PromoteProductionBundleOptions): Promise<Evalua
     ) {
       findings.push({
         code: "BOARD_REVISION_REQUIRED",
-        message: "pcboo.config.ts must declare a source-controlled boardRevision for production promotion",
+        message: "fulmetry.config.ts must declare a source-controlled boardRevision for production promotion",
       });
     } else if (
       options.draftManifest.boardRevision?.trim() &&
@@ -1018,7 +1018,7 @@ async function evaluate(options: PromoteProductionBundleOptions): Promise<Evalua
     ) {
       findings.push({
         code: "BOARD_REVISION_MISMATCH",
-        message: "Draft manifest board revision does not match authenticated pcboo.config.ts design metadata",
+        message: "Draft manifest board revision does not match authenticated fulmetry.config.ts design metadata",
       });
     }
     if (config.profiles.length !== 1) {
@@ -1032,7 +1032,7 @@ async function evaluate(options: PromoteProductionBundleOptions): Promise<Evalua
       if (resolved === undefined) {
         findings.push({
           code: "FABRICATION_PROFILE_INVALID",
-          message: `Active profile ${name} is not resolved in pcboo.lock`,
+          message: `Active profile ${name} is not resolved in fulmetry.lock`,
         });
       } else {
         const profile = { name, version: resolved.version, digest: resolved.digest };
@@ -1081,7 +1081,7 @@ async function evaluate(options: PromoteProductionBundleOptions): Promise<Evalua
 
   const suppliedStatuses = statusSet(options.statuses);
   // Caller-authored prose and timestamps are not verification evidence. Keep
-  // only state and diagnostic identity until a PCBoo assessment below derives
+  // only state and diagnostic identity until a Fulmetry assessment below derives
   // a status summary or observation timestamp from authenticated evidence.
   let statuses = statusSet({
     fabrication: assuranceStatus("fabrication", suppliedStatuses.fabrication.state, {
@@ -1120,7 +1120,7 @@ async function evaluate(options: PromoteProductionBundleOptions): Promise<Evalua
     ) {
       findings.push({
         code: "REQUIRED_DIMENSION_EVIDENCE_UNAVAILABLE",
-        message: `Required ${dimension} promotion is unavailable until PCBoo has a pinned, independently verified evidence adapter for that dimension`,
+        message: `Required ${dimension} promotion is unavailable until Fulmetry has a pinned, independently verified evidence adapter for that dimension`,
       });
     }
   }
@@ -1149,11 +1149,11 @@ async function evaluate(options: PromoteProductionBundleOptions): Promise<Evalua
     try {
       const [sourceGraph, configGraph, completeAuthority] = await Promise.all([
         discoverProjectSourceGraph(options.projectRoot, projectEntry),
-        discoverProjectSourceGraph(options.projectRoot, "pcboo.config.ts"),
+        discoverProjectSourceGraph(options.projectRoot, "fulmetry.config.ts"),
         digestProjectInputs({
           projectRoot: options.projectRoot,
           entry: projectEntry,
-          outputDirectory: projectOutputDirectory ?? ".pcboo",
+          outputDirectory: projectOutputDirectory ?? ".fulmetry",
           profiles: projectProfiles,
           ...(designBoardRevision === undefined
             ? {}
@@ -1179,7 +1179,7 @@ async function evaluate(options: PromoteProductionBundleOptions): Promise<Evalua
           .map(({ path }) => path.replaceAll("\\", "/")),
       );
       const missingConfig = configGraph.filter((path) =>
-        path !== "pcboo.config.ts" && !manifestedConfigDependencies.has(path)
+        path !== "fulmetry.config.ts" && !manifestedConfigDependencies.has(path)
       );
       const sourceGraphSet = new Set(sourceGraph);
       const configGraphSet = new Set(configGraph);
@@ -1193,23 +1193,23 @@ async function evaluate(options: PromoteProductionBundleOptions): Promise<Evalua
       });
       if (missing.length > 0) findings.push({
         code: "BUILD_INPUT_INCOMPLETE",
-        message: `Build input snapshot omits imported project source: ${boundedFailureDetails(missing, ", ", "pcboo inspect --status fabrication")}`,
+        message: `Build input snapshot omits imported project source: ${boundedFailureDetails(missing, ", ", "fulmetry inspect --status fabrication")}`,
       });
       if (missingConfig.length > 0) findings.push({
         code: "BUILD_INPUT_INCOMPLETE",
-        message: `Build input snapshot omits imported config dependency: ${boundedFailureDetails(missingConfig, ", ", "pcboo inspect --status fabrication")}`,
+        message: `Build input snapshot omits imported config dependency: ${boundedFailureDetails(missingConfig, ", ", "fulmetry inspect --status fabrication")}`,
       });
       if (misclassifiedTests.length > 0) findings.push({
         code: "BUILD_INPUT_INCOMPLETE",
         message: `Build input snapshot misclassifies test authority: ${boundedFailureDetails(
           misclassifiedTests.map(({ path }) => path),
           ", ",
-          "pcboo inspect --status functional",
+          "fulmetry inspect --status functional",
         )}`,
       });
       if (missingAuthority.length > 0) findings.push({
         code: "BUILD_INPUT_INCOMPLETE",
-        message: `Build input snapshot omits regular project authority: ${boundedFailureDetails(missingAuthority, ", ", "pcboo inspect --status fabrication")}`,
+        message: `Build input snapshot omits regular project authority: ${boundedFailureDetails(missingAuthority, ", ", "fulmetry inspect --status fabrication")}`,
       });
     } catch (error) {
       throwIfPromotionCancelled(options.signal);
@@ -1232,7 +1232,7 @@ async function evaluate(options: PromoteProductionBundleOptions): Promise<Evalua
       message: boundedFailureDetails(
         artifactIntegrity.findings.map((finding) => finding.message),
         "; ",
-        "pcboo inspect --status fabrication",
+        "fulmetry inspect --status fabrication",
       ),
     });
   }
@@ -1368,7 +1368,7 @@ async function evaluate(options: PromoteProductionBundleOptions): Promise<Evalua
         message: boundedFailureDetails(
           manufacturing.findings.map((finding) => `${finding.code}: ${finding.message}`),
           "; ",
-          "pcboo verify manufacturing --json",
+          "fulmetry verify manufacturing --json",
         ),
       });
     }
@@ -1464,7 +1464,7 @@ async function evaluate(options: PromoteProductionBundleOptions): Promise<Evalua
     } else if (sourcingEvidenceRequested) {
       findings.push({
         code: "SOURCING_EVIDENCE_MISMATCH",
-        message: "Sourcing evidence cannot be re-derived without the snapped pcboo.lock",
+        message: "Sourcing evidence cannot be re-derived without the snapped fulmetry.lock",
       });
     }
   }
@@ -1485,7 +1485,7 @@ async function evaluate(options: PromoteProductionBundleOptions): Promise<Evalua
     ) {
       findings.push({
         code: "ARTIFACT_INTEGRITY_FAILED",
-        message: `${ASSET_NOTICES_FILENAME} is reserved for PCBoo's generated asset notice`,
+        message: `${ASSET_NOTICES_FILENAME} is reserved for Fulmetry's generated asset notice`,
       });
     }
   }
@@ -1782,7 +1782,7 @@ async function promoteCapturedProductionBundle(
       boundedFailureDetails(
         result.findings.map((finding) => `${finding.code}: ${finding.message}`),
         "\n",
-        "pcboo inspect --status fabrication --json",
+        "fulmetry inspect --status fabrication --json",
         32,
       ),
     );
@@ -1801,7 +1801,7 @@ async function promoteCapturedProductionBundle(
   }
 
   const externalToolVersions = Object.freeze({});
-  const pcbooVersion = await requirePcbooVersion();
+  const fulmetryVersion = await requireFulmetryVersion();
   throwIfPromotionCancelled(options.signal);
   const noticeArtifact = assetNoticeEntry(result.assetNotices);
 
@@ -1815,7 +1815,7 @@ async function promoteCapturedProductionBundle(
       state: "not-assessed" as const,
       reason: "Promotion binds complete project input bytes; Git revision and dirty-tree state were not invoked",
     }),
-    toolVersions: Object.freeze({ pcboo: pcbooVersion, bun: Bun.version }),
+    toolVersions: Object.freeze({ fulmetry: fulmetryVersion, bun: Bun.version }),
     inputSnapshot: result.currentSnapshot,
     artifacts: result.artifacts,
     statuses: result.statuses,
@@ -1870,8 +1870,8 @@ export async function promoteProductionBundle(
   return await promoteCapturedProductionBundle(captured);
 }
 
-export const INCOMPLETE_VERIFIED_BUNDLE_MARKER = ".pcboo-bundle-incomplete" as const;
-export const VERIFIED_BUNDLE_MANIFEST_FILENAME = "pcboo.verified-manifest.json" as const;
+export const INCOMPLETE_VERIFIED_BUNDLE_MARKER = ".fulmetry-bundle-incomplete" as const;
+export const VERIFIED_BUNDLE_MANIFEST_FILENAME = "fulmetry.verified-manifest.json" as const;
 
 function pathInside(root: string, candidate: string): boolean {
   return candidate === root || candidate.startsWith(`${root}${sep}`);
@@ -2477,7 +2477,7 @@ function persistedFunctionalEvidence(
   assertExactKeys(tool, ["name", "version", "executableSha256"], "functionalEvidence.tool");
   assertExactKeys(execution, ["stdoutSha256", "stderrSha256", "rawOutputSha256"], "functionalEvidence.execution");
   if (
-    adapter.name !== "pcboo-ngspice" || typeof adapter.version !== "string" || !adapter.version ||
+    adapter.name !== "fulmetry-ngspice" || typeof adapter.version !== "string" || !adapter.version ||
     tool.name !== "ngspice" || typeof tool.version !== "string" || !tool.version ||
     typeof tool.executableSha256 !== "string" || !SHA256_HEX.test(tool.executableSha256)
   ) throw new TypeError("functionalEvidence adapter or tool identity is invalid");
@@ -2491,7 +2491,7 @@ function persistedFunctionalEvidence(
     netlistDigest: prefixedDigest(evidence.netlistDigest, "functionalEvidence.netlistDigest"),
     qualificationSha256: prefixedDigest(evidence.qualificationSha256, "functionalEvidence.qualificationSha256"),
     modelDigests,
-    adapter: Object.freeze({ name: "pcboo-ngspice" as const, version: adapter.version }),
+    adapter: Object.freeze({ name: "fulmetry-ngspice" as const, version: adapter.version }),
     tool: Object.freeze({
       name: "ngspice" as const,
       version: tool.version,
@@ -2849,7 +2849,7 @@ export async function publishVerifiedProductionBundle(
   if (pathInside(artifactRoot, target)) {
     throw new Error("Verified bundle destination cannot be inside the draft artifact root");
   }
-  const staging = join(publicationParent, `.${basename(target)}.pcboo-${crypto.randomUUID()}.tmp`);
+  const staging = join(publicationParent, `.${basename(target)}.fulmetry-${crypto.randomUUID()}.tmp`);
   let ownsTarget = false;
   let stagingIdentity: OwnedPathIdentity | undefined;
   let targetIdentity: OwnedPathIdentity | undefined;

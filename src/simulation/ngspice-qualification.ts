@@ -1,10 +1,10 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { chmod, lstat, mkdir, opendir, rm, stat, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { NGSPICE_EXECUTABLE_BYTES_LIMIT, type ExternalToolProbe } from "../external-tools";
 import { hashBoundedRegularFile, readBoundedRegularFile } from "../internal/bounded-file";
-import { throwIfPcbooCancelled } from "../internal/cancellation";
+import { throwIfFulmetryCancelled } from "../internal/cancellation";
 import { spawnContainedProcess } from "../internal/contained-process";
 import {
   isNgspiceDcSweepAxisName,
@@ -50,7 +50,7 @@ export interface NgspiceQualificationCaseEvidence {
 export interface NgspiceQualificationEvidence {
   readonly schemaVersion: 1;
   readonly qualifier: {
-    readonly name: "pcboo-ngspice-behavioral-qualification";
+    readonly name: "fulmetry-ngspice-behavioral-qualification";
     readonly version: typeof NGSPICE_QUALIFIER_VERSION;
     readonly implementationSha256: string;
   };
@@ -96,7 +96,7 @@ const CASES: readonly QualificationCase[] = Object.freeze([
     id: "operating-point" as const,
     analysis: "operating-point" as const,
     deck: [
-      "* PCBoo operating-point qualification",
+      "* Fulmetry operating-point qualification",
       ".options filetype=ascii",
       "V1 vin 0 5",
       "R1 vin out 10k",
@@ -111,7 +111,7 @@ const CASES: readonly QualificationCase[] = Object.freeze([
     id: "rc-transient" as const,
     analysis: "transient" as const,
     deck: [
-      "* PCBoo transient qualification",
+      "* Fulmetry transient qualification",
       ".options filetype=ascii",
       "V1 vin 0 PULSE(0 5 0 1n 1n 5m 10m)",
       "R1 vin out 1k",
@@ -126,7 +126,7 @@ const CASES: readonly QualificationCase[] = Object.freeze([
     id: "rc-ac" as const,
     analysis: "ac" as const,
     deck: [
-      "* PCBoo AC qualification",
+      "* Fulmetry AC qualification",
       ".options filetype=ascii",
       "V1 vin 0 DC 0 AC 1 0",
       "R1 vin out 1591.5494309189535",
@@ -141,7 +141,7 @@ const CASES: readonly QualificationCase[] = Object.freeze([
     id: "dc-sweep" as const,
     analysis: "dc-sweep" as const,
     deck: [
-      "* PCBoo DC-sweep qualification",
+      "* Fulmetry DC-sweep qualification",
       ".options filetype=ascii",
       "V1 vin 0 1",
       "R1 vin out 10k",
@@ -171,7 +171,7 @@ function sha256(value: Uint8Array | string): string {
 const QUALIFIER_IMPLEMENTATION_SHA256 = sha256(JSON.stringify({
   cases: CASES,
   oracle: "op-divider-5v-half;rc-1k-1u-charge-discharge;rc-100hz-lowpass-mag-phase;dc-divider-half-v1",
-  parser: "pcboo-ngspice-ascii-raw-v2",
+  parser: "fulmetry-ngspice-ascii-raw-v2",
 }));
 
 function boundedFailure(error: unknown): string {
@@ -410,7 +410,7 @@ async function executeCase(options: {
   let exitCode: number | null = null;
   let timedOut = false;
   try {
-    throwIfPcbooCancelled(options.signal, "ngspice qualification was cancelled");
+    throwIfFulmetryCancelled(options.signal, "ngspice qualification was cancelled");
     if (Date.now() >= options.deadline) throw new Error("ngspice qualification exceeded its aggregate deadline");
     const child = await spawnContainedProcess({
       command: [options.executable, "-n", "-b", "-r", "result.raw", basename(inputPath)],
@@ -457,7 +457,7 @@ async function executeCase(options: {
       options.signal?.removeEventListener("abort", onAbort);
       terminate();
     }
-    throwIfPcbooCancelled(options.signal, "ngspice qualification was cancelled");
+    throwIfFulmetryCancelled(options.signal, "ngspice qualification was cancelled");
     await writeFile(join(directory, "stdout.bin"), stdout, { flag: "wx" });
     await writeFile(join(directory, "stderr.bin"), stderr, { flag: "wx" });
     if (timedOut) throw new Error("ngspice qualification case timed out or exceeded its raw limit");
@@ -540,7 +540,7 @@ export async function qualifyCapturedNgspice(options: {
         ...(options.signal === undefined ? {} : { signal: options.signal }),
       }));
       await assertExecutableIdentity();
-      throwIfPcbooCancelled(options.signal, "ngspice qualification was cancelled");
+      throwIfFulmetryCancelled(options.signal, "ngspice qualification was cancelled");
     }
   } finally {
     if (options.retainCaseArtifacts !== true) {
@@ -551,7 +551,7 @@ export async function qualifyCapturedNgspice(options: {
   const evidence = Object.freeze({
     schemaVersion: 1 as const,
     qualifier: Object.freeze({
-      name: "pcboo-ngspice-behavioral-qualification" as const,
+      name: "fulmetry-ngspice-behavioral-qualification" as const,
       version: NGSPICE_QUALIFIER_VERSION,
       implementationSha256: QUALIFIER_IMPLEMENTATION_SHA256,
     }),

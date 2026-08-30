@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { lstat, readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -77,7 +77,7 @@ export function validatePerformanceReportValue(
 }
 
 export async function validateCurrentPerformanceReport(): Promise<string> {
-  const outputDirectory = join(repositoryRoot, ".pcboo-ci");
+  const outputDirectory = join(repositoryRoot, ".fulmetry-ci");
   const filename = `performance-${process.platform}-${process.arch}.json`;
   const inventory = (await readdir(outputDirectory)).sort();
   if (JSON.stringify(inventory) !== JSON.stringify([filename])) {
@@ -97,7 +97,7 @@ export async function validateCurrentPerformanceReport(): Promise<string> {
     architecture: process.arch,
     bunVersion: Bun.version,
   });
-  process.stdout.write(`PCBOO_PERFORMANCE_REPORT_VALID ${path}\n`);
+  process.stdout.write(`FULMETRY_PERFORMANCE_REPORT_VALID ${path}\n`);
   return path;
 }
 

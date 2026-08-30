@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fulmetry Verify"
+  short_description: "Verify logical and physical Fulmetry evidence"
+  default_prompt: "Use $fulmetry-verify to independently verify this Fulmetry board and its physical readiness."

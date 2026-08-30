@@ -29,9 +29,9 @@ afterEach(async () => {
 
 async function createRefreshProject(): Promise<string> {
   const sourceRoot = join(import.meta.dir, "..");
-  const parent = await mkdtemp(join(tmpdir(), "pcboo-refresh-authority-"));
+  const parent = await mkdtemp(join(tmpdir(), "fulmetry-refresh-authority-"));
   temporaryRoots.push(parent);
-  const projectRoot = join(parent, "pcboo");
+  const projectRoot = join(parent, "fulmetry");
   await mkdir(projectRoot);
   await Promise.all([
     ...["src", "test/fixtures", "compatibility"].map((path) => cp(
@@ -58,7 +58,7 @@ describe("canonical compile-to-manufacturing goldens", () => {
   for (const fixtureName of CANONICAL_FIXTURE_NAMES) {
     test(`${fixtureName} preserves authored meaning and exact deterministic bytes`, async () => {
       const fixture = await loadCanonicalFixture(fixtureName);
-      const lock = await Bun.file(join(fixture.root, "pcboo.lock")).json() as {
+      const lock = await Bun.file(join(fixture.root, "fulmetry.lock")).json() as {
         tscircuit: { version: string; integrity: string };
       };
       const identity = await requireTscircuitIdentity({ projectRoot: fixture.root });
@@ -103,7 +103,7 @@ describe("canonical compile-to-manufacturing goldens", () => {
       expect(JSON.stringify(checkedInRecords)).toBe(JSON.stringify(fixture.manifest.manufacturing.files));
       expect(manufacturingSetSha256(checkedInRecords)).toBe(fixture.manifest.manufacturing.setSha256);
 
-      const temporaryRoot = await mkdtemp(join(tmpdir(), `pcboo-${fixtureName}-`));
+      const temporaryRoot = await mkdtemp(join(tmpdir(), `fulmetry-${fixtureName}-`));
       temporaryRoots.push(temporaryRoot);
       const emittedRoot = join(temporaryRoot, "manufacturing");
       const files = await exportManufacturingFiles({
@@ -160,15 +160,15 @@ describe("canonical compile-to-manufacturing goldens", () => {
     test(`${fixtureName} full pipeline agrees across independent parent processes`, async () => {
       const run = async (undeclaredSentinel: string): Promise<unknown> => {
         const ambient: Record<string, string | undefined> = {
-          ...process.env, PCBOO_UNDECLARED_SENTINEL: undeclaredSentinel,
+          ...process.env, FULMETRY_UNDECLARED_SENTINEL: undeclaredSentinel,
         };
         const env: Record<string, string> = {
-          PCBOO_VERIFIED_BUILD: "1", BUN_CONFIG_NO_NETWORK: "1", NO_PROXY: "*", no_proxy: "*",
+          FULMETRY_VERIFIED_BUILD: "1", BUN_CONFIG_NO_NETWORK: "1", NO_PROXY: "*", no_proxy: "*",
         };
         for (const key of ["PATH", "TMPDIR", "TEMP", "TMP", "SYSTEMROOT", "WINDIR"]) {
           if (ambient[key] !== undefined) env[key] = ambient[key]!;
         }
-        expect(env.PCBOO_UNDECLARED_SENTINEL).toBeUndefined();
+        expect(env.FULMETRY_UNDECLARED_SENTINEL).toBeUndefined();
         const child = Bun.spawn([
           process.execPath,
           join(import.meta.dir, "helpers", "canonical-pipeline-process.ts"),
@@ -226,7 +226,7 @@ describe("canonical compile-to-manufacturing goldens", () => {
     let staged = false;
     for (let attempt = 0; attempt < 1_000; attempt += 1) {
       const entries = await readdir(join(projectRoot, "test", "fixtures"));
-      const transaction = entries.find((entry) => entry.startsWith(".pcboo-canonical-refresh-"));
+      const transaction = entries.find((entry) => entry.startsWith(".fulmetry-canonical-refresh-"));
       if (
         transaction !== undefined &&
         await Bun.file(join(projectRoot, "test", "fixtures", transaction, "staged", "led-2layer", "manifest.json")).exists()
@@ -297,7 +297,7 @@ await refreshCanonicalGoldens({
     ));
     expect(after).toEqual(before);
     expect((await readdir(join(projectRoot, "test", "fixtures"))).some(
-      (entry) => entry.startsWith(".pcboo-canonical-refresh-"),
+      (entry) => entry.startsWith(".fulmetry-canonical-refresh-"),
     )).toBeFalse();
   }, 60_000);
 

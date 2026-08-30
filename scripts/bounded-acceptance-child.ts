@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { accessSync, constants, readFileSync } from "node:fs";
 import { resolve, sep } from "node:path";
@@ -17,7 +17,7 @@ function acceptanceChildEnvironment(): Record<string, string> {
     BUN_CONFIG_NO_NETWORK: "1",
     NO_PROXY: "*",
     no_proxy: "*",
-    PCBOO_VERIFIED_BUILD: "1",
+    FULMETRY_VERIFIED_BUILD: "1",
     NO_COLOR: "1",
   };
   for (const name of ["TMPDIR", "TEMP", "TMP", "SYSTEMROOT", "WINDIR"]) {
@@ -56,7 +56,7 @@ export async function runBoundedAcceptanceChild(options: Readonly<{
   timeoutMs: number;
 }>): Promise<string> {
   if (options.argv[0] !== process.execPath) {
-    throw new TypeError("Acceptance child commands must use PCBoo's exact Bun runtime");
+    throw new TypeError("Acceptance child commands must use Fulmetry's exact Bun runtime");
   }
   if (!acceptanceChildContainmentAvailable()) {
     throw new ProcessContainmentUnavailableError(

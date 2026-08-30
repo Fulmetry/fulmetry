@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import type { AnyCircuitElement } from "tscircuit";
 import { canonicalCircuitJson } from "./circuit-json";
@@ -30,7 +30,7 @@ import {
 } from "./waivers";
 
 export const PRE_COMPLIANCE_EVIDENCE_SCHEMA_VERSION = 1 as const;
-export const PRE_COMPLIANCE_METHOD = "pcboo-baseline-pre-compliance@1" as const;
+export const PRE_COMPLIANCE_METHOD = "fulmetry-baseline-pre-compliance@1" as const;
 
 export interface PreComplianceFinding {
   readonly code:
@@ -76,7 +76,7 @@ export interface PreComplianceEvidence {
     readonly canonicalCircuitJsonSha256: string;
     readonly boundedArtifactSetSha256: string;
     readonly independentManufacturingVerificationSha256: string;
-    readonly verificationAuthority: "pcboo-verifier-issued" | "untrusted-input";
+    readonly verificationAuthority: "fulmetry-verifier-issued" | "untrusted-input";
     readonly expectationBinding: "matched" | "mismatched" | "untrusted";
     readonly independentParser: ManufacturingVerification["parser"] | "unverified";
     readonly boundedArtifactSet: ManufacturingVerification["artifacts"];
@@ -108,7 +108,7 @@ function sortedManufacturingFindings(
 }
 
 /**
- * Runs PCBoo's conservative manufacturer-neutral baseline as a bounded
+ * Runs Fulmetry's conservative manufacturer-neutral baseline as a bounded
  * pre-compliance check. It consumes independently parsed manufacturing
  * evidence and never represents the outcome as certification.
  */
@@ -133,7 +133,7 @@ export function assessBaselinePreCompliance(options: {
     } else {
       if (!isLoadedDeclaredWaiverSet(options.sourceWaivers.declarations)) {
         throw new TypeError(
-          "Pre-compliance source waivers must come from PCBoo's source-controlled waiver loader",
+          "Pre-compliance source waivers must come from Fulmetry's source-controlled waiver loader",
         );
       }
       const applied = applyDeclaredWaivers({
@@ -188,7 +188,7 @@ export function assessBaselinePreCompliance(options: {
     const id = diagnosticId("STD_PROFILE_UNAVAILABLE_001");
     findings.push(Object.freeze({
       code: "PROFILE_UNAVAILABLE" as const,
-      message: "The immutable PCBoo baseline profile is not active in project configuration and lock evidence",
+      message: "The immutable Fulmetry baseline profile is not active in project configuration and lock evidence",
       sourceDiagnosticIds: Object.freeze([]),
       manufacturingFindingCodes: Object.freeze([]),
     }));
@@ -196,13 +196,13 @@ export function assessBaselinePreCompliance(options: {
       id,
       severity: "error",
       dimension: "standards",
-      message: "Pre-compliance evidence is unavailable because the immutable PCBoo baseline profile is not active",
+      message: "Pre-compliance evidence is unavailable because the immutable Fulmetry baseline profile is not active",
       waiverPolicy: "forbidden",
       objects: [],
       sourceLocations: [],
       profile: `${profile.name}@${profile.version}`,
       evidence: [`profile-digest:${profile.digest}`, "profile-selection:not-selected"],
-      nextCommand: "pcboo verify manufacturing",
+      nextCommand: "fulmetry verify manufacturing",
     }));
   } else if (
     source.status.state !== "passed" && source.status.state !== "passed-with-waivers"
@@ -227,7 +227,7 @@ export function assessBaselinePreCompliance(options: {
         `profile-digest:${profile.digest}`,
         ...source.diagnostics.map(({ id }) => `source-diagnostic:${id}`),
       ],
-      nextCommand: "pcboo verify manufacturing",
+      nextCommand: "fulmetry verify manufacturing",
     }));
   } else if (source.status.state === "passed-with-waivers") {
     const waivedSourceDiagnostics = source.diagnostics.filter((diagnostic) =>
@@ -262,7 +262,7 @@ export function assessBaselinePreCompliance(options: {
     const id = diagnosticId("STD_PROFILE_MANUFACTURING_EVIDENCE_UNAUTHENTICATED_001");
     findings.push(Object.freeze({
       code: "INDEPENDENT_MANUFACTURING_EVIDENCE_UNAUTHENTICATED" as const,
-      message: "Manufacturing evidence was not issued by PCBoo's independent directory verifier",
+      message: "Manufacturing evidence was not issued by Fulmetry's independent directory verifier",
       sourceDiagnosticIds: Object.freeze([]),
       manufacturingFindingCodes: Object.freeze([]),
     }));
@@ -270,13 +270,13 @@ export function assessBaselinePreCompliance(options: {
       id,
       severity: "error",
       dimension: "standards",
-      message: "Pre-compliance evidence failed because the supplied manufacturing result has no PCBoo verifier authority",
+      message: "Pre-compliance evidence failed because the supplied manufacturing result has no Fulmetry verifier authority",
       waiverPolicy: "forbidden",
       objects: [],
       sourceLocations: [],
       profile: `${profile.name}@${profile.version}`,
       evidence: [`profile-digest:${profile.digest}`, "manufacturing-verification-authority:untrusted-input"],
-      nextCommand: "pcboo verify manufacturing",
+      nextCommand: "fulmetry verify manufacturing",
     }));
   } else if (!expectationBound) {
     const id = diagnosticId("STD_PROFILE_MANUFACTURING_EVIDENCE_SOURCE_MISMATCH_001");
@@ -300,7 +300,7 @@ export function assessBaselinePreCompliance(options: {
         `verification-expectation:${options.manufacturingVerification.expectation.sha256}`,
         `source-expectation:${recomputedExpectationSha256 ?? "unavailable"}`,
       ],
-      nextCommand: "pcboo verify manufacturing",
+      nextCommand: "fulmetry verify manufacturing",
     }));
   } else if (!options.manufacturingVerification.passed) {
     const id = diagnosticId("STD_PROFILE_MANUFACTURING_EVIDENCE_FAILED_001");
@@ -328,7 +328,7 @@ export function assessBaselinePreCompliance(options: {
         `independent-parser:${options.manufacturingVerification.parser}`,
         ...manufacturingFindings.map(({ code }) => `manufacturing-finding:${code}`),
       ],
-      nextCommand: "pcboo verify manufacturing",
+      nextCommand: "fulmetry verify manufacturing",
     }));
   }
 
@@ -368,7 +368,7 @@ export function assessBaselinePreCompliance(options: {
         options.manufacturingVerification.artifacts,
       )),
       independentManufacturingVerificationSha256: sha256(JSON.stringify({
-        verificationAuthority: verifierIssued ? "pcboo-verifier-issued" : "untrusted-input",
+        verificationAuthority: verifierIssued ? "fulmetry-verifier-issued" : "untrusted-input",
         expectation: verifierIssued ? options.manufacturingVerification.expectation : undefined,
         parser: options.manufacturingVerification.parser,
         passed: options.manufacturingVerification.passed,
@@ -376,7 +376,7 @@ export function assessBaselinePreCompliance(options: {
         artifacts: options.manufacturingVerification.artifacts,
       })),
       verificationAuthority: verifierIssued
-        ? "pcboo-verifier-issued" as const
+        ? "fulmetry-verifier-issued" as const
         : "untrusted-input" as const,
       expectationBinding: !verifierIssued
         ? "untrusted" as const
@@ -418,10 +418,10 @@ export function assessBaselinePreCompliance(options: {
       summary: !profileAvailable
         ? "Pre-compliance profile evidence unavailable; no profile check was claimed"
         : !passed
-          ? "The locked PCBoo baseline pre-compliance profile check failed"
+          ? "The locked Fulmetry baseline pre-compliance profile check failed"
           : source?.status.state === "passed-with-waivers"
-            ? "Checked against the locked PCBoo baseline profile with explicit source-rule waivers; pre-compliance evidence only, not certification"
-            : "Checked against the locked PCBoo baseline profile; pre-compliance evidence only, not certification",
+            ? "Checked against the locked Fulmetry baseline profile with explicit source-rule waivers; pre-compliance evidence only, not certification"
+            : "Checked against the locked Fulmetry baseline profile; pre-compliance evidence only, not certification",
       },
     ),
     diagnostics: Object.freeze(diagnostics),

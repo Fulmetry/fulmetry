@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -20,7 +20,7 @@ import {
 const repositoryRoot = join(import.meta.dir, "..");
 
 export async function runPerformanceQualification(): Promise<string> {
-  const outputPath = join(repositoryRoot, ".pcboo-ci", `performance-${process.platform}-${process.arch}.json`);
+  const outputPath = join(repositoryRoot, ".fulmetry-ci", `performance-${process.platform}-${process.arch}.json`);
   const temporaryOutputPath = `${outputPath}.${process.pid}.tmp`;
   await mkdir(dirname(outputPath), { recursive: true });
   await rm(outputPath, { force: true });
@@ -32,7 +32,7 @@ export async function runPerformanceQualification(): Promise<string> {
   const environment = `${process.platform}-${process.arch}`;
   const measurements: PerformanceMeasurement[] = [];
   const observedFixtures: Partial<Record<PerformanceFixtureName, Readonly<PerformanceFixtureIdentity>>> = {};
-  const observationDirectory = await mkdtemp(join(tmpdir(), "pcboo-performance-observations-"));
+  const observationDirectory = await mkdtemp(join(tmpdir(), "fulmetry-performance-observations-"));
   let cancelled = false;
   const cancellation = new AbortController();
   const cancel = () => {
@@ -45,7 +45,7 @@ export async function runPerformanceQualification(): Promise<string> {
     for (const fixture of PERFORMANCE_FIXTURE_NAMES) {
       for (const workload of PERFORMANCE_WORKLOAD_NAMES) {
         if (cancelled) throw new Error("PERFORMANCE_QUALIFICATION_CANCELLED");
-        process.stdout.write(`PCBOO_PERFORMANCE_PROGRESS ${JSON.stringify({ state: "started", fixture, workload })}\n`);
+        process.stdout.write(`FULMETRY_PERFORMANCE_PROGRESS ${JSON.stringify({ state: "started", fixture, workload })}\n`);
         const observationPath = join(observationDirectory, `${fixture}.json`);
         const record = await superviseCiCommand(
           `performance-${fixture}-${workload}`,
@@ -59,11 +59,11 @@ export async function runPerformanceQualification(): Promise<string> {
           ],
           {
             signal: cancellation.signal,
-            onStarted: () => process.stdout.write(`PCBOO_PERFORMANCE_PROGRESS ${JSON.stringify({ state: "running", fixture, workload })}\n`),
+            onStarted: () => process.stdout.write(`FULMETRY_PERFORMANCE_PROGRESS ${JSON.stringify({ state: "running", fixture, workload })}\n`),
           },
         );
         if (cancelled) {
-          process.stdout.write(`PCBOO_PERFORMANCE_PROGRESS ${JSON.stringify({ state: "cancelled", fixture, workload })}\n`);
+          process.stdout.write(`FULMETRY_PERFORMANCE_PROGRESS ${JSON.stringify({ state: "cancelled", fixture, workload })}\n`);
           throw new Error("PERFORMANCE_QUALIFICATION_CANCELLED");
         }
         measurements.push(Object.freeze({
@@ -74,7 +74,7 @@ export async function runPerformanceQualification(): Promise<string> {
           swapCount: record.swapCount,
           exitCode: record.exitCode,
         }));
-        process.stdout.write(`PCBOO_PERFORMANCE_PROGRESS ${JSON.stringify({ state: "completed", fixture, workload, elapsedMilliseconds: record.elapsedMilliseconds, peakRssBytes: record.sampledProcessTreePeakRssBytes })}\n`);
+        process.stdout.write(`FULMETRY_PERFORMANCE_PROGRESS ${JSON.stringify({ state: "completed", fixture, workload, elapsedMilliseconds: record.elapsedMilliseconds, peakRssBytes: record.sampledProcessTreePeakRssBytes })}\n`);
         if (record.exitCode !== 0) throw new Error(`PERFORMANCE_WORKLOAD_FAILED: ${fixture}/${workload}`);
         if (workload === "cold-build") {
           const observed = parsePerformanceFixtureIdentity(
@@ -109,7 +109,7 @@ export async function runPerformanceQualification(): Promise<string> {
     });
     await writeFile(temporaryOutputPath, `${JSON.stringify(report, null, 2)}\n`, { flag: "wx" });
     await rename(temporaryOutputPath, outputPath);
-    process.stdout.write(`PCBOO_PERFORMANCE_REPORT ${outputPath}\n`);
+    process.stdout.write(`FULMETRY_PERFORMANCE_REPORT ${outputPath}\n`);
     return outputPath;
   } finally {
     await rm(temporaryOutputPath, { force: true });

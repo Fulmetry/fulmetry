@@ -1,11 +1,11 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { lstat, opendir, readFile, realpath } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative } from "node:path";
 import { fingerprintEnginePackage, fingerprintInstalledPackageClosure } from "../engine-package-fingerprint";
 import { resolvePackageEntryFresh, resolveTscircuitEntryFresh } from "../internal/fresh-package-entry";
 import { parseJsoncWithoutDuplicateKeys, parseJsonWithoutDuplicateKeys } from "./jsonc";
-import { parsePcbooLock } from "../project/lock";
+import { parseFulmetryLock } from "../project/lock";
 
 const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u;
 const SRI = /^sha512-([A-Za-z0-9+/]+={0,2})$/u;
@@ -18,7 +18,7 @@ export interface InspectPackedConsumerOptions {
   readonly repositoryRoot: string;
   readonly expectedVersion: string;
   readonly expectedIntegrity: string;
-  readonly expectedPcbooVersion: string;
+  readonly expectedFulmetryVersion: string;
   /** Additional package roots whose file identities must not be shared. */
   readonly independentTscircuitRoots?: readonly string[];
   readonly afterInitialRead?: () => void | Promise<void>;
@@ -28,15 +28,15 @@ export interface PackedConsumerDescriptor {
   readonly root: string;
   readonly nodeModulesRoot: string;
   readonly tscircuitPackageRoot: string;
-  readonly pcbooPackageRoot: string;
+  readonly fulmetryPackageRoot: string;
   readonly entryPath: string;
   readonly runtimeClosureSha256: string;
   readonly lockSha256: string;
   readonly manifestSha256: string;
-  readonly packedPcbooContentSha256: string;
-  readonly projectPcbooLockSha256: string;
-  readonly pcbooTarballSha256: string;
-  readonly pcbooTarballIntegrity: string;
+  readonly packedFulmetryContentSha256: string;
+  readonly projectFulmetryLockSha256: string;
+  readonly fulmetryTarballSha256: string;
+  readonly fulmetryTarballIntegrity: string;
   readonly singleEngineResolutionSha256: string;
 }
 
@@ -111,9 +111,9 @@ async function inspectPackageTarball(bytes: Uint8Array): Promise<Readonly<{
   const files = await archive.files();
   const manifestFile = files.get("package/package.json");
   if (manifestFile === undefined || manifestFile.size > 1024 * 1024) {
-    throw new TypeError("Packed PCBoo tarball must contain one bounded package/package.json");
+    throw new TypeError("Packed Fulmetry tarball must contain one bounded package/package.json");
   }
-  if (files.size === 0 || files.size > 8_192) throw new TypeError("Packed PCBoo tarball file count is invalid");
+  if (files.size === 0 || files.size > 8_192) throw new TypeError("Packed Fulmetry tarball file count is invalid");
   const owned: Array<Readonly<{ path: string; file: File }>> = [];
   let totalBytes = 0;
   for (const [path, file] of files) {
@@ -121,14 +121,14 @@ async function inspectPackageTarball(bytes: Uint8Array): Promise<Readonly<{
       !path.startsWith("package/") || path === "package/" ||
       path.includes("\\") || path.includes("\0") ||
       path.slice("package/".length).split("/").some((segment) => segment === "" || segment === "." || segment === "..")
-    ) throw new TypeError("Packed PCBoo tarball contains an unsafe regular-file path");
+    ) throw new TypeError("Packed Fulmetry tarball contains an unsafe regular-file path");
     const relativePath = path.slice("package/".length);
     if (relativePath === "node_modules" || relativePath.startsWith("node_modules/")) {
-      throw new TypeError("Packed PCBoo tarball contains an installation layout");
+      throw new TypeError("Packed Fulmetry tarball contains an installation layout");
     }
-    if (file.size > 64 * 1024 * 1024) throw new TypeError("Packed PCBoo tarball contains an oversized file");
+    if (file.size > 64 * 1024 * 1024) throw new TypeError("Packed Fulmetry tarball contains an oversized file");
     totalBytes += file.size;
-    if (totalBytes > 128 * 1024 * 1024) throw new TypeError("Packed PCBoo tarball is too large");
+    if (totalBytes > 128 * 1024 * 1024) throw new TypeError("Packed Fulmetry tarball is too large");
     owned.push(Object.freeze({ path: relativePath, file }));
   }
   owned.sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
@@ -139,10 +139,10 @@ async function inspectPackageTarball(bytes: Uint8Array): Promise<Readonly<{
     hasher.update(await item.file.bytes());
     hasher.update("\0");
   }
-  const value = parseJsonWithoutDuplicateKeys(await manifestFile.text(), "Packed PCBoo tarball manifest");
-  record(value, "Packed PCBoo tarball manifest");
-  if (value.name !== "@pcboo/pcboo" || typeof value.version !== "string" || !SEMVER.test(value.version)) {
-    throw new TypeError("Packed PCBoo tarball identity is invalid");
+  const value = parseJsonWithoutDuplicateKeys(await manifestFile.text(), "Packed Fulmetry tarball manifest");
+  record(value, "Packed Fulmetry tarball manifest");
+  if (value.name !== "fulmetry" || typeof value.version !== "string" || !SEMVER.test(value.version)) {
+    throw new TypeError("Packed Fulmetry tarball identity is invalid");
   }
   return Object.freeze({
     name: value.name,
@@ -190,7 +190,7 @@ async function captureIndependenceTree(root: string, label: string): Promise<rea
         if (!entry.name || entry.name.includes("/") || entry.name.includes("\\") || /[\u0000-\u001f\u007f]/u.test(entry.name)) {
           throw new TypeError(`${label} contains an unsafe entry name`);
         }
-        if (relativeDirectory === "" && [".git", ".pcboo", ".pcboo-ci", "node_modules"].includes(entry.name)) continue;
+        if (relativeDirectory === "" && [".git", ".fulmetry", ".fulmetry-ci", "node_modules"].includes(entry.name)) continue;
         const relativePath = relativeDirectory === "" ? entry.name : `${relativeDirectory}/${entry.name}`;
         const path = join(directory, entry.name);
         const stat = await lstat(path);
@@ -229,14 +229,14 @@ async function requirePackageTreesAreStablyInodeDisjoint(options: Readonly<{
   }
 }
 
-/** Authenticates a clean, physically independent consumer of the packed PCBoo tarball. */
+/** Authenticates a clean, physically independent consumer of the packed Fulmetry tarball. */
 export async function inspectPackedConsumer(
   options: InspectPackedConsumerOptions,
 ): Promise<Readonly<PackedConsumerDescriptor>> {
   if (!isAbsolute(options.root) || !isAbsolute(options.repositoryRoot)) {
     throw new TypeError("Packed consumer and repository roots must be absolute");
   }
-  if (!SEMVER.test(options.expectedVersion) || !SEMVER.test(options.expectedPcbooVersion)) {
+  if (!SEMVER.test(options.expectedVersion) || !SEMVER.test(options.expectedFulmetryVersion)) {
     throw new TypeError("Packed consumer expected versions must be canonical semver");
   }
   if (!canonicalSri(options.expectedIntegrity)) {
@@ -258,25 +258,25 @@ export async function inspectPackedConsumer(
   if (nodeModulesRoot === await realpath(join(repositoryRoot, "node_modules"))) {
     throw new TypeError("Packed consumer node_modules must be physically distinct from the repository");
   }
-  const pcbooSlot = join(nodeModulesPath, "pcboo");
-  const pcbooSlotStat = await lstat(pcbooSlot);
-  if (!pcbooSlotStat.isDirectory() || pcbooSlotStat.isSymbolicLink()) {
-    throw new TypeError("Packed consumer pcboo must be an unpacked physical directory, not a workspace link");
+  const fulmetrySlot = join(nodeModulesPath, "fulmetry");
+  const fulmetrySlotStat = await lstat(fulmetrySlot);
+  if (!fulmetrySlotStat.isDirectory() || fulmetrySlotStat.isSymbolicLink()) {
+    throw new TypeError("Packed consumer fulmetry must be an unpacked physical directory, not a workspace link");
   }
-  const pcbooPackageRoot = await realpath(pcbooSlot);
+  const fulmetryPackageRoot = await realpath(fulmetrySlot);
   const tscircuitSlot = join(nodeModulesPath, "tscircuit");
   const tscircuitSlotStat = await lstat(tscircuitSlot);
   if (!tscircuitSlotStat.isDirectory() || tscircuitSlotStat.isSymbolicLink()) {
     throw new TypeError("Packed consumer tscircuit must be an unpacked physical directory");
   }
   const tscircuitPackageRoot = await realpath(tscircuitSlot);
-  if (isInside(repositoryRoot, pcbooPackageRoot) || isInside(repositoryRoot, tscircuitPackageRoot)) {
+  if (isInside(repositoryRoot, fulmetryPackageRoot) || isInside(repositoryRoot, tscircuitPackageRoot)) {
     throw new TypeError("Packed consumer package roots must not point into the repository");
   }
   await requirePackageTreesAreStablyInodeDisjoint({
-    leftRoot: pcbooPackageRoot,
+    leftRoot: fulmetryPackageRoot,
     rightRoot: repositoryRoot,
-    label: "Packed consumer PCBoo package",
+    label: "Packed consumer Fulmetry package",
   });
   for (const independentRoot of options.independentTscircuitRoots ?? []) {
     await requirePackageTreesAreStablyInodeDisjoint({
@@ -293,10 +293,10 @@ export async function inspectPackedConsumer(
 
   const manifestPath = join(root, "package.json");
   const lockPath = join(root, "bun.lock");
-  const pcbooLockPath = join(root, "pcboo.lock");
+  const fulmetryLockPath = join(root, "fulmetry.lock");
   const manifestRead = await regularFileBytes(manifestPath, "Packed consumer manifest", 1024 * 1024);
   const lockRead = await regularFileBytes(lockPath, "Packed consumer lock", 64 * 1024 * 1024);
-  const pcbooLockRead = await regularFileBytes(pcbooLockPath, "Packed consumer pcboo.lock", 1024 * 1024);
+  const fulmetryLockRead = await regularFileBytes(fulmetryLockPath, "Packed consumer fulmetry.lock", 1024 * 1024);
   const manifest = parseJsonWithoutDuplicateKeys(
     new TextDecoder("utf-8", { fatal: true }).decode(manifestRead.bytes),
     "Packed consumer manifest",
@@ -317,12 +317,12 @@ export async function inspectPackedConsumer(
   if (manifest.engines.bun !== "1.3.14") throw new TypeError("Packed consumer Bun engine is invalid");
   record(manifest.scripts, "Packed consumer scripts");
   if (JSON.stringify(manifest.scripts) !== JSON.stringify({
-    build: "pcboo build",
-    check: "pcboo check",
-    inspect: "pcboo inspect",
-    dev: "pcboo dev",
-    test: "pcboo test",
-    "export:gerbers": "pcboo export gerbers",
+    build: "fulmetry build",
+    check: "fulmetry check",
+    inspect: "fulmetry inspect",
+    dev: "fulmetry dev",
+    test: "fulmetry test",
+    "export:gerbers": "fulmetry export gerbers",
   })) throw new TypeError("Packed consumer scripts differ from the qualified scaffold");
   record(manifest.devDependencies, "Packed consumer devDependencies");
   keys(manifest.devDependencies, ["@types/bun", "@types/node"], "Packed consumer devDependencies");
@@ -331,10 +331,10 @@ export async function inspectPackedConsumer(
     manifest.devDependencies["@types/node"] !== "24.13.3"
   ) throw new TypeError("Packed consumer runtime type dependencies are invalid");
   record(manifest.dependencies, "Packed consumer dependencies");
-  keys(manifest.dependencies, ["pcboo", "tscircuit"], "Packed consumer dependencies");
-  const pcbooReference = `file:../../packages/pcboo-${options.expectedPcbooVersion}.tgz`;
+  keys(manifest.dependencies, ["fulmetry", "tscircuit"], "Packed consumer dependencies");
+  const fulmetryReference = `file:../../packages/fulmetry-${options.expectedFulmetryVersion}.tgz`;
   if (
-    manifest.dependencies.pcboo !== pcbooReference ||
+    manifest.dependencies.fulmetry !== fulmetryReference ||
     manifest.dependencies.tscircuit !== options.expectedVersion
   ) throw new TypeError("Packed consumer dependencies are not the exact qualified inputs");
   record(manifest.overrides, "Packed consumer overrides");
@@ -345,17 +345,17 @@ export async function inspectPackedConsumer(
   ) {
     throw new TypeError("Packed consumer dependency overrides are not qualified");
   }
-  const pcbooTarball = join(dirname(dirname(root)), "packages", `pcboo-${options.expectedPcbooVersion}.tgz`);
-  const pcbooTarballRead = await regularFileBytes(pcbooTarball, "Packed PCBoo tarball", 64 * 1024 * 1024);
-  const tarballManifest = await inspectPackageTarball(pcbooTarballRead.bytes);
-  if (tarballManifest.version !== options.expectedPcbooVersion) {
-    throw new TypeError("Packed PCBoo tarball version does not match the qualification request");
+  const fulmetryTarball = join(dirname(dirname(root)), "packages", `fulmetry-${options.expectedFulmetryVersion}.tgz`);
+  const fulmetryTarballRead = await regularFileBytes(fulmetryTarball, "Packed Fulmetry tarball", 64 * 1024 * 1024);
+  const tarballManifest = await inspectPackageTarball(fulmetryTarballRead.bytes);
+  if (tarballManifest.version !== options.expectedFulmetryVersion) {
+    throw new TypeError("Packed Fulmetry tarball version does not match the qualification request");
   }
   if (
     JSON.stringify(tarballManifest.packageMetadata.os) !== JSON.stringify(["darwin"]) ||
     JSON.stringify(tarballManifest.packageMetadata.cpu) !== JSON.stringify(["arm64"])
   ) {
-    throw new TypeError("Packed PCBoo tarball must target only Apple Silicon macOS");
+    throw new TypeError("Packed Fulmetry tarball must target only Apple Silicon macOS");
   }
 
   const lock = parseJsoncWithoutDuplicateKeys(
@@ -436,57 +436,57 @@ export async function inspectPackedConsumer(
   if (JSON.stringify(tscircuitTuple[2]) !== JSON.stringify(canonicalLockMetadata(installedTscircuitMetadata))) {
     throw new TypeError("Packed consumer tscircuit lock metadata differs from its installed package manifest");
   }
-  const pcbooTuple = lock.packages.pcboo;
+  const fulmetryTuple = lock.packages.fulmetry;
   if (
-    !Array.isArray(pcbooTuple) || pcbooTuple.length !== 3 ||
-    pcbooTuple[0] !== `@pcboo/pcboo@../../packages/pcboo-${options.expectedPcbooVersion}.tgz` ||
-    pcbooTuple[1] === null || typeof pcbooTuple[1] !== "object" || Array.isArray(pcbooTuple[1]) ||
-    !canonicalSri(pcbooTuple[2]) || pcbooTuple[2] !== sha512Sri(pcbooTarballRead.bytes)
-  ) throw new TypeError("Packed consumer lock does not bind the exact packed PCBoo tarball");
-  if (JSON.stringify(pcbooTuple[1]) !== JSON.stringify(canonicalLocalTarballLockMetadata(tarballManifest.packageMetadata))) {
-    throw new TypeError("Packed consumer PCBoo lock metadata differs from its authenticated tarball manifest");
+    !Array.isArray(fulmetryTuple) || fulmetryTuple.length !== 3 ||
+    fulmetryTuple[0] !== `fulmetry@../../packages/fulmetry-${options.expectedFulmetryVersion}.tgz` ||
+    fulmetryTuple[1] === null || typeof fulmetryTuple[1] !== "object" || Array.isArray(fulmetryTuple[1]) ||
+    !canonicalSri(fulmetryTuple[2]) || fulmetryTuple[2] !== sha512Sri(fulmetryTarballRead.bytes)
+  ) throw new TypeError("Packed consumer lock does not bind the exact packed Fulmetry tarball");
+  if (JSON.stringify(fulmetryTuple[1]) !== JSON.stringify(canonicalLocalTarballLockMetadata(tarballManifest.packageMetadata))) {
+    throw new TypeError("Packed consumer Fulmetry lock metadata differs from its authenticated tarball manifest");
   }
   for (const [key, tuple] of Object.entries(lock.packages)) {
-    if (key === "pcboo" || key === "tscircuit" || !Array.isArray(tuple) || typeof tuple[0] !== "string") continue;
+    if (key === "fulmetry" || key === "tscircuit" || !Array.isArray(tuple) || typeof tuple[0] !== "string") continue;
     const identity = tuple[0].toLowerCase();
     if (
-      /(?:^|[/+:])pcboo@/u.test(identity) ||
+      /(?:^|[/+:])fulmetry@/u.test(identity) ||
       /(?:^|[/+:])tscircuit@/u.test(identity)
-    ) throw new TypeError("Packed consumer lock contains another PCBoo or tscircuit package tuple");
+    ) throw new TypeError("Packed consumer lock contains another Fulmetry or tscircuit package tuple");
   }
-  const pcbooLockText = new TextDecoder("utf-8", { fatal: true }).decode(pcbooLockRead.bytes);
-  parseJsonWithoutDuplicateKeys(pcbooLockText, "Packed consumer pcboo.lock");
-  const parsedPcbooLock = parsePcbooLock(pcbooLockText);
+  const fulmetryLockText = new TextDecoder("utf-8", { fatal: true }).decode(fulmetryLockRead.bytes);
+  parseJsonWithoutDuplicateKeys(fulmetryLockText, "Packed consumer fulmetry.lock");
+  const parsedFulmetryLock = parseFulmetryLock(fulmetryLockText);
   if (
-    parsedPcbooLock.tscircuit.version !== options.expectedVersion ||
-    parsedPcbooLock.tscircuit.integrity !== options.expectedIntegrity
-  ) throw new TypeError("Packed consumer pcboo.lock does not bind the candidate tscircuit identity");
+    parsedFulmetryLock.tscircuit.version !== options.expectedVersion ||
+    parsedFulmetryLock.tscircuit.integrity !== options.expectedIntegrity
+  ) throw new TypeError("Packed consumer fulmetry.lock does not bind the candidate tscircuit identity");
 
-  const pcbooEntryPath = await resolvePackageEntryFresh("pcboo", root);
-  const pcbooEntryRelative = relativeOwnedPath(pcbooPackageRoot, pcbooEntryPath, "Packed PCBoo entry");
+  const fulmetryEntryPath = await resolvePackageEntryFresh("fulmetry", root);
+  const fulmetryEntryRelative = relativeOwnedPath(fulmetryPackageRoot, fulmetryEntryPath, "Packed Fulmetry entry");
   const entryPath = await resolveTscircuitEntryFresh(root);
-  const pcbooAuthoringOrigin = join(pcbooPackageRoot, "src");
-  const fromPcboo = await resolveTscircuitEntryFresh(pcbooAuthoringOrigin);
-  if (entryPath !== fromPcboo) throw new TypeError("Packed consumer and packed PCBoo resolve different tscircuit engines");
+  const fulmetryAuthoringOrigin = join(fulmetryPackageRoot, "src");
+  const fromFulmetry = await resolveTscircuitEntryFresh(fulmetryAuthoringOrigin);
+  if (entryPath !== fromFulmetry) throw new TypeError("Packed consumer and packed Fulmetry resolve different tscircuit engines");
   const tscircuitEntryRelative = relativeOwnedPath(tscircuitPackageRoot, entryPath, "Packed tscircuit entry");
   const singleEngineResolutionSha256 = sha256(new TextEncoder().encode(JSON.stringify({
-    pcbooEntry: pcbooEntryRelative,
+    fulmetryEntry: fulmetryEntryRelative,
     tscircuitEntry: tscircuitEntryRelative,
   })));
   const runtimeClosureSha256 = await fingerprintInstalledPackageClosure(tscircuitPackageRoot, {
     entryPath,
     resolutionOrigin: root,
   });
-  const packedPcbooContentSha256 = await fingerprintEnginePackage(pcbooPackageRoot);
-  if (packedPcbooContentSha256 !== tarballManifest.contentSha256) {
-    throw new TypeError("Installed packed PCBoo bytes do not match the referenced tarball");
+  const packedFulmetryContentSha256 = await fingerprintEnginePackage(fulmetryPackageRoot);
+  if (packedFulmetryContentSha256 !== tarballManifest.contentSha256) {
+    throw new TypeError("Installed packed Fulmetry bytes do not match the referenced tarball");
   }
 
   await options.afterInitialRead?.();
   await requirePackageTreesAreStablyInodeDisjoint({
-    leftRoot: pcbooPackageRoot,
+    leftRoot: fulmetryPackageRoot,
     rightRoot: repositoryRoot,
-    label: "Packed consumer PCBoo package",
+    label: "Packed consumer Fulmetry package",
   });
   for (const independentRoot of options.independentTscircuitRoots ?? []) {
     await requirePackageTreesAreStablyInodeDisjoint({
@@ -500,22 +500,22 @@ export async function inspectPackedConsumer(
     rightRoot: join(repositoryRoot, "node_modules", "tscircuit"),
     label: "Packed consumer tscircuit package",
   });
-  const [manifestFinal, lockFinal, pcbooLockFinal, pcbooTarballFinal] = await Promise.all([
+  const [manifestFinal, lockFinal, fulmetryLockFinal, fulmetryTarballFinal] = await Promise.all([
     regularFileBytes(manifestPath, "Packed consumer manifest", 1024 * 1024),
     regularFileBytes(lockPath, "Packed consumer lock", 64 * 1024 * 1024),
-    regularFileBytes(pcbooLockPath, "Packed consumer pcboo.lock", 1024 * 1024),
-    regularFileBytes(pcbooTarball, "Packed PCBoo tarball", 64 * 1024 * 1024),
+    regularFileBytes(fulmetryLockPath, "Packed consumer fulmetry.lock", 1024 * 1024),
+    regularFileBytes(fulmetryTarball, "Packed Fulmetry tarball", 64 * 1024 * 1024),
   ]);
-  const [rootFinalStat, nodeModulesFinalStat, pcbooSlotFinalStat, tscircuitSlotFinalStat, cliScopeFinalStat, cliPackageFinalStat] = await Promise.all([
-    lstat(root), lstat(nodeModulesPath), lstat(pcbooSlot), lstat(tscircuitSlot), lstat(cliScopeSlot), lstat(cliPackageSlot),
+  const [rootFinalStat, nodeModulesFinalStat, fulmetrySlotFinalStat, tscircuitSlotFinalStat, cliScopeFinalStat, cliPackageFinalStat] = await Promise.all([
+    lstat(root), lstat(nodeModulesPath), lstat(fulmetrySlot), lstat(tscircuitSlot), lstat(cliScopeSlot), lstat(cliPackageSlot),
   ]);
   if (
     rootFinalStat.isSymbolicLink() || !rootFinalStat.isDirectory() ||
     rootFinalStat.dev !== requestedRootStat.dev || rootFinalStat.ino !== requestedRootStat.ino ||
     nodeModulesFinalStat.isSymbolicLink() || !nodeModulesFinalStat.isDirectory() ||
     nodeModulesFinalStat.dev !== nodeModulesStat.dev || nodeModulesFinalStat.ino !== nodeModulesStat.ino ||
-    pcbooSlotFinalStat.isSymbolicLink() || !pcbooSlotFinalStat.isDirectory() ||
-    pcbooSlotFinalStat.dev !== pcbooSlotStat.dev || pcbooSlotFinalStat.ino !== pcbooSlotStat.ino ||
+    fulmetrySlotFinalStat.isSymbolicLink() || !fulmetrySlotFinalStat.isDirectory() ||
+    fulmetrySlotFinalStat.dev !== fulmetrySlotStat.dev || fulmetrySlotFinalStat.ino !== fulmetrySlotStat.ino ||
     tscircuitSlotFinalStat.isSymbolicLink() || !tscircuitSlotFinalStat.isDirectory() ||
     tscircuitSlotFinalStat.dev !== tscircuitSlotStat.dev || tscircuitSlotFinalStat.ino !== tscircuitSlotStat.ino ||
     cliScopeFinalStat.isSymbolicLink() || !cliScopeFinalStat.isDirectory() ||
@@ -524,19 +524,19 @@ export async function inspectPackedConsumer(
     cliPackageFinalStat.dev !== cliPackageStat.dev || cliPackageFinalStat.ino !== cliPackageStat.ino ||
     manifestFinal.stat.dev !== manifestRead.stat.dev || manifestFinal.stat.ino !== manifestRead.stat.ino ||
     lockFinal.stat.dev !== lockRead.stat.dev || lockFinal.stat.ino !== lockRead.stat.ino ||
-    pcbooLockFinal.stat.dev !== pcbooLockRead.stat.dev || pcbooLockFinal.stat.ino !== pcbooLockRead.stat.ino ||
-    pcbooTarballFinal.stat.dev !== pcbooTarballRead.stat.dev || pcbooTarballFinal.stat.ino !== pcbooTarballRead.stat.ino ||
+    fulmetryLockFinal.stat.dev !== fulmetryLockRead.stat.dev || fulmetryLockFinal.stat.ino !== fulmetryLockRead.stat.ino ||
+    fulmetryTarballFinal.stat.dev !== fulmetryTarballRead.stat.dev || fulmetryTarballFinal.stat.ino !== fulmetryTarballRead.stat.ino ||
     sha256(manifestFinal.bytes) !== sha256(manifestRead.bytes) ||
     sha256(lockFinal.bytes) !== sha256(lockRead.bytes) ||
-    sha256(pcbooLockFinal.bytes) !== sha256(pcbooLockRead.bytes) ||
-    sha256(pcbooTarballFinal.bytes) !== sha256(pcbooTarballRead.bytes) ||
-    await realpath(pcbooSlot) !== pcbooPackageRoot ||
+    sha256(fulmetryLockFinal.bytes) !== sha256(fulmetryLockRead.bytes) ||
+    sha256(fulmetryTarballFinal.bytes) !== sha256(fulmetryTarballRead.bytes) ||
+    await realpath(fulmetrySlot) !== fulmetryPackageRoot ||
     await realpath(join(nodeModulesPath, "tscircuit")) !== tscircuitPackageRoot ||
     await realpath(cliPackageSlot) !== cliPackageRoot ||
     await resolveTscircuitEntryFresh(root) !== entryPath ||
-    await resolveTscircuitEntryFresh(pcbooAuthoringOrigin) !== entryPath ||
-    await resolvePackageEntryFresh("pcboo", root) !== pcbooEntryPath ||
-    await fingerprintEnginePackage(pcbooPackageRoot) !== packedPcbooContentSha256 ||
+    await resolveTscircuitEntryFresh(fulmetryAuthoringOrigin) !== entryPath ||
+    await resolvePackageEntryFresh("fulmetry", root) !== fulmetryEntryPath ||
+    await fingerprintEnginePackage(fulmetryPackageRoot) !== packedFulmetryContentSha256 ||
     await fingerprintInstalledPackageClosure(tscircuitPackageRoot, { entryPath, resolutionOrigin: root }) !== runtimeClosureSha256
   ) throw new Error("Packed consumer authority changed during inspection");
 
@@ -544,15 +544,15 @@ export async function inspectPackedConsumer(
     root,
     nodeModulesRoot,
     tscircuitPackageRoot,
-    pcbooPackageRoot,
+    fulmetryPackageRoot,
     entryPath,
     runtimeClosureSha256,
     lockSha256: sha256(lockRead.bytes),
     manifestSha256: sha256(manifestRead.bytes),
-    packedPcbooContentSha256,
-    projectPcbooLockSha256: sha256(pcbooLockRead.bytes),
-    pcbooTarballSha256: sha256(pcbooTarballRead.bytes),
-    pcbooTarballIntegrity: sha512Sri(pcbooTarballRead.bytes),
+    packedFulmetryContentSha256,
+    projectFulmetryLockSha256: sha256(fulmetryLockRead.bytes),
+    fulmetryTarballSha256: sha256(fulmetryTarballRead.bytes),
+    fulmetryTarballIntegrity: sha512Sri(fulmetryTarballRead.bytes),
     singleEngineResolutionSha256,
   });
 }

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 /** Exact tscircuit temporary-name form observed from the pinned compiler. */
 export function isDeterministicTemporaryComponentName(name: string | undefined): boolean {

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -64,7 +64,7 @@ export async function createPerformanceFixture(
   name: PerformanceFixtureName,
   identity: PerformanceFixtureIdentity,
 ): Promise<{ root: string; source: string }> {
-  const root = await mkdtemp(join(tmpdir(), `pcboo-performance-${name}-`));
+  const root = await mkdtemp(join(tmpdir(), `fulmetry-performance-${name}-`));
   await mkdir(join(root, "src"));
   await mkdir(join(root, "node_modules"));
   await symlink(
@@ -74,8 +74,8 @@ export async function createPerformanceFixture(
   );
   const source = join(root, "src/board.ts");
   await Bun.write(source, `export default ${JSON.stringify(fixtureCircuit(identity))};\n`);
-  await Bun.write(join(root, "pcboo.config.ts"), `export default { entry: 'src/board.ts', outputDirectory: '.pcboo', profiles: ['${BASELINE_FABRICATION_PROFILE.name}'] };\n`);
-  await Bun.write(join(root, "pcboo.lock"), `${JSON.stringify({
+  await Bun.write(join(root, "fulmetry.config.ts"), `export default { entry: 'src/board.ts', outputDirectory: '.fulmetry', profiles: ['${BASELINE_FABRICATION_PROFILE.name}'] };\n`);
+  await Bun.write(join(root, "fulmetry.lock"), `${JSON.stringify({
     schemaVersion: 1,
     tscircuit: { version: SUPPORTED_TSCIRCUIT_VERSION, integrity: SUPPORTED_TSCIRCUIT_INTEGRITY },
     adapters: MANUFACTURING_ADAPTER_VERSIONS,
@@ -137,7 +137,7 @@ export async function assertPerformanceDetachedExport(
   expected: Readonly<PerformanceFixtureIdentity>,
 ): Promise<void> {
   if (run.exitCode !== 3) throw new Error(`detached-export returned ${run.exitCode}`);
-  const result = requireCliResult(run, "pcboo export kicad");
+  const result = requireCliResult(run, "fulmetry export kicad");
   const diagnostic = result.diagnostics[0];
   if (
     result.exitClassification !== "incomplete" ||
@@ -257,7 +257,7 @@ async function runWorkload(
         ...(workload === "detached-export" ? { externalToolPaths: { kicadCli: null } } : {}),
       });
       if (workload === "cold-build") {
-        if (run.exitCode !== 0 || requireCliResult(run, "pcboo build").exitClassification !== "success") {
+        if (run.exitCode !== 0 || requireCliResult(run, "fulmetry build").exitClassification !== "success") {
           throw new Error(`cold-build returned ${run.exitCode}: ${run.stderr || JSON.stringify(run.result?.diagnostics ?? [])}`);
         }
         const observed = await observedCliCircuit(run, prepared.root);
@@ -265,7 +265,7 @@ async function runWorkload(
         if (observationPath === undefined) throw new Error("Cold build fixture observation path is missing");
         await writeFile(observationPath, `${JSON.stringify(observed)}\n`, { flag: "wx" });
       } else if (workload === "check-drc") {
-        const result = requireCliResult(run, "pcboo check");
+        const result = requireCliResult(run, "fulmetry check");
         if (
           run.exitCode !== 3 || result.exitClassification !== "incomplete" ||
           result.statuses.electrical.state !== "passed" || result.statuses.fabrication.state !== "incomplete" ||
@@ -305,7 +305,7 @@ async function runWorkload(
           const body = await response.text();
           if (
             !response.ok || !response.headers.get("content-type")?.startsWith("text/html") ||
-            !body.includes("<svg") || !body.includes("data-pcboo-viewer") ||
+            !body.includes("<svg") || !body.includes("data-fulmetry-viewer") ||
             !body.includes("circuit sha256:")
           ) throw new Error(`pcb-render returned invalid rendered authority with status ${response.status}`);
         }

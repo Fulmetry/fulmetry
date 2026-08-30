@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -28,7 +28,7 @@ describe("live functional release fixture", () => {
     expect(assessCircuitElectrical(circuitJson).status.state).toBe("passed");
     expect(assessCircuitFabrication(circuitJson, BASELINE_FABRICATION_PROFILE).status.state)
       .toBe("passed");
-    const temporaryRoot = await mkdtemp(join(tmpdir(), "pcboo-live-functional-fixture-"));
+    const temporaryRoot = await mkdtemp(join(tmpdir(), "fulmetry-live-functional-fixture-"));
     roots.push(temporaryRoot);
     const root = join(temporaryRoot, "manufacturing");
     const files = await exportManufacturingFiles({ boardName: "live-divider", circuitJson });
@@ -54,7 +54,7 @@ describe("live functional release fixture", () => {
           { componentId: "source_component_1", pinMap: { "1": "1", "2": "2" }, parameters: { resistance: "10k" } },
           { componentId: "source_component_2", pinMap: { "1": "1", "2": "2" }, parameters: { resistance: "10k" } },
         ],
-        path: "simulations/resistors.model", source: "PCBoo fixture",
+        path: "simulations/resistors.model", source: "Fulmetry fixture",
         digest: `sha256:${"0".repeat(64)}`, license: "CC0-1.0", redistribution: "allowed",
       }],
       stimuli: [{

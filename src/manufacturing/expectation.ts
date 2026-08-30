@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import type { AnyCircuitElement } from "tscircuit";
 import {
@@ -1324,7 +1324,7 @@ export function deriveManufacturingExpectation(options: {
         ) unsupported.push(
           `${pad.pcb_plated_hole_id}: plated-hole pad lies outside its owner courtyard`,
         );
-        if (pad.port_hints?.includes("pcboo:mechanical") === true) continue;
+        if (pad.port_hints?.includes("fulmetry:mechanical") === true) continue;
         if (pad.pcb_port_id === undefined) {
           unsupported.push(`${pad.pcb_plated_hole_id}: plated-hole pad has no owning PCB port`);
           continue;
@@ -1368,7 +1368,7 @@ export function deriveManufacturingExpectation(options: {
         `${pad.pcb_smtpad_id}: SMT pad lies outside its owner courtyard`,
       );
       if (
-        pad.port_hints?.includes("pcboo:mechanical") !== true &&
+        pad.port_hints?.includes("fulmetry:mechanical") !== true &&
         pad.pcb_port_id !== undefined
       ) {
         const matchingPorts = portsForComponent.filter((port) =>

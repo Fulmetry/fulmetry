@@ -1,6 +1,6 @@
-# PCBoo Future Explorations
+# Fulmetry Future Explorations
 
-This document records promising ideas that are intentionally outside PCBoo's current product requirements. Entries here are subjects for later evaluation, not committed features or roadmap promises.
+This document records promising ideas that are intentionally outside Fulmetry's current product requirements. Entries here are subjects for later evaluation, not committed features or roadmap promises.
 
 ## Linux, Windows, and Intel macOS support
 
@@ -16,9 +16,9 @@ Unify `export gerbers`, `verify manufacturing`, and production promotion around 
 
 ## Multi-board products with Bun workspaces
 
-PCBoo initially supports exactly one board target per project. This keeps commands, diagnostics, artifacts, verification status, and agent context unambiguous.
+Fulmetry initially supports exactly one board target per project. This keeps commands, diagnostics, artifacts, verification status, and agent context unambiguous.
 
-A future version may use Bun workspaces to compose several independent PCBoo projects into one physical product while allowing them to share TypeScript circuit components, footprints, models, rule profiles, and other libraries.
+A future version may use Bun workspaces to compose several independent Fulmetry projects into one physical product while allowing them to share TypeScript circuit components, footprints, models, rule profiles, and other libraries.
 
 An illustrative workspace could look like this:
 
@@ -32,12 +32,12 @@ device/
 
 The evaluation should determine:
 
-- Whether ordinary Bun workspace conventions are sufficient or PCBoo needs additional workspace metadata.
-- Whether every board keeps its own `pcboo.lock`, configuration, verification status, and release bundle.
+- Whether ordinary Bun workspace conventions are sufficient or Fulmetry needs additional workspace metadata.
+- Whether every board keeps its own `fulmetry.lock`, configuration, verification status, and release bundle.
 - How shared components and assets preserve versioning, provenance, and license information.
-- Whether PCBoo should eventually provide aggregate commands and a product-level inspection view.
+- Whether Fulmetry should eventually provide aggregate commands and a product-level inspection view.
 - How artifacts are named and isolated so output from one board cannot be mistaken for another.
-- Whether cross-board connector, cable, harness, power-budget, and interface checks belong in PCBoo.
+- Whether cross-board connector, cable, harness, power-budget, and interface checks belong in Fulmetry.
 - How failures in one board affect product-level status without obscuring each board's independent status.
 
 Assembly variants, panelization, and revision-management systems must be evaluated separately. They should not be modeled as additional boards merely to reuse a multi-board mechanism. This does not change the current requirement that every verified bundle carry an explicit board revision identifier.
@@ -48,21 +48,21 @@ The initial project model has one deterministic assembly. A future evaluation ma
 
 ## Token-efficient agent result formats
 
-Compact compiler-style text is the initial agent interface and versioned JSON is the canonical detailed result. Token-Oriented Object Notation (TOON), ONTO, and other emerging serializations may be benchmarked against representative PCBoo reports. Evaluation must measure token count, cross-model comprehension, exact round-trip fidelity, parser maturity, schema evolution, error recovery, and the context required to teach an agent the format. No new serialization should displace JSON merely because it is smaller on one fixture.
+Compact compiler-style text is the initial agent interface and versioned JSON is the canonical detailed result. Token-Oriented Object Notation (TOON), ONTO, and other emerging serializations may be benchmarked against representative Fulmetry reports. Evaluation must measure token count, cross-model comprehension, exact round-trip fidelity, parser maturity, schema evolution, error recovery, and the context required to teach an agent the format. No new serialization should displace JSON merely because it is smaller on one fixture.
 
 ## Strong execution isolation
 
-PCBoo initially treats a project as trusted executable TypeScript and uses sanitized inputs plus repeated fresh-process builds to detect ordinary nondeterminism. Containers or operating-system sandboxes may later provide an explicit high-isolation mode. Evaluation must account for macOS, Linux, and Windows behavior, Bun compatibility, filesystem access, network blocking, external EDA tools, performance, and the difference between reproducibility and protection from malicious code.
+Fulmetry initially treats a project as trusted executable TypeScript and uses sanitized inputs plus repeated fresh-process builds to detect ordinary nondeterminism. Containers or operating-system sandboxes may later provide an explicit high-isolation mode. Evaluation must account for macOS, Linux, and Windows behavior, Bun compatibility, filesystem access, network blocking, external EDA tools, performance, and the difference between reproducibility and protection from malicious code.
 
 ## Reparented-process containment
 
-For trusted executable operation, PCBoo denies direct child creation and parent signaling on macOS, requires delegated cgroup-v2 kill membership on Linux, and uses kill-on-close Job membership with an exclusive broker result handle on Windows. These operational boundaries are not hostile-code sandboxes: LaunchServices/XPC brokerage, Mach task controls, same-token broker attacks, and deliberate migration from delegated membership remain outside their guarantee. Evaluate a deny-default native-qualified macOS broker, a narrowly mounted PID/user namespace broker on Linux, and a restricted-token or AppContainer broker on Windows, with native brokered-launch, parent-signal, membership-escape, handle-duplication, and double-fork regressions.
+For trusted executable operation, Fulmetry denies direct child creation and parent signaling on macOS, requires delegated cgroup-v2 kill membership on Linux, and uses kill-on-close Job membership with an exclusive broker result handle on Windows. These operational boundaries are not hostile-code sandboxes: LaunchServices/XPC brokerage, Mach task controls, same-token broker attacks, and deliberate migration from delegated membership remain outside their guarantee. Evaluate a deny-default native-qualified macOS broker, a narrowly mounted PID/user namespace broker on Linux, and a restricted-token or AppContainer broker on Windows, with native brokered-launch, parent-signal, membership-escape, handle-duplication, and double-fork regressions.
 
 The maintainer-only tscircuit review/acceptance transaction is stricter than ordinary trusted executable operation: it currently refuses candidate launch on macOS and undelegated Linux because a candidate-supplied external executable can double-fork and escape Bun/process-group tracking. A future macOS implementation may enable this transaction only after a native broker proves kernel-owned membership, cleanup after parent exit, and an empty scope against external double-fork plus `setsid()` fixtures. It must not restore macOS availability by downgrading the claim to polling, ancestry sampling, inherited environment markers, or Bun-only child tracking.
 
 Repository CI supervision is a separate operational boundary. Its POSIX process-group, sampled-ancestry, Bun `--no-orphans`, and inherited-token checks catch cooperative and observable descendants but cannot prove ownership of a daemon that both escapes before sampling and sanitizes its environment. Evaluate kernel-owned CI membership (delegated cgroup v2/systemd scopes on Linux and a qualified macOS equivalent); only that mode may restore an unconditional orphan-rejection requirement.
 
-Windows Job Objects remain useful operational cleanup boundaries for the trusted executables PCBoo runs today but are not security boundaries for a hostile same-token target. A future hostile-code or high-isolation mode requires a restricted-token or AppContainer broker with narrowly granted read/write paths and native adversarial handle-duplication and parent-termination regressions.
+Windows Job Objects remain useful operational cleanup boundaries for the trusted executables Fulmetry runs today but are not security boundaries for a hostile same-token target. A future hostile-code or high-isolation mode requires a restricted-token or AppContainer broker with narrowly granted read/write paths and native adversarial handle-duplication and parent-termination regressions.
 
 ## Cryptographic release signing
 
@@ -74,11 +74,11 @@ Initial integration contracts are modular and capability-declared but experiment
 
 ## Managed external-tool installation
 
-PCBoo initially detects separately installed tools and provides guidance. A future explicit installer may be evaluated for selected external executables. Any such feature must verify source provenance, versions, platform compatibility, checksums or signatures, license obligations, user consent, update behavior, and removal without silently downloading executables during ordinary builds.
+Fulmetry initially detects separately installed tools and provides guidance. A future explicit installer may be evaluated for selected external executables. Any such feature must verify source provenance, versions, platform compatibility, checksums or signatures, license obligations, user consent, update behavior, and removal without silently downloading executables during ordinary builds.
 
 ## Closed-loop clearance repair and router qualification
 
-The initial Freerouting adapter produces an authenticated, resource-bounded candidate from the current board and never silently replaces authored routes. Promotion converts an explicitly selected candidate into semantic TypeScript route modules in a fresh directory. A future workflow may iteratively classify clearance and connectivity findings, preserve accepted routing constraints and intentional topology, request a new router candidate, and compare the candidate against the prior board before a human or agent promotes it. This evaluation must distinguish router success from PCBoo's independent manufacturing checks, retain exact tool and input identity, and prove that a candidate cannot weaken the active manufacturing profile.
+The initial Freerouting adapter produces an authenticated, resource-bounded candidate from the current board and never silently replaces authored routes. Promotion converts an explicitly selected candidate into semantic TypeScript route modules in a fresh directory. A future workflow may iteratively classify clearance and connectivity findings, preserve accepted routing constraints and intentional topology, request a new router candidate, and compare the candidate against the prior board before a human or agent promotes it. This evaluation must distinguish router success from Fulmetry's independent manufacturing checks, retain exact tool and input identity, and prove that a candidate cannot weaken the active manufacturing profile.
 
 ## Incremental inspection-server input authority
 

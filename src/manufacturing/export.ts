@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { access, mkdir, mkdtemp, rename, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -43,14 +43,14 @@ function assertOneSupportedBoard(circuitJson: AnyCircuitElement[]): 2 | 4 {
   const boards = circuitJson.filter((element) => element.type === "pcb_board");
   if (boards.length !== 1) {
     throw new Error(
-      `PCBoo manufacturing export requires exactly one board; found ${boards.length}`,
+      `Fulmetry manufacturing export requires exactly one board; found ${boards.length}`,
     );
   }
 
   const layerCount = boards[0]?.num_layers;
   if (layerCount !== 2 && layerCount !== 4) {
     throw new Error(
-      `PCBoo manufacturing verification currently supports 2 or 4 layers; found ${String(layerCount)}`,
+      `Fulmetry manufacturing verification currently supports 2 or 4 layers; found ${String(layerCount)}`,
     );
   }
   return layerCount;
@@ -325,7 +325,7 @@ function gerberCompatibleCircuitJson(
       for (const layer of ["inner1", "inner2"] as const) {
         compatible.push({
           type: "pcb_smtpad",
-          pcb_smtpad_id: `pcboo_inner_pad_${layer}_${element.pcb_plated_hole_id}`,
+          pcb_smtpad_id: `fulmetry_inner_pad_${layer}_${element.pcb_plated_hole_id}`,
           pcb_component_id: element.pcb_component_id,
           pcb_port_id: element.pcb_port_id,
           x: element.x,
@@ -346,7 +346,7 @@ function gerberCompatibleCircuitJson(
     } else {
       compatible.push({
         type: "pcb_via",
-        pcb_via_id: `pcboo_inner_pad_${element.pcb_plated_hole_id}`,
+        pcb_via_id: `fulmetry_inner_pad_${element.pcb_plated_hole_id}`,
         x: element.x,
         y: element.y,
         hole_diameter: element.hole_diameter,
@@ -364,7 +364,7 @@ function gerberCompatibleCircuitJson(
 
 /**
  * The pinned exporter also derives drills from dimensioned via route points.
- * PCBoo authored routes intentionally materialize explicit pcb_via records, so
+ * Fulmetry authored routes intentionally materialize explicit pcb_via records, so
  * leaving both representations dimensioned would duplicate the same physical
  * drill. Keep route transition coordinates/layers and let the explicit record
  * be the sole manufacturing geometry authority.
@@ -553,7 +553,7 @@ export async function emitDraftManufacturingDirectory(options: {
 
   const parent = dirname(options.targetDirectory);
   await mkdir(parent, { recursive: true });
-  const staging = await mkdtemp(join(parent, ".pcboo-stage-"));
+  const staging = await mkdtemp(join(parent, ".fulmetry-stage-"));
 
   try {
     for (const file of options.files) {

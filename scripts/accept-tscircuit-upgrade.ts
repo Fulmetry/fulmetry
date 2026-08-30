@@ -148,9 +148,9 @@ export interface RuntimeEvidenceAcceptanceExpectation {
   readonly packedConsumerClosureSha256: string;
   readonly repositoryLockSha256: string;
   readonly packedConsumer: Pick<PackedConsumerDescriptor,
-    "lockSha256" | "manifestSha256" | "packedPcbooContentSha256" |
-    "projectPcbooLockSha256" | "singleEngineResolutionSha256" |
-    "pcbooTarballSha256" | "pcbooTarballIntegrity">;
+    "lockSha256" | "manifestSha256" | "packedFulmetryContentSha256" |
+    "projectFulmetryLockSha256" | "singleEngineResolutionSha256" |
+    "fulmetryTarballSha256" | "fulmetryTarballIntegrity">;
 }
 
 export function requireRuntimeEvidenceForAcceptance(
@@ -174,11 +174,11 @@ export function requireRuntimeEvidenceForAcceptance(
     packed.contractVersion !== PACKED_CONSUMER_CONTRACT_VERSION ||
     packed.lockSha256 !== expected.packedConsumer.lockSha256 ||
     packed.manifestSha256 !== expected.packedConsumer.manifestSha256 ||
-    packed.packedPcbooContentSha256 !== expected.packedConsumer.packedPcbooContentSha256 ||
-    packed.projectPcbooLockSha256 !== expected.packedConsumer.projectPcbooLockSha256 ||
+    packed.packedFulmetryContentSha256 !== expected.packedConsumer.packedFulmetryContentSha256 ||
+    packed.projectFulmetryLockSha256 !== expected.packedConsumer.projectFulmetryLockSha256 ||
     packed.singleEngineResolutionSha256 !== expected.packedConsumer.singleEngineResolutionSha256 ||
-    packed.pcbooTarballSha256 !== expected.packedConsumer.pcbooTarballSha256 ||
-    packed.pcbooTarballIntegrity !== expected.packedConsumer.pcbooTarballIntegrity
+    packed.fulmetryTarballSha256 !== expected.packedConsumer.fulmetryTarballSha256 ||
+    packed.fulmetryTarballIntegrity !== expected.packedConsumer.fulmetryTarballIntegrity
   ) throw new Error("Runtime evidence differs from the freshly authenticated packed consumer");
 }
 
@@ -247,7 +247,7 @@ export async function expectedAcceptedFixtureInputRecords(options: Readonly<{
     ).arrayBuffer()));
   }
 
-  const lockPath = "pcboo.lock";
+  const lockPath = "fulmetry.lock";
   const lock = JSON.parse(new TextDecoder().decode(expectedBytes.get(lockPath)!)) as {
     tscircuit?: { version?: unknown; integrity?: unknown };
   };
@@ -433,7 +433,7 @@ export async function candidateRepositoryTests(runtimeRoot: string): Promise<rea
   return Object.freeze(tests);
 }
 
-/** @internal Resolves only PCBoo's reviewed compiler package, never the candidate dependency tree. */
+/** @internal Resolves only Fulmetry's reviewed compiler package, never the candidate dependency tree. */
 export async function requireTrustedAcceptanceTypeScript(projectRoot: string): Promise<Readonly<{
   root: string;
   compilerPath: string;
@@ -450,7 +450,7 @@ export async function requireTrustedAcceptanceTypeScript(projectRoot: string): P
   }
   const contentSha256 = await fingerprintEnginePackage(root);
   if (contentSha256 !== ACCEPTANCE_TYPESCRIPT_CONTENT_SHA256) {
-    throw new Error("Acceptance compiler content does not match PCBoo's reviewed TypeScript package");
+    throw new Error("Acceptance compiler content does not match Fulmetry's reviewed TypeScript package");
   }
   const requestedCompilerPath = join(root, "bin", "tsc");
   const compilerStat = await lstat(requestedCompilerPath);
@@ -469,7 +469,7 @@ export async function requireTrustedAcceptanceTypeScript(projectRoot: string): P
   });
 }
 
-/** @internal Proves the candidate itself owns PCBoo's required public type aliases. */
+/** @internal Proves the candidate itself owns Fulmetry's required public type aliases. */
 export async function requireCandidateAuthoringTypeReexports(
   candidatePackageRoot: string,
   trustedTypeScript: Awaited<ReturnType<typeof requireTrustedAcceptanceTypeScript>>,
@@ -535,10 +535,10 @@ async function runCandidateRepositoryGates(
   };
   const expectedTypeScriptVersion = packageJson.dependencies?.typescript;
   if (expectedTypeScriptVersion !== trustedTypeScript.version) {
-    throw new Error("Candidate repository TypeScript dependency does not match PCBoo's reviewed compiler");
+    throw new Error("Candidate repository TypeScript dependency does not match Fulmetry's reviewed compiler");
   }
   if (await fingerprintEnginePackage(trustedTypeScript.root) !== trustedTypeScript.contentSha256) {
-    throw new Error("PCBoo's reviewed acceptance compiler changed immediately before typechecking");
+    throw new Error("Fulmetry's reviewed acceptance compiler changed immediately before typechecking");
   }
   await runBoundedChild(
     [process.execPath, trustedTypeScript.compilerPath, "--noEmit"],
@@ -571,7 +571,7 @@ export async function acceptTscircuitUpgrade(options: AcceptTscircuitUpgradeOpti
     throw new TypeError("runtimeEvidenceSha256 must be lowercase SHA-256");
   }
   const projectRoot = await realpath(options.projectRoot);
-  if (projectRoot !== await realpath(MODULE_PROJECT_ROOT)) throw new TypeError("Acceptance projectRoot must be this PCBoo source repository");
+  if (projectRoot !== await realpath(MODULE_PROJECT_ROOT)) throw new TypeError("Acceptance projectRoot must be this Fulmetry source repository");
   const initialTrustedTypeScript = await requireTrustedAcceptanceTypeScript(projectRoot);
   const [reportFile, runtimeEvidenceFile] = await Promise.all([
     captureAcceptanceFile(options.reportPath, "Reviewed report"),
@@ -636,7 +636,7 @@ export async function acceptTscircuitUpgrade(options: AcceptTscircuitUpgradeOpti
     repositoryRoot: projectRoot,
     expectedVersion: candidate.version,
     expectedIntegrity: candidate.integrity,
-    expectedPcbooVersion: projectPackageVersion,
+    expectedFulmetryVersion: projectPackageVersion,
     independentTscircuitRoots: [candidate.realPackageRoot],
   });
   if (
@@ -717,21 +717,21 @@ export async function acceptTscircuitUpgrade(options: AcceptTscircuitUpgradeOpti
     "src/engine-identity.ts",
     "src/project/lock.ts",
     "src/licenses.ts",
-    "packages/create-pcboo/src/scaffold.ts",
+    "packages/create-fulmetry/src/scaffold.ts",
     "scripts/packed-e2e.ts",
     "THIRD_PARTY_NOTICES.md",
   ] as const;
   for (const name of CANONICAL_FIXTURE_NAMES) {
-    const generatedOutput = join(projectRoot, "test", "fixtures", "canonical", name, ".pcboo");
+    const generatedOutput = join(projectRoot, "test", "fixtures", "canonical", name, ".fulmetry");
     try {
       await lstat(generatedOutput);
       throw new Error(
-        `Canonical fixture ${name} contains generated .pcboo output; remove it before accepting an engine upgrade`,
+        `Canonical fixture ${name} contains generated .fulmetry output; remove it before accepting an engine upgrade`,
       );
     } catch (error) {
       if (
         error instanceof Error &&
-        error.message.startsWith(`Canonical fixture ${name} contains generated .pcboo output`)
+        error.message.startsWith(`Canonical fixture ${name} contains generated .fulmetry output`)
       ) throw error;
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
@@ -764,7 +764,7 @@ export async function acceptTscircuitUpgrade(options: AcceptTscircuitUpgradeOpti
     expectedGateInputSha256.set(path, await pathTreeSha256(join(projectRoot, ...path.split("/"))));
   }
 
-  const transactionRoot = await mkdtemp(join(dirname(projectRoot), ".pcboo-tscircuit-accept-"));
+  const transactionRoot = await mkdtemp(join(dirname(projectRoot), ".fulmetry-tscircuit-accept-"));
   const runtimeRoot = join(transactionRoot, "runtime");
   let publicationStarted = false;
   try {
@@ -803,7 +803,7 @@ export async function acceptTscircuitUpgrade(options: AcceptTscircuitUpgradeOpti
       [`version: "${old.version}"`, `version: "${next.version}"`, 1],
       [`contentSha256: "${old.contentSha256}"`, `contentSha256: "${next.contentSha256}"`, 1],
     ]);
-    await patchText("packages/create-pcboo/src/scaffold.ts", [[`"${old.version}"`, `"${next.version}"`, 2], [`"${old.integrity}"`, `"${next.integrity}"`, 1]]);
+    await patchText("packages/create-fulmetry/src/scaffold.ts", [[`"${old.version}"`, `"${next.version}"`, 2], [`"${old.integrity}"`, `"${next.integrity}"`, 1]]);
     await patchText("scripts/packed-e2e.ts", [[`"${old.version}"`, `"${next.version}"`, 1]]);
     await patchText("THIRD_PARTY_NOTICES.md", [
       [`| tscircuit | ${old.version} |`, `| tscircuit | ${next.version} |`, 1],
@@ -907,14 +907,14 @@ export async function acceptTscircuitUpgrade(options: AcceptTscircuitUpgradeOpti
     // Candidate gates may create ordinary root output such as upgrade-review
     // directories. That declared generated namespace is not repository input;
     // nested fixture output remains covered and forbidden.
-    const gateExclusions = ["node_modules", ".pcboo"] as const;
+    const gateExclusions = ["node_modules", ".fulmetry"] as const;
     const expectedGateStageSha256 = await acceptanceStageSha256(runtimeRoot, gateExclusions);
     const trustedTypeScript = await requireTrustedAcceptanceTypeScript(projectRoot);
     if (
       trustedTypeScript.root !== initialTrustedTypeScript.root ||
       trustedTypeScript.compilerPath !== initialTrustedTypeScript.compilerPath ||
       trustedTypeScript.contentSha256 !== initialTrustedTypeScript.contentSha256
-    ) throw new Error("PCBoo's reviewed acceptance compiler changed during candidate qualification");
+    ) throw new Error("Fulmetry's reviewed acceptance compiler changed during candidate qualification");
     await runWithAcceptanceStageProtected({
       root: runtimeRoot,
       expectedSha256: expectedGateStageSha256,
@@ -1003,7 +1003,7 @@ export async function acceptTscircuitUpgrade(options: AcceptTscircuitUpgradeOpti
       repositoryRoot: projectRoot,
       expectedVersion: candidate.version,
       expectedIntegrity: candidate.integrity,
-      expectedPcbooVersion: projectPackageVersion,
+      expectedFulmetryVersion: projectPackageVersion,
       independentTscircuitRoots: [candidate.realPackageRoot],
     });
     if (canonical(packedConsumerFinal) !== canonical(packedConsumer)) {

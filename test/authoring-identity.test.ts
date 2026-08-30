@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import * as pcboo from "@pcboo/pcboo/authoring";
+import * as fulmetry from "fulmetry/authoring";
 import * as upstream from "tscircuit";
 
 const CURATED_AUTHORING_VALUES = [
@@ -54,14 +54,14 @@ const CURATED_AUTHORING_VALUES = [
 ] as const;
 
 describe("upstream authoring identity", () => {
-  test("curated PCBoo values are the exact upstream references", () => {
+  test("curated Fulmetry values are the exact upstream references", () => {
     for (const name of CURATED_AUTHORING_VALUES) {
-      expect(pcboo[name]).toBe(upstream[name]);
+      expect(fulmetry[name]).toBe(upstream[name]);
     }
   });
 
-  test("instances cross the PCBoo and tscircuit import boundary", () => {
-    const board = new pcboo.Board({ width: "10mm", height: "10mm" });
+  test("instances cross the Fulmetry and tscircuit import boundary", () => {
+    const board = new fulmetry.Board({ width: "10mm", height: "10mm" });
     const resistor = new upstream.Resistor({
       name: "R1",
       resistance: "10k",
@@ -69,7 +69,7 @@ describe("upstream authoring identity", () => {
     });
 
     expect(board).toBeInstanceOf(upstream.Board);
-    expect(resistor).toBeInstanceOf(pcboo.Resistor);
+    expect(resistor).toBeInstanceOf(fulmetry.Resistor);
     expect(Object.getPrototypeOf(board)).toBe(upstream.Board.prototype);
   });
 
@@ -113,22 +113,22 @@ describe("upstream authoring identity", () => {
       upstream.Led,
       upstream.Trace,
     );
-    const pcbooOnly = await build(
-      pcboo.Circuit,
-      pcboo.Board,
-      pcboo.Resistor,
-      pcboo.Led,
-      pcboo.Trace,
+    const fulmetryOnly = await build(
+      fulmetry.Circuit,
+      fulmetry.Board,
+      fulmetry.Resistor,
+      fulmetry.Led,
+      fulmetry.Trace,
     );
     const mixed = await build(
-      pcboo.Circuit,
+      fulmetry.Circuit,
       upstream.Board,
-      pcboo.Resistor,
+      fulmetry.Resistor,
       upstream.Led,
-      pcboo.Trace,
+      fulmetry.Trace,
     );
 
-    expect(pcbooOnly).toEqual(upstreamOnly);
+    expect(fulmetryOnly).toEqual(upstreamOnly);
     expect(mixed).toEqual(upstreamOnly);
   });
 });

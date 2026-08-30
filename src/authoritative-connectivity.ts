@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import type { AnyCircuitElement } from "tscircuit";
 import { lineSegmentDistance } from "./fabrication-geometry";
@@ -414,7 +414,7 @@ export function deriveAuthoritativeConnectivity(
     }
 
     for (const pad of componentPads) {
-      if (pad.port_hints?.includes("pcboo:mechanical") === true) continue;
+      if (pad.port_hints?.includes("fulmetry:mechanical") === true) continue;
       const padId = pad.type === "pcb_smtpad"
         ? pad.pcb_smtpad_id
         : pad.pcb_plated_hole_id;

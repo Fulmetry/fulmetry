@@ -1,17 +1,17 @@
 ---
 title: External tools
-description: Understand PCBoo's bounded ngspice simulation and detached KiCad handoff model.
+description: Understand Fulmetry's bounded ngspice simulation and detached KiCad handoff model.
 ---
 
 # External tools
 
-PCBoo can coordinate third-party engineering tools without turning those tools into hidden sources of authority. It authenticates supported executables, binds exact inputs and outputs, imposes deadlines and output bounds, and independently checks the resulting evidence.
+Fulmetry can coordinate third-party engineering tools without turning those tools into hidden sources of authority. It authenticates supported executables, binds exact inputs and outputs, imposes deadlines and output bounds, and independently checks the resulting evidence.
 
-PCBoo never installs these tools for you.
+Fulmetry never installs these tools for you.
 
 ## ngspice simulation
 
-Named modules under `simulations/` define supported testbenches and numeric assertions. Before a solver can support a passing functional result, its exact executable must pass PCBoo-owned qualification cases for:
+Named modules under `simulations/` define supported testbenches and numeric assertions. Before a solver can support a passing functional result, its exact executable must pass Fulmetry-owned qualification cases for:
 
 - divider operating point;
 - RC transient behavior;
@@ -23,20 +23,20 @@ The initial detection range covers ngspice versions 42–47, but a version strin
 ## KiCad handoff
 
 ```sh
-bun run pcboo export kicad --json
+bun run fulmetry export kicad --json
 ```
 
-PCBoo creates a fresh detached `.kicad_sch`, `.kicad_pcb`, and `.kicad_pro` handoff. It validates syntax and independently reconciles supported baseline components, footprints, nets, routed segments, vias, holes, board outline, copper-layer order, dimensions, and transformed coordinates.
+Fulmetry creates a fresh detached `.kicad_sch`, `.kicad_pcb`, and `.kicad_pro` handoff. It validates syntax and independently reconciles supported baseline components, footprints, nets, routed segments, vias, holes, board outline, copper-layer order, dimensions, and transformed coordinates.
 
 KiCad 10 is the initial live-supported major on Apple Silicon macOS. KiCad 9 is detection-only. Live qualification accepts only the official signed KiCad app at `/Applications/KiCad/KiCad.app`, with its identity, architecture, version, and exact executable bytes checked.
 
 <Info>
-The handoff is intentionally detached. PCBoo does not synchronize later KiCad edits or claim an automatic round trip.
+The handoff is intentionally detached. Fulmetry does not synchronize later KiCad edits or claim an automatic round trip.
 </Info>
 
 ## Manufacturing output
 
-PCBoo distinguishes three levels:
+Fulmetry distinguishes three levels:
 
 1. **Draft export** — generated artifacts that are clearly marked incomplete.
 2. **Independent verification** — parsed and reconciled manufacturing evidence for the current project identity.
@@ -46,4 +46,4 @@ The initial verified manufacturing surface is conservative: one rectangular two-
 
 ## Trust boundary
 
-Project tests and user-selected tool executables are trusted code, not hostile-code sandbox inputs. PCBoo's cleanup and containment mechanisms bound ordinary operation; they do not claim to make a malicious executable safe.
+Project tests and user-selected tool executables are trusted code, not hostile-code sandbox inputs. Fulmetry's cleanup and containment mechanisms bound ordinary operation; they do not claim to make a malicious executable safe.

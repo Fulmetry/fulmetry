@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { chmod, lstat, mkdir, opendir, realpath, writeFile } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -59,7 +59,7 @@ interface BehavioralOutputContract {
 
 export interface KicadLiveValidationOptions {
   readonly handoff: Readonly<KicadHandoff>;
-  /** Existing PCBoo run directory. A fresh child is created and never reused. */
+  /** Existing Fulmetry run directory. A fresh child is created and never reused. */
   readonly runDirectory: string;
   /** Parent that must contain runDirectory. */
   readonly outputRoot: string;
@@ -789,8 +789,8 @@ async function validateDirectoryAuthority(options: {
       throw new Error("KiCad live validation requires protected authored input paths");
     }
     const normalizedProtected = protectedPaths.map((path) => String(path).replaceAll("\\", "/"));
-    if (!normalizedProtected.includes("pcboo.config.ts") || !normalizedProtected.includes("pcboo.lock")) {
-      throw new Error("KiCad live validation must protect pcboo.config.ts and pcboo.lock");
+    if (!normalizedProtected.includes("fulmetry.config.ts") || !normalizedProtected.includes("fulmetry.lock")) {
+      throw new Error("KiCad live validation must protect fulmetry.config.ts and fulmetry.lock");
     }
     for (const path of normalizedProtected) {
       if (!path || isAbsolute(path) || path.split("/").some((segment) => !segment || segment === "..")) {
@@ -921,7 +921,7 @@ function validationResult(options: {
 }): Readonly<KicadLiveValidation> {
   const evidence = Object.freeze({
     schemaVersion: 1 as const,
-    adapter: Object.freeze({ name: "pcboo-kicad-cli" as const, version: KICAD_LIVE_ADAPTER_VERSION }),
+    adapter: Object.freeze({ name: "fulmetry-kicad-cli" as const, version: KICAD_LIVE_ADAPTER_VERSION }),
     source: Object.freeze({
       circuitDigest: options.snapshot.circuitDigest,
       semanticReconciliationSha256: options.snapshot.semanticReconciliationSha256,
@@ -1138,14 +1138,14 @@ export async function validateKicadHandoffLive(
   if (!PRISTINE_ARRAY_INCLUDES(KICAD_DETECTION_CANDIDATE_MAJORS, major)) {
     return finishValidation({
       state: "unsupported",
-      message: `KiCad ${version} is outside PCBoo's detection-candidate majors ${KICAD_DETECTION_CANDIDATE_MAJORS.join(", ")}`,
+      message: `KiCad ${version} is outside Fulmetry's detection-candidate majors ${KICAD_DETECTION_CANDIDATE_MAJORS.join(", ")}`,
       tool,
     });
   }
   if (!PRISTINE_ARRAY_INCLUDES(KICAD_SUPPORTED_MAJORS, major)) {
     return finishValidation({
       state: "unqualified",
-      message: `KiCad ${version} is a detection candidate, but PCBoo's Apple Silicon qualification currently supports major ${KICAD_SUPPORTED_MAJORS.join(", ")}`,
+      message: `KiCad ${version} is a detection candidate, but Fulmetry's Apple Silicon qualification currently supports major ${KICAD_SUPPORTED_MAJORS.join(", ")}`,
       tool,
     });
   }

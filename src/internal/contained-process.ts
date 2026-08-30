@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { constants, writeFileSync } from "node:fs";
 import { access, lstat, mkdir, mkdtemp, readFile, realpath, rm, rmdir, writeFile } from "node:fs/promises";
@@ -300,7 +300,7 @@ async function createLinuxCgroup(): Promise<string> {
   if (parent !== cgroupRoot && !parent.startsWith(`${cgroupRoot}${sep}`)) {
     throw new ProcessContainmentUnavailableError("cgroup membership escaped its root");
   }
-  const directory = join(parent, `pcboo-${process.pid}-${crypto.randomUUID()}`);
+  const directory = join(parent, `fulmetry-${process.pid}-${crypto.randomUUID()}`);
   try {
     await mkdir(directory);
     await access(join(directory, "cgroup.procs"), constants.W_OK);
@@ -359,7 +359,7 @@ export async function spawnContainedProcess(options: {
   let command: readonly string[];
   if (process.platform === "win32") {
     const powershell = Bun.which("pwsh") ?? Bun.which("powershell") ?? "powershell.exe";
-    temporaryDirectory = await mkdtemp(join(tmpdir(), "pcboo-process-job-"));
+    temporaryDirectory = await mkdtemp(join(tmpdir(), "fulmetry-process-job-"));
     const resultPath = join(temporaryDirectory, "result.json");
     resultKind = "windows";
     const payload = Buffer.from(JSON.stringify({
@@ -386,7 +386,7 @@ export async function spawnContainedProcess(options: {
       const executableStat = await lstat(executable);
       if (!executableStat.isFile()) throw new Error("selected executable is not a regular file");
       await access(executable, constants.X_OK);
-      temporaryDirectory = await mkdtemp(join(tmpdir(), "pcboo-macos-seatbelt-"));
+      temporaryDirectory = await mkdtemp(join(tmpdir(), "fulmetry-macos-seatbelt-"));
     } catch (error) {
       if (temporaryDirectory !== undefined) {
         await rm(temporaryDirectory, { recursive: true, force: true }).catch(() => undefined);
@@ -406,7 +406,7 @@ export async function spawnContainedProcess(options: {
       "/bin/sh",
       "-c",
       MACOS_MARKER_SCRIPT,
-      "pcboo-seatbelt-runner",
+      "fulmetry-seatbelt-runner",
       markerPath,
       macosMarkerNonce,
       executable,
@@ -415,7 +415,7 @@ export async function spawnContainedProcess(options: {
   } else if (process.platform === "linux") {
     linuxCgroup = await createLinuxCgroup();
     try {
-      temporaryDirectory = await mkdtemp(join(tmpdir(), "pcboo-linux-containment-"));
+      temporaryDirectory = await mkdtemp(join(tmpdir(), "fulmetry-linux-containment-"));
     } catch (error) {
       await cleanupLinuxCgroup(linuxCgroup);
       throw new ProcessContainmentUnavailableError(`Linux containment result directory: ${

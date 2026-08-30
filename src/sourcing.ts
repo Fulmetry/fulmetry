@@ -1,10 +1,10 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import type { AnyCircuitElement } from "tscircuit";
 import { canonicalCircuitJson } from "./circuit-json";
 import { defineDiagnostic, diagnosticId, type Diagnostic } from "./diagnostics";
 import type {
-  PcbooLock,
+  FulmetryLock,
   RecordedSourcingPolicyLock,
   RecordedSourcingSelectionLock,
 } from "./project/lock";
@@ -118,7 +118,7 @@ function sourcingDiagnostic(options: {
     objects: options.objects ?? [],
     sourceLocations: [],
     evidence: options.evidence ?? [],
-    nextCommand: `pcboo inspect --status sourcing --rule ${options.id}`,
+    nextCommand: `fulmetry inspect --status sourcing --rule ${options.id}`,
   });
 }
 
@@ -154,7 +154,7 @@ function worstState(states: readonly Exclude<SourcingState, "unchecked">[]): Exc
 function frozenEvidence(options: {
   readonly checkedAt: string;
   readonly circuitJson: readonly AnyCircuitElement[];
-  readonly lock: PcbooLock;
+  readonly lock: FulmetryLock;
   readonly selections: readonly RecordedSourcingSelectionEvidence[];
   readonly policy: RecordedSourcingPolicyLock | null;
 }): RecordedSourcingEvidence {
@@ -177,14 +177,14 @@ function frozenEvidence(options: {
       "No live supplier request, provider authentication, ordering, or automatic substitution is performed.",
       "A self-authored selection record and digest, including its recorded stock condition, price, and lifecycle, is not authenticated provider evidence and cannot establish availability.",
       "Package and footprint strings are compared literally; this is not an independent mechanical fit qualification.",
-      "Freshness observations trust the evaluating host's wall clock; PCBoo does not provide trusted time attestation.",
+      "Freshness observations trust the evaluating host's wall clock; Fulmetry does not provide trusted time attestation.",
     ]),
   });
 }
 
 export function assessRecordedSourcing(options: {
   readonly circuitJson: readonly AnyCircuitElement[];
-  readonly lock: PcbooLock;
+  readonly lock: FulmetryLock;
   readonly now?: Date;
   readonly requirePolicy?: boolean;
 }): Readonly<RecordedSourcingAssessment> {
@@ -310,7 +310,7 @@ export function assessRecordedSourcing(options: {
     if (selection === undefined) {
       diagnostics.push(sourcingDiagnostic({
         id: "SRC_LOCK_SELECTION_MISSING_001",
-        message: `Manufactured component ${designator} has no recorded sourcing selection in pcboo.lock`,
+        message: `Manufactured component ${designator} has no recorded sourcing selection in fulmetry.lock`,
         objects: [designator, sourceId],
       }));
       selectionStates.push("unavailable");
@@ -343,7 +343,7 @@ export function assessRecordedSourcing(options: {
     ) {
       diagnostics.push(sourcingDiagnostic({
         id: "SRC_SUPPLIER_IDENTITY_CONFLICT_001",
-        message: `${designator} must select exactly one supplier and supplier part number matching pcboo.lock`,
+        message: `${designator} must select exactly one supplier and supplier part number matching fulmetry.lock`,
         objects: [designator, sourceId],
       }));
       state = "unavailable";
@@ -354,7 +354,7 @@ export function assessRecordedSourcing(options: {
     ) {
       diagnostics.push(sourcingDiagnostic({
         id: "SRC_MANUFACTURER_IDENTITY_CONFLICT_001",
-        message: `${designator} manufacturer identity/MPN is missing, conflated with its supplier, or differs from pcboo.lock`,
+        message: `${designator} manufacturer identity/MPN is missing, conflated with its supplier, or differs from fulmetry.lock`,
         objects: [designator, sourceId],
       }));
       state = "unavailable";

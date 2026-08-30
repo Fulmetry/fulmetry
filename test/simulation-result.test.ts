@@ -31,7 +31,7 @@ function evidence(overrides: Record<string, unknown> = {}) {
     netlistDigest: `sha256:${"c".repeat(64)}`,
     qualificationSha256: `sha256:${"9".repeat(64)}`,
     modelDigests: { resistors: `sha256:${"b".repeat(64)}` },
-    adapter: { name: "pcboo-ngspice", version: "2", primitiveSemantics: "ngspice-built-in-rcl", modelFileUse: "provenance-only-not-included-for-built-in-rcl" },
+    adapter: { name: "fulmetry-ngspice", version: "2", primitiveSemantics: "ngspice-built-in-rcl", modelFileUse: "provenance-only-not-included-for-built-in-rcl" },
     tool: { name: "ngspice", version: "44.2", executableSha256: "d".repeat(64) },
     execution: { exitCode: 0, timedOut: false, stdoutSha256: `sha256:${"e".repeat(64)}`, stderrSha256: `sha256:${"f".repeat(64)}`, rawOutputSha256: `sha256:${"a".repeat(64)}` },
     solverStatus: "converged",

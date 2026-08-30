@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { lstat, opendir, realpath } from "node:fs/promises";
 import { join } from "node:path";
@@ -61,14 +61,14 @@ const MAX_PACKAGED_SOURCE_FILES = 256;
 const MAX_PACKAGED_SOURCE_FILE_BYTES = 4 * 1024 * 1024;
 const MAX_PACKAGED_SOURCE_TOTAL_BYTES = 32 * 1024 * 1024;
 const MAX_PACKAGED_SOURCE_DEPTH = 16;
-const PCBOO_SOURCE_COPYRIGHT = "// SPDX-FileCopyrightText: 2026 PCBoo contributors";
-const PCBOO_SOURCE_LICENSE = "// SPDX-License-Identifier: MIT";
+const FULMETRY_SOURCE_COPYRIGHT = "// SPDX-FileCopyrightText: 2026 Fulmetry contributors";
+const FULMETRY_SOURCE_LICENSE = "// SPDX-License-Identifier: MIT";
 
 function normalizedLicenseText(value: string): string {
   return value.replace(/\s+/gu, " ").trim();
 }
 
-export const PCBOO_DISTRIBUTION_FILES = Object.freeze([
+export const FULMETRY_DISTRIBUTION_FILES = Object.freeze([
   "compatibility",
   "LICENSE",
   "README.md",
@@ -76,16 +76,16 @@ export const PCBOO_DISTRIBUTION_FILES = Object.freeze([
   "src",
 ] as const);
 
-export const CREATE_PCBOO_DISTRIBUTION_FILES = Object.freeze([
+export const CREATE_FULMETRY_DISTRIBUTION_FILES = Object.freeze([
   "LICENSE",
   "README.md",
   "skills",
   "src",
 ] as const);
 
-export const PCBOO_MIT_LICENSE_TEXT = `MIT License
+export const FULMETRY_MIT_LICENSE_TEXT = `MIT License
 
-Copyright (c) 2026 PCBoo contributors
+Copyright (c) 2026 Fulmetry contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -270,15 +270,15 @@ export function renderThirdPartyNotices(): string {
   return [
     "# Third-Party Notices",
     "",
-    "PCBoo is an independent MIT-licensed project built on tscircuit. It is not an official tscircuit product and does not imply endorsement by or affiliation with tscircuit Inc.",
+    "Fulmetry is an independent MIT-licensed project built on tscircuit. It is not an official tscircuit product and does not imply endorsement by or affiliation with tscircuit Inc.",
     "",
-    "The following direct runtime, optional, and peer packages are declared by PCBoo but are not bundled into PCBoo's package tarball. Their own license terms remain in force. The normal package prepack boundary recursively accepts only reviewed MIT/SPDX-marked PCBoo TypeScript, TSX, and CSS under src, reconciles bare imports to this table, requires the exact qualified top-level inventory, complete PCBoo MIT text, this generated notice, and exact reviewed installed package content. Explicit SPDX fallbacks classify exact pinned nonbundled bytes using package metadata and SPDX when a package omits license text, and are not represented as package-specific copyright notices.",
+    "The following direct runtime, optional, and peer packages are declared by Fulmetry but are not bundled into Fulmetry's package tarball. Their own license terms remain in force. The normal package prepack boundary recursively accepts only reviewed MIT/SPDX-marked Fulmetry TypeScript, TSX, and CSS under src, reconciles bare imports to this table, requires the exact qualified top-level inventory, complete Fulmetry MIT text, this generated notice, and exact reviewed installed package content. Explicit SPDX fallbacks classify exact pinned nonbundled bytes using package metadata and SPDX when a package omits license text, and are not represented as package-specific copyright notices.",
     "",
     "| Package | Pinned version | License | Evidence | Source |",
     "| --- | ---: | --- | --- | --- |",
     ...rows,
     "",
-    "PCBoo's MIT license does not relicense user circuit source, vendored models or footprints, datasheets, or generated manufacturing artifacts. Those materials retain their respective ownership, provenance, and redistribution terms.",
+    "Fulmetry's MIT license does not relicense user circuit source, vendored models or footprints, datasheets, or generated manufacturing artifacts. Those materials retain their respective ownership, provenance, and redistribution terms.",
     "",
   ].join("\n");
 }
@@ -355,7 +355,7 @@ function importedPackageNames(source: string, relativePath: string): readonly st
   );
   const addLiteral = (value: ts.Expression | undefined, kind: string): void => {
     if (value === undefined || !ts.isStringLiteralLike(value)) {
-      throw new Error(`pcboo packaged source ${relativePath} uses non-literal ${kind}`);
+      throw new Error(`fulmetry packaged source ${relativePath} uses non-literal ${kind}`);
     }
     moduleSpecifiers.add(value.text);
   };
@@ -364,7 +364,7 @@ function importedPackageNames(source: string, relativePath: string): readonly st
     (value.text === "node:module" || value.text === "module");
   const forbidRuntimeLoader = (): never => {
     throw new Error(
-      `pcboo packaged source ${relativePath} forbids runtime module loaders; use a static declared import`,
+      `fulmetry packaged source ${relativePath} forbids runtime module loaders; use a static declared import`,
     );
   };
   const visit = (node: ts.Node): void => {
@@ -413,7 +413,7 @@ function importedPackageNames(source: string, relativePath: string): readonly st
       const isDirectRequire = ts.isIdentifier(node.expression) && node.expression.text === "require";
       if (isDynamicImport || isDirectRequire) {
         if (node.arguments.length !== 1) {
-          throw new Error(`pcboo packaged source ${relativePath} uses invalid ${isDynamicImport ? "dynamic import" : "require"}`);
+          throw new Error(`fulmetry packaged source ${relativePath} uses invalid ${isDynamicImport ? "dynamic import" : "require"}`);
         }
         addLiteral(node.arguments[0], isDynamicImport ? "dynamic import" : "require");
         if (isModuleLoaderBuiltin(node.arguments[0])) forbidRuntimeLoader();
@@ -478,11 +478,11 @@ async function requireQualifiedPackagedSourceTree(
   let totalBytes = 0;
   const walk = async (directory: string, prefix: string, depth: number): Promise<void> => {
     if (depth > MAX_PACKAGED_SOURCE_DEPTH) {
-      throw new Error(`pcboo packaged source exceeds ${MAX_PACKAGED_SOURCE_DEPTH} directory levels`);
+      throw new Error(`fulmetry packaged source exceeds ${MAX_PACKAGED_SOURCE_DEPTH} directory levels`);
     }
     const before = await lstat(directory);
     if (before.isSymbolicLink() || !before.isDirectory()) {
-      throw new Error(`pcboo packaged source directory is not a regular owned directory: ${prefix || "src"}`);
+      throw new Error(`fulmetry packaged source directory is not a regular owned directory: ${prefix || "src"}`);
     }
     const handle = await opendir(directory);
     const names: string[] = [];
@@ -490,7 +490,7 @@ async function requireQualifiedPackagedSourceTree(
       for await (const entry of handle) {
         names.push(entry.name);
         if (names.length > MAX_PACKAGED_SOURCE_FILES) {
-          throw new Error(`pcboo packaged source exceeds ${MAX_PACKAGED_SOURCE_FILES} entries`);
+          throw new Error(`fulmetry packaged source exceeds ${MAX_PACKAGED_SOURCE_FILES} entries`);
         }
       }
     } finally {
@@ -505,10 +505,10 @@ async function requireQualifiedPackagedSourceTree(
       const path = join(directory, name);
       const relativePath = prefix ? `${prefix}/${name}` : name;
       const stat = await lstat(path);
-      if (stat.isSymbolicLink()) throw new Error(`pcboo packaged source contains symlink ${relativePath}`);
+      if (stat.isSymbolicLink()) throw new Error(`fulmetry packaged source contains symlink ${relativePath}`);
       if (stat.isDirectory()) {
         if (/^(?:vendor|third[-_]?party|external)$/iu.test(name)) {
-          throw new Error(`pcboo packaged source contains unqualified third-party directory ${relativePath}`);
+          throw new Error(`fulmetry packaged source contains unqualified third-party directory ${relativePath}`);
         }
         await walk(path, relativePath, depth + 1);
         continue;
@@ -522,18 +522,18 @@ async function requireQualifiedPackagedSourceTree(
         !stat.isFile() ||
         (!ownedTypeScript && !ownedCss && !qualifiedPowerShell && !qualifiedBunConfig && !qualifiedJavaScriptLauncher)
       ) {
-        throw new Error(`pcboo packaged source contains an unqualified source asset ${relativePath}`);
+        throw new Error(`fulmetry packaged source contains an unqualified source asset ${relativePath}`);
       }
       fileCount += 1;
       if (fileCount > MAX_PACKAGED_SOURCE_FILES) {
-        throw new Error(`pcboo packaged source exceeds ${MAX_PACKAGED_SOURCE_FILES} files`);
+        throw new Error(`fulmetry packaged source exceeds ${MAX_PACKAGED_SOURCE_FILES} files`);
       }
       if (stat.size > MAX_PACKAGED_SOURCE_FILE_BYTES) {
-        throw new Error(`pcboo packaged source file exceeds ${MAX_PACKAGED_SOURCE_FILE_BYTES} bytes: ${relativePath}`);
+        throw new Error(`fulmetry packaged source file exceeds ${MAX_PACKAGED_SOURCE_FILE_BYTES} bytes: ${relativePath}`);
       }
       totalBytes += stat.size;
       if (totalBytes > MAX_PACKAGED_SOURCE_TOTAL_BYTES) {
-        throw new Error(`pcboo packaged source exceeds ${MAX_PACKAGED_SOURCE_TOTAL_BYTES} aggregate bytes`);
+        throw new Error(`fulmetry packaged source exceeds ${MAX_PACKAGED_SOURCE_TOTAL_BYTES} aggregate bytes`);
       }
       const source = decodeSourceUtf8(
         await readBoundedRegularFile(path, MAX_PACKAGED_SOURCE_FILE_BYTES),
@@ -546,13 +546,13 @@ async function requireQualifiedPackagedSourceTree(
       const hashComment = qualifiedPowerShell || qualifiedBunConfig;
       const blockComment = ownedCss;
       const expectedCopyright = hashComment
-        ? PCBOO_SOURCE_COPYRIGHT.replace(/^\/\//u, "#")
-        : blockComment ? `/* ${PCBOO_SOURCE_COPYRIGHT.replace(/^\/\/\s*/u, "")} */` : PCBOO_SOURCE_COPYRIGHT;
+        ? FULMETRY_SOURCE_COPYRIGHT.replace(/^\/\//u, "#")
+        : blockComment ? `/* ${FULMETRY_SOURCE_COPYRIGHT.replace(/^\/\/\s*/u, "")} */` : FULMETRY_SOURCE_COPYRIGHT;
       const expectedLicense = hashComment
-        ? PCBOO_SOURCE_LICENSE.replace(/^\/\//u, "#")
-        : blockComment ? `/* ${PCBOO_SOURCE_LICENSE.replace(/^\/\/\s*/u, "")} */` : PCBOO_SOURCE_LICENSE;
+        ? FULMETRY_SOURCE_LICENSE.replace(/^\/\//u, "#")
+        : blockComment ? `/* ${FULMETRY_SOURCE_LICENSE.replace(/^\/\/\s*/u, "")} */` : FULMETRY_SOURCE_LICENSE;
       if (copyright !== expectedCopyright || license !== expectedLicense) {
-        throw new Error(`pcboo packaged source lacks reviewed PCBoo provenance headers: ${relativePath}`);
+        throw new Error(`fulmetry packaged source lacks reviewed Fulmetry provenance headers: ${relativePath}`);
       }
       if (!qualifiedPowerShell && !qualifiedBunConfig) {
         const imports = ownedCss
@@ -560,7 +560,7 @@ async function requireQualifiedPackagedSourceTree(
           : importedPackageNames(source, relativePath);
         for (const packageName of imports) {
           if (!declaredPackages.has(packageName)) {
-            throw new Error(`pcboo packaged source ${relativePath} imports unqualified package ${packageName}`);
+            throw new Error(`fulmetry packaged source ${relativePath} imports unqualified package ${packageName}`);
           }
         }
       }
@@ -569,10 +569,10 @@ async function requireQualifiedPackagedSourceTree(
     if (
       after.isSymbolicLink() || !after.isDirectory() || before.dev !== after.dev ||
       before.ino !== after.ino || before.mtimeMs !== after.mtimeMs || before.ctimeMs !== after.ctimeMs
-    ) throw new Error(`pcboo packaged source directory changed during prepack: ${prefix || "src"}`);
+    ) throw new Error(`fulmetry packaged source directory changed during prepack: ${prefix || "src"}`);
   };
   await walk(sourceRoot, "", 0);
-  if (fileCount === 0) throw new Error("pcboo packaged source inventory is empty");
+  if (fileCount === 0) throw new Error("fulmetry packaged source inventory is empty");
 }
 
 /**
@@ -591,7 +591,7 @@ export async function requireDistributionPackageReady(options: {
     MAX_PACKAGE_METADATA_BYTES,
     "distribution package metadata",
   )) as DistributionPackageMetadata;
-  if (metadata.name !== "@pcboo/pcboo" && metadata.name !== "create-pcboo") {
+  if (metadata.name !== "fulmetry" && metadata.name !== "create-fulmetry") {
     throw new Error(`Unsupported distribution package ${String(metadata.name)}`);
   }
   const packageName = metadata.name;
@@ -601,8 +601,8 @@ export async function requireDistributionPackageReady(options: {
   if (metadata.license !== "MIT") throw new Error(`${packageName} package license must be MIT`);
   requireNoBundledDependencies(metadata, packageName);
   const ownLicense = await boundedText(join(packageRoot, "LICENSE"), MAX_LICENSE_BYTES, `${packageName} LICENSE`);
-  if (ownLicense !== PCBOO_MIT_LICENSE_TEXT) {
-    throw new Error(`${packageName} package must contain PCBoo's complete reviewed MIT license`);
+  if (ownLicense !== FULMETRY_MIT_LICENSE_TEXT) {
+    throw new Error(`${packageName} package must contain Fulmetry's complete reviewed MIT license`);
   }
 
   const dependencies = requireStringMap(metadata.dependencies, `${packageName}.dependencies`);
@@ -611,23 +611,23 @@ export async function requireDistributionPackageReady(options: {
     `${packageName}.optionalDependencies`,
   );
   const peers = requireStringMap(metadata.peerDependencies, `${packageName}.peerDependencies`);
-  if (packageName === "create-pcboo") {
-    requireExactFiles(metadata.files, CREATE_PCBOO_DISTRIBUTION_FILES, packageName);
+  if (packageName === "create-fulmetry") {
+    requireExactFiles(metadata.files, CREATE_FULMETRY_DISTRIBUTION_FILES, packageName);
     if (
       Object.keys(dependencies).length > 0 || Object.keys(optionalDependencies).length > 0 ||
       Object.keys(peers).length > 0
     ) {
-      throw new Error("create-pcboo distribution dependencies require an explicit notice policy");
+      throw new Error("create-fulmetry distribution dependencies require an explicit notice policy");
     }
     await requireQualifiedPackagedSourceTree(
       join(packageRoot, "src"),
       new Set(),
-      new Set(["create-pcboo.js"]),
+      new Set(["create-fulmetry.js"]),
     );
     return;
   }
 
-  requireExactFiles(metadata.files, PCBOO_DISTRIBUTION_FILES, packageName);
+  requireExactFiles(metadata.files, FULMETRY_DISTRIBUTION_FILES, packageName);
   const declared = { ...dependencies };
   for (const [field, entries] of [
     ["optionalDependencies", optionalDependencies],
@@ -635,7 +635,7 @@ export async function requireDistributionPackageReady(options: {
   ] as const) {
     for (const [name, version] of Object.entries(entries)) {
       if (declared[name] !== undefined && declared[name] !== version) {
-        throw new Error(`pcboo declares conflicting distribution versions for ${name} in ${field}`);
+        throw new Error(`fulmetry declares conflicting distribution versions for ${name} in ${field}`);
       }
       declared[name] = version;
     }
@@ -644,12 +644,12 @@ export async function requireDistributionPackageReady(options: {
     DISTRIBUTED_PACKAGE_LICENSES.map(({ name, version }) => [name, version]),
   ) as Record<string, string>;
   if (JSON.stringify(sortedEntries(declared)) !== JSON.stringify(sortedEntries(noticed))) {
-    throw new Error("pcboo direct runtime, optional, and peer graph does not exactly match its qualified notice graph");
+    throw new Error("fulmetry direct runtime, optional, and peer graph does not exactly match its qualified notice graph");
   }
   await requireQualifiedPackagedSourceTree(
     join(packageRoot, "src"),
     new Set(Object.keys(declared)),
-    new Set(["cli/pcboo.js"]),
+    new Set(["cli/fulmetry.js"]),
   );
   const checkedNotice = await boundedText(
     join(packageRoot, "THIRD_PARTY_NOTICES.md"),

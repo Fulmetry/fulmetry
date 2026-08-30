@@ -9,7 +9,7 @@ import {
   SUPPORTED_RUNTIME_PLATFORM,
   UNSUPPORTED_BUN_DIAGNOSTIC_ID,
 } from "../src/runtime";
-import { SUPPORTED_CREATE_PCBOO_BUN_VERSION } from "../packages/create-pcboo/src/runtime";
+import { SUPPORTED_CREATE_FULMETRY_BUN_VERSION } from "../packages/create-fulmetry/src/runtime";
 
 async function pathExists(path: string): Promise<boolean> {
   try {
@@ -24,7 +24,7 @@ async function pathExists(path: string): Promise<boolean> {
 describe("Bun runtime compatibility", () => {
   test("keeps one exact runtime policy across package boundaries", async () => {
     expect(SUPPORTED_BUN_VERSION).toBe("1.3.14");
-    expect(SUPPORTED_CREATE_PCBOO_BUN_VERSION).toBe(SUPPORTED_BUN_VERSION);
+    expect(SUPPORTED_CREATE_FULMETRY_BUN_VERSION).toBe(SUPPORTED_BUN_VERSION);
     expect(isSupportedBunVersion("1.3.13")).toBeFalse();
     expect(isSupportedBunVersion(SUPPORTED_BUN_VERSION)).toBeTrue();
     expect(isSupportedBunVersion("1.3.15")).toBeFalse();
@@ -38,7 +38,7 @@ describe("Bun runtime compatibility", () => {
       cpu: string[];
     };
     const creator = await Bun.file(
-      join(import.meta.dir, "../packages/create-pcboo/package.json"),
+      join(import.meta.dir, "../packages/create-fulmetry/package.json"),
     ).json() as { engines: { bun: string }; os: string[]; cpu: string[] };
     expect(framework.packageManager).toBe(`bun@${SUPPORTED_BUN_VERSION}`);
     expect(framework.engines.bun).toBe(SUPPORTED_BUN_VERSION);
@@ -50,11 +50,11 @@ describe("Bun runtime compatibility", () => {
   });
 
   test("the real runtime either qualifies or every authority issuer fails before access", async () => {
-    const expectedMode = process.env.PCBOO_RUNTIME_COMPAT_EXPECT ??
+    const expectedMode = process.env.FULMETRY_RUNTIME_COMPAT_EXPECT ??
       "supported-1.3.14";
     const nonexistentProject = join(
       tmpdir(),
-      `pcboo-unsupported-bun-${crypto.randomUUID()}`,
+      `fulmetry-unsupported-bun-${crypto.randomUUID()}`,
     );
     expect(await pathExists(nonexistentProject)).toBeFalse();
 
@@ -65,7 +65,7 @@ describe("Bun runtime compatibility", () => {
       return;
     }
     if (expectedMode !== "unsupported-1.3.13") {
-      throw new Error(`Unknown PCBoo runtime compatibility test mode ${JSON.stringify(expectedMode)}`);
+      throw new Error(`Unknown Fulmetry runtime compatibility test mode ${JSON.stringify(expectedMode)}`);
     }
     expect(Bun.version).toBe("1.3.13");
 
@@ -73,7 +73,7 @@ describe("Bun runtime compatibility", () => {
     const { runCli } = await import("../src/cli/runner");
     const { startDevCommand } = await import("../src/cli/dev");
     const { startInspectionServer } = await import("../src/server");
-    const { scaffoldPcbooProject } = await import("../packages/create-pcboo/src/scaffold");
+    const { scaffoldFulmetryProject } = await import("../packages/create-fulmetry/src/scaffold");
     const {
       assessProductionReadiness,
       verifyPublishedProductionBundle,
@@ -96,14 +96,14 @@ describe("Bun runtime compatibility", () => {
     expect(run.exitCode).toBe(4);
     expect(run.result?.exitClassification).toBe("unsupported");
     expect(run.result?.diagnostics.map(({ id }) => String(id))).toEqual([
-      "PCBOO_RUNTIME_UNSUPPORTED_BUN_001",
+      "FULMETRY_RUNTIME_UNSUPPORTED_BUN_001",
     ]);
     expect(run.stderr).toBe("");
     await expect(startDevCommand({ argv: [], cwd: nonexistentProject }))
       .rejects.toThrow(UNSUPPORTED_BUN_DIAGNOSTIC_ID);
     await expect(startInspectionServer({ projectDirectory: nonexistentProject }))
       .rejects.toThrow(UNSUPPORTED_BUN_DIAGNOSTIC_ID);
-    await expect(scaffoldPcbooProject({
+    await expect(scaffoldFulmetryProject({
       cwd: nonexistentProject,
       directory: "board",
       install: false,

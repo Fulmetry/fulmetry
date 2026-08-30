@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { AlertTriangle, Check, Copy, Crosshair, Eye, EyeOff, LocateFixed, MessageSquareText, Minus, MousePointer2, Plus, Ruler, ScanSearch, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -366,7 +366,7 @@ export function DesignViewer({ kind, snapshot, circuit, layers = [], selectedLay
       </CardHeader>
       <div
         ref={rootRef}
-        data-pcboo-viewer
+        data-fulmetry-viewer
         className={`design-canvas relative min-h-0 flex-1 overflow-hidden bg-[#080b0a] ${measuring ? "is-measuring" : ""}`}
         onPointerDown={pointerDown}
         onPointerMove={pointerMove}

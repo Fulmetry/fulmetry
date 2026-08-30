@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -26,7 +26,7 @@ const loadedDeclarationSets = new WeakSet<object>();
 const hasLoadedDeclarationSet = WeakSet.prototype.has.bind(loadedDeclarationSets);
 const markLoadedDeclarationSet = WeakSet.prototype.add.bind(loadedDeclarationSets);
 
-/** Identity check for declarations captured by PCBoo's filesystem loader. */
+/** Identity check for declarations captured by Fulmetry's filesystem loader. */
 export function isLoadedDeclaredWaiverSet(
   value: unknown,
 ): value is readonly Readonly<DeclaredWaiver>[] {

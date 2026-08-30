@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import type {
   ActionKind,
@@ -76,7 +76,7 @@ export async function runAction(
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      "X-PCBoo-Action-Token": project.server.actionToken,
+      "X-Fulmetry-Action-Token": project.server.actionToken,
     },
     body: JSON.stringify(kind === "simulate" && simulationName ? { name: simulationName } : {}),
   });

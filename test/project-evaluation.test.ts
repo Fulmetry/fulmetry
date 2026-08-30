@@ -7,11 +7,11 @@ import { evaluateProjectCircuitTwice } from "../src/project/evaluate";
 const roots: string[] = [];
 
 async function project(source: string): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-evaluate-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-evaluate-"));
   roots.push(root);
   await mkdir(join(root, "src"));
   await Bun.write(join(root, "src/board.ts"), source);
-  await Bun.write(join(root, "pcboo.config.ts"), "export default { entry: 'src/board.ts' }\n");
+  await Bun.write(join(root, "fulmetry.config.ts"), "export default { entry: 'src/board.ts' }\n");
   return root;
 }
 
@@ -66,7 +66,7 @@ describe("bounded fresh-process project evaluation", () => {
   });
 
   test("does not echo entry stderr into a caller-visible error", async () => {
-    const secret = "pcboo-entry-secret-do-not-echo";
+    const secret = "fulmetry-entry-secret-do-not-echo";
     const root = await project(`process.stderr.write(${JSON.stringify(secret)}); throw new Error(${JSON.stringify(secret)});\n`);
     let message = "";
     try {

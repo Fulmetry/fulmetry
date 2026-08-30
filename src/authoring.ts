@@ -1,9 +1,9 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 /**
- * PCBoo's authoring surface is an identity-preserving alias of the pinned
+ * Fulmetry's authoring surface is an identity-preserving alias of the pinned
  * tscircuit peer. Keep this list explicit: adding an upstream symbol is a
- * deliberate PCBoo API decision, and none of these values may be wrapped.
+ * deliberate Fulmetry API decision, and none of these values may be wrapped.
  */
 export {
   Battery,

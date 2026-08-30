@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { describe, expect, test } from "bun:test";
 import { defineDiagnostic, diagnosticId } from "../src/diagnostics";
@@ -29,7 +29,7 @@ function fixture(waiverPolicy: "allowed" | "forbidden" = "allowed") {
     waiverPolicy,
     objects: ["component-a", "component-b"],
     sourceLocations: ["circuit/board.ts:10:3"],
-    nextCommand: "pcboo inspect --status fabrication --rule FAB_COMPONENT_OVERLAP_001",
+    nextCommand: "fulmetry inspect --status fabrication --rule FAB_COMPONENT_OVERLAP_001",
   });
   return {
     diagnostic,

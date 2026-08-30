@@ -52,7 +52,7 @@ const records = exported.map((file) => ({
   size: new TextEncoder().encode(file.content).byteLength,
   sha256: sha256(file.content),
 })).sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
-const temporaryParent = await mkdtemp(join(tmpdir(), `pcboo-upgrade-${fixtureName}-`));
+const temporaryParent = await mkdtemp(join(tmpdir(), `fulmetry-upgrade-${fixtureName}-`));
 const temporaryRoot = join(temporaryParent, "manufacturing");
 try {
   await emitDraftManufacturingDirectory({ targetDirectory: temporaryRoot, files: exported });

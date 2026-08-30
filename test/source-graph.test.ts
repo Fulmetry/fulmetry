@@ -7,7 +7,7 @@ import { discoverProjectSourceGraph } from "../src/project/source-graph";
 const roots: string[] = [];
 
 async function project(): Promise<string> {
-  const parent = await mkdtemp(join(tmpdir(), "pcboo-source-graph-"));
+  const parent = await mkdtemp(join(tmpdir(), "fulmetry-source-graph-"));
   roots.push(parent);
   const root = join(parent, "project");
   await mkdir(join(root, "src"), { recursive: true });
@@ -81,20 +81,20 @@ describe("verified project source graph", () => {
     );
   });
 
-  test("rejects a project-local package impersonating pcboo", async () => {
+  test("rejects a project-local package impersonating fulmetry", async () => {
     const root = await project();
-    await mkdir(join(root, "node_modules/pcboo"), { recursive: true });
+    await mkdir(join(root, "node_modules/fulmetry"), { recursive: true });
     await Bun.write(
-      join(root, "node_modules/pcboo/package.json"),
-      JSON.stringify({ name: "pcboo", version: "999.0.0", exports: "./index.js" }),
+      join(root, "node_modules/fulmetry/package.json"),
+      JSON.stringify({ name: "fulmetry", version: "999.0.0", exports: "./index.js" }),
     );
-    await Bun.write(join(root, "node_modules/pcboo/index.js"), "export const Board = class Fake {}\n");
+    await Bun.write(join(root, "node_modules/fulmetry/index.js"), "export const Board = class Fake {}\n");
     await Bun.write(
       join(root, "src/board.ts"),
-      "import { Board } from 'pcboo'; export default []; void Board\n",
+      "import { Board } from 'fulmetry'; export default []; void Board\n",
     );
     expect(discoverProjectSourceGraph(root, "src/board.ts")).rejects.toThrow(
-      /different physical package|Cannot find package root for @pcboo\/pcboo/,
+      /different physical package|Cannot find package root for @fulmetry\/fulmetry/,
     );
   });
 
@@ -191,13 +191,13 @@ describe("verified project source graph", () => {
   test.each([
     "declare const fs: any; export default JSON.parse(fs.readFileSync('/tmp/board.json', 'utf8'))",
     "type fs = any; export default fs.readFileSync('/tmp/board.json', 'utf8')",
-    "import type { AnyCircuitElement as fs } from 'pcboo'; export default fs.readFileSync('/tmp/board.json', 'utf8')",
+    "import type { AnyCircuitElement as fs } from 'fulmetry'; export default fs.readFileSync('/tmp/board.json', 'utf8')",
   ])("rejects erased TypeScript bindings that expose ambient globals", async (source) => {
     const root = await project();
     await mkdir(join(root, "node_modules"));
     await symlink(
       join(import.meta.dir, ".."),
-      join(root, "node_modules", "pcboo"),
+      join(root, "node_modules", "fulmetry"),
       process.platform === "win32" ? "junction" : "dir",
     );
     await Bun.write(join(root, "src/board.ts"), `${source}\n`);
@@ -372,13 +372,13 @@ describe("verified project source graph", () => {
     );
   });
 
-  test("allows only explicit authoring symbols from pcboo and tscircuit", async () => {
+  test("allows only explicit authoring symbols from fulmetry and tscircuit", async () => {
     const root = await project();
     for (const source of [
-      `import { createBuildInputSnapshot } from "pcboo"; void createBuildInputSnapshot; export default []\n`,
-      `import * as framework from "pcboo"; void framework; export default []\n`,
+      `import { createBuildInputSnapshot } from "fulmetry"; void createBuildInputSnapshot; export default []\n`,
+      `import * as framework from "fulmetry"; void framework; export default []\n`,
       `import { runTscircuitCode } from "tscircuit"; void runTscircuitCode; export default []\n`,
-      `const framework = await import("pcboo"); void framework; export default []\n`,
+      `const framework = await import("fulmetry"); void framework; export default []\n`,
     ]) {
       await Bun.write(join(root, "src/board.ts"), source);
       await expect(discoverProjectSourceGraph(root, "src/board.ts"), source)
@@ -387,12 +387,12 @@ describe("verified project source graph", () => {
     await mkdir(join(root, "node_modules"));
     await symlink(
       join(import.meta.dir, ".."),
-      join(root, "node_modules", "pcboo"),
+      join(root, "node_modules", "fulmetry"),
       process.platform === "win32" ? "junction" : "dir",
     );
     await Bun.write(
       join(root, "src/board.ts"),
-      `import { Board, type AnyCircuitElement } from "pcboo"; void Board; const value: AnyCircuitElement[] = []; export default value\n`,
+      `import { Board, type AnyCircuitElement } from "fulmetry"; void Board; const value: AnyCircuitElement[] = []; export default value\n`,
     );
     expect(await discoverProjectSourceGraph(root, "src/board.ts")).toContain("src/board.ts");
   });

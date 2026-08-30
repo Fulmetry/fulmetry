@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { describe, expect, test } from "bun:test";
 import type { AnyCircuitElement } from "circuit-json";
@@ -65,7 +65,7 @@ describe("route promotion", () => {
     });
     expect(source.modules).toHaveLength(1);
     expect(source.modules[0]!.fileName).toBe("audio-l.ts");
-    expect(source.modules[0]!.source).toContain('import { defineRoutes } from "pcboo"');
+    expect(source.modules[0]!.source).toContain('import { defineRoutes } from "fulmetry"');
     expect(source.indexSource).toContain("...AUDIO_LRoutes");
   });
 

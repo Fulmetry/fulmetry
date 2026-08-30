@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { mkdir, mkdtemp, opendir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -144,7 +144,7 @@ async function processesWithContainmentToken(token: string): Promise<readonly nu
         `CI_GATE_PROCESS_ENVIRONMENT_UNAVAILABLE: ${new TextDecoder().decode(snapshot.stderr).trim()}`,
       );
     }
-    const marker = `PCBOO_CI_CONTAINMENT_TOKEN=${token}`;
+    const marker = `FULMETRY_CI_CONTAINMENT_TOKEN=${token}`;
     return Object.freeze(new TextDecoder().decode(snapshot.stdout)
       .split(/\r?\n/u)
       .flatMap((line) => {
@@ -155,7 +155,7 @@ async function processesWithContainmentToken(token: string): Promise<readonly nu
       .filter((pid) => Number.isSafeInteger(pid) && pid > 1));
   }
   if (process.platform === "linux") {
-    const marker = new TextEncoder().encode(`PCBOO_CI_CONTAINMENT_TOKEN=${token}`);
+    const marker = new TextEncoder().encode(`FULMETRY_CI_CONTAINMENT_TOKEN=${token}`);
     const matches: number[] = [];
     for await (const entry of await opendir("/proc")) {
       if (!entry.isDirectory() || !/^\d+$/u.test(entry.name)) continue;
@@ -246,7 +246,7 @@ interface PreparedCommand {
 async function prepareCommand(command: readonly string[]): Promise<PreparedCommand> {
   if (process.platform !== "win32") return { command };
   const powershell = Bun.which("pwsh") ?? Bun.which("powershell") ?? "powershell.exe";
-  const temporaryDirectory = await mkdtemp(join(tmpdir(), "pcboo-ci-job-"));
+  const temporaryDirectory = await mkdtemp(join(tmpdir(), "fulmetry-ci-job-"));
   const resultPath = join(temporaryDirectory, "result.json");
   const payload = Buffer.from(JSON.stringify({
     executable: command[0],
@@ -403,7 +403,7 @@ export async function superviseCiCommand(
   const startedAt = performance.now();
   const child = Bun.spawn([...prepared.command], {
     cwd: repositoryRoot,
-    env: { ...process.env, PCBOO_CI_CONTAINMENT_TOKEN: containmentToken },
+    env: { ...process.env, FULMETRY_CI_CONTAINMENT_TOKEN: containmentToken },
     stdin: "inherit",
     stdout: "inherit",
     stderr: "inherit",
@@ -569,10 +569,10 @@ export async function runCiGate(name: CiGateName): Promise<number> {
   const record = await superviseCiCommand(name, await ciGateCommand(name), {
     timeoutMilliseconds: deadlineMilliseconds,
   });
-  if (name === "ngspice-live" && process.env.PCBOO_LIVE_NGSPICE_REQUIRED === "1") {
+  if (name === "ngspice-live" && process.env.FULMETRY_LIVE_NGSPICE_REQUIRED === "1") {
     const directory = join(
       repositoryRoot,
-      ".pcboo-ci",
+      ".fulmetry-ci",
       `ngspice-live-${process.platform}-${process.arch}`,
     );
     await mkdir(directory, { recursive: true });
@@ -584,7 +584,7 @@ export async function runCiGate(name: CiGateName): Promise<number> {
     const digest = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
     await writeFile(join(directory, "gate.sha256"), `sha256:${digest}  gate.json\n`, { flag: "wx" });
   }
-  process.stdout.write(`PCBOO_CI_GATE ${JSON.stringify(record)}\n`);
+  process.stdout.write(`FULMETRY_CI_GATE ${JSON.stringify(record)}\n`);
   return record.timedOut ? 1 : record.exitCode;
 }
 

@@ -11,7 +11,7 @@ const roots: string[] = [];
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))));
 
 async function fixture() {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-authority-epoch-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-authority-epoch-"));
   roots.push(root);
   const anchor = join(root, "compatibility.json");
   const implementation = join(root, "src");

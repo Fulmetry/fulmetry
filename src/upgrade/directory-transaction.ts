@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { lstat } from "node:fs/promises";
 import {
@@ -32,7 +32,7 @@ export async function directoryTreeSha256(root: string): Promise<string> {
 }
 
 /**
- * Directory-only compatibility adapter over PCBoo's single rollback-capable
+ * Directory-only compatibility adapter over Fulmetry's single rollback-capable
  * publication primitive. Both the prepared and original trees are bound by
  * caller-captured digests; conflict recovery semantics are shared exactly.
  */

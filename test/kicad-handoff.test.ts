@@ -18,7 +18,7 @@ const roots: string[] = [];
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))));
 
 async function runDirectory(name: string): Promise<{ outputRoot: string; runDirectory: string }> {
-  const outputRoot = await mkdtemp(join(tmpdir(), `pcboo-kicad-${name}-`));
+  const outputRoot = await mkdtemp(join(tmpdir(), `fulmetry-kicad-${name}-`));
   roots.push(outputRoot);
   const directory = join(outputRoot, "run");
   await mkdir(directory);
@@ -149,11 +149,11 @@ describe("detached KiCad handoff", () => {
     ))).toThrow("schematic symbol identity");
     expect(() => reconcileKicadHandoffSemantics(circuitJson, mutateFile(
       ".kicad_pcb",
-      (content) => content.replace('tscircuit:resistor_res0603', 'tscircuit:resistor_res0805'),
+      (content) => content.replace('tscircuit:RC0603FR-0710KL', 'tscircuit:RC0805FR-0710KL'),
     ))).toThrow("footprint library identity");
     expect(() => reconcileKicadHandoffSemantics(circuitJson, mutateFile(
       ".kicad_pcb",
-      (content) => content.replace('(property "Value" "LED"', '(property "Value" "WRONG"'),
+      (content) => content.replace('(property "Value" "LTST-C190KGKT"', '(property "Value" "WRONG"'),
     ))).toThrow("value was not preserved");
     expect(() => reconcileKicadHandoffSemantics(circuitJson, mutateFile(
       ".kicad_sch",
@@ -320,8 +320,8 @@ describe("detached KiCad handoff", () => {
       state: "qualified" as const,
       message: "caller claims live ERC and DRC passed",
     };
-    expect(() => withKicadLiveValidation(first, forged)).toThrow("not produced by PCBoo's live validator");
-    expect(() => withKicadLiveValidation(first, structuredClone(firstEvidence))).toThrow("not produced by PCBoo's live validator");
+    expect(() => withKicadLiveValidation(first, forged)).toThrow("not produced by Fulmetry's live validator");
+    expect(() => withKicadLiveValidation(first, structuredClone(firstEvidence))).toThrow("not produced by Fulmetry's live validator");
 
     const staleRun = await runDirectory("stale");
     await expect(validateKicadHandoffLive({
@@ -339,7 +339,7 @@ describe("detached KiCad handoff", () => {
     const cloned = structuredClone(handoff);
     const cloneRun = await runDirectory("cloned-envelope");
     await expect(validateKicadHandoffLive({ handoff: cloned, ...cloneRun, executable: null }))
-      .rejects.toThrow("not created by this PCBoo runtime");
+      .rejects.toThrow("not created by this Fulmetry runtime");
 
     const forged = structuredClone(handoff) as any;
     forged.report.mapping[0].disposition = "exact";
@@ -347,7 +347,7 @@ describe("detached KiCad handoff", () => {
     forged.report.files = forged.files.map(({ path, sha256 }: { path: string; sha256: string }) => ({ path, sha256 }));
     const forgedRun = await runDirectory("forged-envelope");
     await expect(validateKicadHandoffLive({ handoff: forged, ...forgedRun, executable: null }))
-      .rejects.toThrow("not created by this PCBoo runtime");
+      .rejects.toThrow("not created by this Fulmetry runtime");
     expect(await Bun.file(join(forgedRun.runDirectory, "kicad-live-validation")).exists()).toBeFalse();
   });
 
@@ -394,7 +394,7 @@ describe("detached KiCad handoff", () => {
 
   test("rejects outside, sibling, project-source, and symlinked run authorities before creating outputs", async () => {
     const handoff = await createKicadHandoff(await manufacturingFixture(2), { projectName: "agent-board" });
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-kicad-authority-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-kicad-authority-"));
     roots.push(parent);
     const outputRoot = join(parent, "output");
     const sibling = join(parent, "sibling");
@@ -435,15 +435,15 @@ describe("detached KiCad handoff", () => {
 
   test("requires the configured output authority and rejects authored subtrees", async () => {
     const handoff = await createKicadHandoff(await manufacturingFixture(2), { projectName: "agent-board" });
-    const projectRoot = await mkdtemp(join(tmpdir(), "pcboo-kicad-project-authority-"));
+    const projectRoot = await mkdtemp(join(tmpdir(), "fulmetry-kicad-project-authority-"));
     roots.push(projectRoot);
     await mkdir(join(projectRoot, "src/generated/runs/source-overlap"), { recursive: true });
-    await mkdir(join(projectRoot, ".pcboo/runs/valid"), { recursive: true });
+    await mkdir(join(projectRoot, ".fulmetry/runs/valid"), { recursive: true });
     await mkdir(join(projectRoot, ".other"));
     await Bun.write(join(projectRoot, "src/board.ts"), "export default []\n");
-    await Bun.write(join(projectRoot, "pcboo.config.ts"), "export default {}\n");
-    await Bun.write(join(projectRoot, "pcboo.lock"), "{}\n");
-    const protectedInputPaths = ["src/board.ts", "pcboo.config.ts", "pcboo.lock"];
+    await Bun.write(join(projectRoot, "fulmetry.config.ts"), "export default {}\n");
+    await Bun.write(join(projectRoot, "fulmetry.lock"), "{}\n");
+    const protectedInputPaths = ["src/board.ts", "fulmetry.config.ts", "fulmetry.lock"];
 
     await expect(validateKicadHandoffLive({
       handoff,
@@ -458,8 +458,8 @@ describe("detached KiCad handoff", () => {
     await expect(validateKicadHandoffLive({
       handoff,
       projectRoot,
-      outputRoot: join(projectRoot, ".pcboo"),
-      runDirectory: join(projectRoot, ".pcboo/runs/valid"),
+      outputRoot: join(projectRoot, ".fulmetry"),
+      runDirectory: join(projectRoot, ".fulmetry/runs/valid"),
       configuredOutputDirectory: ".other",
       protectedInputPaths,
       executable: null,
@@ -468,9 +468,9 @@ describe("detached KiCad handoff", () => {
     const valid = await validateKicadHandoffLive({
       handoff,
       projectRoot,
-      outputRoot: join(projectRoot, ".pcboo"),
-      runDirectory: join(projectRoot, ".pcboo/runs/valid"),
-      configuredOutputDirectory: ".pcboo",
+      outputRoot: join(projectRoot, ".fulmetry"),
+      runDirectory: join(projectRoot, ".fulmetry/runs/valid"),
+      configuredOutputDirectory: ".fulmetry",
       protectedInputPaths,
       executable: null,
     });
@@ -577,10 +577,10 @@ describe("detached KiCad handoff", () => {
     try {
       WeakSet.prototype.has = (() => true) as typeof WeakSet.prototype.has;
       WeakSet.prototype.add = (function (this: WeakSet<object>) { return this; }) as typeof WeakSet.prototype.add;
-      expect(() => withKicadLiveValidation(handoff, forged)).toThrow("not produced by PCBoo's live validator");
+      expect(() => withKicadLiveValidation(handoff, forged)).toThrow("not produced by Fulmetry's live validator");
       const paths = await runDirectory("weakset-handoff-poison");
       await expect(validateKicadHandoffLive({ handoff: clonedHandoff, ...paths, executable: null }))
-        .rejects.toThrow("not created by this PCBoo runtime");
+        .rejects.toThrow("not created by this Fulmetry runtime");
     } finally {
       WeakSet.prototype.has = originalHas;
       WeakSet.prototype.add = originalAdd;

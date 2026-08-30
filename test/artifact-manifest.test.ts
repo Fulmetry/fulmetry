@@ -15,7 +15,7 @@ import {
 const roots: string[] = []
 
 async function temporaryRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-manifest-"))
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-manifest-"))
   roots.push(root)
   return root
 }
@@ -32,7 +32,7 @@ afterEach(async () => {
 describe("bounded artifact manifests", () => {
   test("creates and verifies an ordinary manifest without retaining whole files", async () => {
     const root = await temporaryRoot()
-    await Bun.write(join(root, "board.gbr"), "G04 PCBoo*\nM02*\n")
+    await Bun.write(join(root, "board.gbr"), "G04 Fulmetry*\nM02*\n")
 
     const manifest = await createDraftArtifactManifest({
       root,

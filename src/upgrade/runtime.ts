@@ -1,10 +1,10 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { SUPPORTED_BUN_VERSION } from "../runtime";
 
 export const SUPPORTED_UPGRADE_REVIEW_BUN_VERSION = SUPPORTED_BUN_VERSION;
 
-/** Upgrade evidence is authoritative only under PCBoo's one qualified Bun runtime. */
+/** Upgrade evidence is authoritative only under Fulmetry's one qualified Bun runtime. */
 export function requireSupportedUpgradeReviewBunVersion(version: unknown):
   typeof SUPPORTED_UPGRADE_REVIEW_BUN_VERSION {
   if (version !== SUPPORTED_UPGRADE_REVIEW_BUN_VERSION) {

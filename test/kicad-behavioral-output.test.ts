@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { afterEach, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
@@ -17,7 +17,7 @@ async function outputFixture(): Promise<{
   root: string;
   outputs: Array<{ path: string; size: number; sha256: string }>;
 }> {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-kicad-output-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-kicad-output-"));
   roots.push(root);
   await mkdir(join(root, "gerbers"));
   const files: Record<string, string> = {

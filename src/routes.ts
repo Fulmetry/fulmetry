@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import type {
   AnyCircuitElement,
@@ -309,7 +309,7 @@ export function resolveSemanticPcbRoute(
         holeDiameter: via.hole_diameter!,
         outerDiameter: via.outer_diameter!,
         // A routing transition may use only part of the stack, but the initial
-        // PCBoo profile manufactures ordinary plated through-vias. Blind and
+        // Fulmetry profile manufactures ordinary plated through-vias. Blind and
         // buried physical spans require a separate future profile.
         fromLayer: stack[0]!,
         toLayer: stack[stack.length - 1]!,

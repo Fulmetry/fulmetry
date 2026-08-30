@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -9,8 +9,8 @@ import { requireSupportedBunRuntime } from "../src/runtime";
 import { manufacturingFixture } from "../test/fixtures/manufacturing";
 
 const repositoryRoot = join(import.meta.dir, "..");
-const evidenceRoot = join(repositoryRoot, ".pcboo-ci", "kicad-live-darwin-arm64");
-const executable = process.env.PCBOO_KICAD_CLI ??
+const evidenceRoot = join(repositoryRoot, ".fulmetry-ci", "kicad-live-darwin-arm64");
+const executable = process.env.FULMETRY_KICAD_CLI ??
   "/Applications/KiCad/KiCad.app/Contents/MacOS/kicad-cli";
 
 function sha256(value: string): string {
@@ -62,7 +62,7 @@ async function inspectFailClosedRuleReports(
 }
 
 requireSupportedBunRuntime();
-await mkdir(join(repositoryRoot, ".pcboo-ci"), { recursive: true });
+await mkdir(join(repositoryRoot, ".fulmetry-ci"), { recursive: true });
 await mkdir(evidenceRoot);
 
 const fixtures = [];
@@ -75,7 +75,7 @@ for (const layers of [2, 4] as const) {
   const sourcePath = join(fixtureRoot, "source-circuit.json");
   await writeFile(sourcePath, canonicalSource, { flag: "wx" });
   const handoff = await createKicadHandoff(circuitJson, {
-    projectName: `pcboo-${layers}-layer`,
+    projectName: `fulmetry-${layers}-layer`,
   });
   const validation = await validateKicadHandoffLive({
     handoff,
@@ -97,7 +97,7 @@ for (const layers of [2, 4] as const) {
     throw new Error(`KiCad ${layers}-layer compatibility did not reach the expected fail-closed rule result: ${validation.message}`);
   }
   await verifyKicadLiveInputEvidence(validation);
-  const ruleReports = await inspectFailClosedRuleReports(fixtureRoot, `pcboo-${layers}-layer`);
+  const ruleReports = await inspectFailClosedRuleReports(fixtureRoot, `fulmetry-${layers}-layer`);
   const report = Object.freeze({
     layers,
     circuitDigest: handoff.report.circuitDigest,
@@ -144,7 +144,7 @@ if (JSON.stringify(firstReport.validation.evidence.tool) !== JSON.stringify(seco
 }
 const body = Object.freeze({
   schemaVersion: 1,
-  kind: "pcboo-live-kicad-compatibility",
+  kind: "fulmetry-live-kicad-compatibility",
   runtime: Object.freeze({
     platform: process.platform,
     architecture: process.arch,

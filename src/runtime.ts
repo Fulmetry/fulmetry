@@ -1,11 +1,11 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 
 export const SUPPORTED_BUN_VERSION = "1.3.14" as const;
 export const UNSUPPORTED_BUN_DIAGNOSTIC_ID =
-  "PCBOO_RUNTIME_UNSUPPORTED_BUN_001" as const;
+  "FULMETRY_RUNTIME_UNSUPPORTED_BUN_001" as const;
 export const UNSUPPORTED_PLATFORM_DIAGNOSTIC_ID =
-  "PCBOO_RUNTIME_UNSUPPORTED_PLATFORM_001" as const;
+  "FULMETRY_RUNTIME_UNSUPPORTED_PLATFORM_001" as const;
 export const SUPPORTED_RUNTIME_PLATFORM = "darwin-arm64" as const;
 
 export function isSupportedBunVersion(
@@ -21,7 +21,7 @@ export class UnsupportedBunRuntimeError extends Error {
 
   constructor(observedVersion: unknown) {
     super(
-      `${UNSUPPORTED_BUN_DIAGNOSTIC_ID}: PCBoo requires Bun ` +
+      `${UNSUPPORTED_BUN_DIAGNOSTIC_ID}: Fulmetry requires Bun ` +
         `${SUPPORTED_BUN_VERSION}, but the running Bun version is ${JSON.stringify(observedVersion)}`,
     );
     this.name = "UnsupportedBunRuntimeError";
@@ -36,7 +36,7 @@ export class UnsupportedPlatformRuntimeError extends Error {
 
   constructor(observedPlatform: string) {
     super(
-      `${UNSUPPORTED_PLATFORM_DIAGNOSTIC_ID}: PCBoo requires Apple Silicon macOS ` +
+      `${UNSUPPORTED_PLATFORM_DIAGNOSTIC_ID}: Fulmetry requires Apple Silicon macOS ` +
         `(${SUPPORTED_RUNTIME_PLATFORM}), but the running platform is ${JSON.stringify(observedPlatform)}`,
     );
     this.name = "UnsupportedPlatformRuntimeError";

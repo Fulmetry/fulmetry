@@ -59,7 +59,7 @@ async function verifyManufacturingDirectory(
 }
 
 async function emittedFixture(layers: 2 | 4) {
-  const parent = await mkdtemp(join(tmpdir(), "pcboo-verify-"));
+  const parent = await mkdtemp(join(tmpdir(), "fulmetry-verify-"));
   temporaryRoots.push(parent);
   const root = join(parent, "draft");
   const circuitJson = await manufacturingFixture(layers);
@@ -462,7 +462,7 @@ describe("independent manufacturing verification", () => {
       expect(result.artifacts, collection).toEqual([]);
     }
 
-    const dnpParent = await mkdtemp(join(tmpdir(), "pcboo-assembly-dnp-"));
+    const dnpParent = await mkdtemp(join(tmpdir(), "fulmetry-assembly-dnp-"));
     temporaryRoots.push(dnpParent);
     const dnpRoot = join(dnpParent, "draft");
     const dnpCircuit = await manufacturingFixture(2);
@@ -509,7 +509,7 @@ describe("independent manufacturing verification", () => {
 
   test("rejects board substrate materials outside the baseline manufacturing capability", async () => {
     for (const material of ["", "mystery-substrate"]) {
-      const parent = await mkdtemp(join(tmpdir(), "pcboo-board-material-"));
+      const parent = await mkdtemp(join(tmpdir(), "fulmetry-board-material-"));
       temporaryRoots.push(parent);
       const root = join(parent, "draft");
       const circuitJson = await manufacturingFixture(4);
@@ -732,7 +732,7 @@ describe("independent manufacturing verification", () => {
 
   test("never verifies artifacts for a non-positive physical board thickness", async () => {
     for (const thickness of [0, -1]) {
-      const parent = await mkdtemp(join(tmpdir(), "pcboo-board-thickness-"));
+      const parent = await mkdtemp(join(tmpdir(), "fulmetry-board-thickness-"));
       temporaryRoots.push(parent);
       const root = join(parent, "draft");
       const circuitJson = await manufacturingFixture(4);
@@ -1065,7 +1065,7 @@ describe("independent manufacturing verification", () => {
   });
 
   test("rejects an authored component omitted from every PCB and assembly artifact", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-orphan-component-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-orphan-component-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = await manufacturingFixture(2);
@@ -1114,7 +1114,7 @@ describe("independent manufacturing verification", () => {
   });
 
   test("rejects ownerless SMT copper even when its paste and exported files reconcile", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-ownerless-smt-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-ownerless-smt-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = await manufacturingFixture(2);
@@ -1160,7 +1160,7 @@ describe("independent manufacturing verification", () => {
   });
 
   test("rejects ownerless plated copper even when its drill and Gerber files reconcile", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-ownerless-pth-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-ownerless-pth-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = await manufacturingFixture(2);
@@ -1193,7 +1193,7 @@ describe("independent manufacturing verification", () => {
   });
 
   test("rejects Gerber and placement evidence whose SMT side contradicts its owner", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-side-integrity-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-side-integrity-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = await manufacturingFixture(2);
@@ -1227,7 +1227,7 @@ describe("independent manufacturing verification", () => {
   });
 
   test("rejects matching artifacts when an SMT pad is displaced outside its owner courtyard", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-pad-courtyard-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-pad-courtyard-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = await manufacturingFixture(2);
@@ -1271,7 +1271,7 @@ describe("independent manufacturing verification", () => {
   });
 
   test("rejects matching artifacts when a plated hole is displaced outside its owner courtyard", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-pth-courtyard-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-pth-courtyard-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = await manufacturingFixture(2);
@@ -1320,7 +1320,7 @@ describe("independent manufacturing verification", () => {
   });
 
   test("rejects matching artifacts when a remote NPTH claims a component owner", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-npth-courtyard-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-npth-courtyard-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = await manufacturingFixture(2);
@@ -1466,7 +1466,7 @@ describe("independent manufacturing verification", () => {
 
   test("rejects external macro-aperture copper that cannot disappear from operation accounting", async () => {
     const canonical = await loadCanonicalFixture("plated-hole-4layer");
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-canonical-macro-copper-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-canonical-macro-copper-"));
     temporaryRoots.push(parent);
     const root = join(parent, "manufacturing");
     await cp(join(canonical.root, "manufacturing"), root, {
@@ -1586,7 +1586,7 @@ describe("independent manufacturing verification", () => {
   });
 
   test("blocks an authored partial-stack via as manufacturing unsupported", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-partial-via-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-partial-via-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = await manufacturingFixture(4);
@@ -2065,7 +2065,7 @@ describe("independent manufacturing verification", () => {
   });
 
   test("rejects CAD owners swapped across incompatible emitted pad signatures", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-cad-owner-swap-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-cad-owner-swap-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = await manufacturingFixture(2);
@@ -2141,7 +2141,7 @@ describe("independent manufacturing verification", () => {
     cad.footprinter_string = "";
     circuitJson.push({
       type: "pcb_smtpad",
-      pcb_smtpad_id: "pcb_smtpad_pcboo_mechanical_1",
+      pcb_smtpad_id: "pcb_smtpad_fulmetry_mechanical_1",
       pcb_component_id: component.pcb_component_id,
       layer: "top",
       shape: "rect",
@@ -2149,7 +2149,7 @@ describe("independent manufacturing verification", () => {
       y: component.center.y,
       width: 0.8,
       height: 0.8,
-      port_hints: ["pcboo:mechanical"],
+      port_hints: ["fulmetry:mechanical"],
     } as AnyCircuitElement);
 
     const expectation = deriveManufacturingExpectation({ boardName: "control", circuitJson });
@@ -2157,7 +2157,7 @@ describe("independent manufacturing verification", () => {
       expect.stringContaining(`${component.pcb_component_id}: CAD footprint is not qualified`),
     );
     expect(expectation.unsupported).not.toContainEqual(
-      expect.stringContaining("pcb_smtpad_pcboo_mechanical_1"),
+      expect.stringContaining("pcb_smtpad_fulmetry_mechanical_1"),
     );
     expect(expectation.unsupported).not.toContainEqual(
       expect.stringContaining(`${component.pcb_component_id}: populated manufacturing component R1 supplier identity`),
@@ -2170,11 +2170,11 @@ describe("independent manufacturing verification", () => {
       });
     expect(
       expectation.assemblyAuthority.find((entry) => entry.designator === "R1")?.padSources,
-    ).toContain("pcb_smtpad_pcboo_mechanical_1");
+    ).toContain("pcb_smtpad_fulmetry_mechanical_1");
   });
 
   test("rejects a polarized placement rotation that contradicts its fixed pad orientation", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-polarized-rotation-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-polarized-rotation-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = await manufacturingFixture(2);
@@ -2441,7 +2441,7 @@ describe("independent manufacturing verification", () => {
   });
 
   test("uses the physical pcb_via record for a routed via without inline diameters", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-upstream-via-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-upstream-via-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = await manufacturingFixture(4);
@@ -2467,7 +2467,7 @@ describe("independent manufacturing verification", () => {
   });
 
   test("rejects empty numeric placement fields even for a component at zero", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-zero-placement-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-zero-placement-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = await manufacturingFixture(2);
@@ -2490,7 +2490,7 @@ describe("independent manufacturing verification", () => {
   });
 
   test("accepts supplier BOM columns, zero-ohm values, and reversed through-vias", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-semantic-positive-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-semantic-positive-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = await manufacturingFixture(4);
@@ -2522,7 +2522,7 @@ describe("independent manufacturing verification", () => {
   });
 
   test("preserves a single generic supplier identity in the verified BOM", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-generic-supplier-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-generic-supplier-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = await manufacturingFixture(2);
@@ -2551,7 +2551,7 @@ describe("independent manufacturing verification", () => {
       { "bad provider": ["PART-123"] },
     ];
     for (const [index, supplierPartNumbers] of attacks.entries()) {
-      const parent = await mkdtemp(join(tmpdir(), `pcboo-ambiguous-supplier-${index}-`));
+      const parent = await mkdtemp(join(tmpdir(), `fulmetry-ambiguous-supplier-${index}-`));
       temporaryRoots.push(parent);
       const root = join(parent, "draft");
       const circuitJson = await manufacturingFixture(2);
@@ -2635,7 +2635,7 @@ describe("independent manufacturing verification", () => {
       },
     ];
     for (const [index, attack] of attacks.entries()) {
-      const parent = await mkdtemp(join(tmpdir(), `pcboo-unsafe-bom-identity-${index}-`));
+      const parent = await mkdtemp(join(tmpdir(), `fulmetry-unsafe-bom-identity-${index}-`));
       temporaryRoots.push(parent);
       const root = join(parent, "draft");
       const circuitJson = await manufacturingFixture(2);
@@ -2667,7 +2667,7 @@ describe("independent manufacturing verification", () => {
       "R\u00001",
     ];
     for (const [index, unsafeDesignator] of attacks.entries()) {
-      const parent = await mkdtemp(join(tmpdir(), `pcboo-unsafe-designator-${index}-`));
+      const parent = await mkdtemp(join(tmpdir(), `fulmetry-unsafe-designator-${index}-`));
       temporaryRoots.push(parent);
       const root = join(parent, "draft");
       const circuitJson = await manufacturingFixture(2);
@@ -2708,7 +2708,7 @@ describe("independent manufacturing verification", () => {
   });
 
   test("reconciles high-precision SI component values with exporter formatting", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-high-precision-bom-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-high-precision-bom-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = await manufacturingFixture(2);
@@ -2728,7 +2728,7 @@ describe("independent manufacturing verification", () => {
   });
 
   test("accepts canonical empty assembly files while a featureless bare board remains non-verifiable", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-bare-board-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-bare-board-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = (await manufacturingFixture(2)).filter(
@@ -2754,7 +2754,7 @@ describe("independent manufacturing verification", () => {
   });
 
   test("omits DNP components from placement while retaining their BOM marker", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-dnp-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-dnp-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     const circuitJson = await manufacturingFixture(2);

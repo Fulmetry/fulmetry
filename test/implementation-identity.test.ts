@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { afterEach, expect, test } from "bun:test";
 import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -17,7 +17,7 @@ afterEach(async () => {
 
 test("runtime evidence implementation identity binds every authority source", async () => {
   const sourceRoot = join(import.meta.dir, "..");
-  const root = await mkdtemp(join(tmpdir(), "pcboo-implementation-identity-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-implementation-identity-"));
   roots.push(root);
   for (const path of TSCIRCUIT_RUNTIME_EVIDENCE_IMPLEMENTATION_FILES) {
     const destination = join(root, path);

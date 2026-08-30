@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { readFile, writeFile } from "node:fs/promises";
 
@@ -9,7 +9,7 @@ if (recordPath === undefined || nonce === undefined) {
 
 function environmentWithoutContainmentToken(): Record<string, string> {
   return Object.fromEntries(Object.entries(process.env)
-    .filter(([name, value]) => name !== "PCBOO_CI_CONTAINMENT_TOKEN" && value !== undefined)) as Record<string, string>;
+    .filter(([name, value]) => name !== "FULMETRY_CI_CONTAINMENT_TOKEN" && value !== undefined)) as Record<string, string>;
 }
 
 if (mode === "child") {

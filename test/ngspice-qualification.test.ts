@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { afterEach, describe, expect, test } from "bun:test";
 import { chmod, mkdtemp, readdir, rm } from "node:fs/promises";
@@ -77,7 +77,7 @@ async function v46FixtureExecutable(root: string): Promise<string> {
 
 describe("bounded ngspice behavioral qualification", () => {
   test("qualifies exact ngspice 46 AC metadata, subnormal frequency noise, and DC axis spelling", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-v46-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-v46-"));
     roots.push(root);
     const executable = await v46FixtureExecutable(root);
     const tool = await probeNgspice({ executable });
@@ -95,7 +95,7 @@ describe("bounded ngspice behavioral qualification", () => {
   });
 
   test("rejects a version-correct executable that only reproduces one canned result", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-qualification-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-qualification-"));
     roots.push(root);
     const executable = await oneResultExecutable(root);
     const tool = await probeNgspice({ executable });
@@ -119,7 +119,7 @@ describe("bounded ngspice behavioral qualification", () => {
   });
 
   test("rejects binary output and caller-forged serialized qualification authority", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-qualification-binary-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-qualification-binary-"));
     roots.push(root);
     const executable = await oneResultExecutable(root, "Binary:\n\0fixture");
     const tool = await probeNgspice({ executable });
@@ -139,7 +139,7 @@ describe("bounded ngspice behavioral qualification", () => {
   });
 
   test("retains exact decks, raw output, and streams only for an explicit evidence collector", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-qualification-retained-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-qualification-retained-"));
     roots.push(root);
     const executable = await oneResultExecutable(root);
     const tool = await probeNgspice({ executable });
@@ -172,7 +172,7 @@ describe("bounded ngspice behavioral qualification", () => {
   });
 
   test("cancellation cannot issue or persist qualification evidence", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-ngspice-qualification-cancel-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-ngspice-qualification-cancel-"));
     roots.push(root);
     const executable = await oneResultExecutable(root);
     const tool = await probeNgspice({ executable });

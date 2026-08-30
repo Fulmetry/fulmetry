@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { constants } from "node:fs";
 import { mkdtemp, open, rm } from "node:fs/promises";
@@ -47,7 +47,7 @@ export async function runRepositoryTestGate(files: readonly string[]): Promise<v
   if (files.length === 0 || files.some((path) => !/^\.\/(?:test|tests)\/.+\.test\.tsx?$/u.test(path))) {
     throw new TypeError("REPOSITORY_TEST_FILES_INVALID");
   }
-  const directory = await mkdtemp(join(tmpdir(), "pcboo-repository-test-"));
+  const directory = await mkdtemp(join(tmpdir(), "fulmetry-repository-test-"));
   const processTimeoutMilliseconds = files.length === 1 && files[0] === "./test/server.test.ts"
     ? SERVER_TEST_PROCESS_TIMEOUT_MS
     : files.length === 1 && files[0] === "./test/production-promotion.test.ts"
@@ -67,7 +67,7 @@ export async function runRepositoryTestGate(files: readonly string[]): Promise<v
     ...files,
   ], {
     cwd: repositoryRoot,
-    env: { ...process.env, PCBOO_REPOSITORY_TEST_POLICY_REQUIRED: "1" },
+    env: { ...process.env, FULMETRY_REPOSITORY_TEST_POLICY_REQUIRED: "1" },
     stdin: "ignore",
     stdout: "inherit",
     stderr: "inherit",

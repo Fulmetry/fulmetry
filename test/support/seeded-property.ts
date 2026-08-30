@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 
 export interface SeededRandom {
@@ -34,7 +34,7 @@ export class SeededPropertyFailure<T> extends Error {
     const detail = options.cause instanceof Error ? options.cause.message : String(options.cause);
     const replayFile = options.replayFile ?? "test/manufacturing-properties.test.ts";
     const replay =
-      `set PCBOO_PROPERTY_SEED to ${options.seed}, then run ` +
+      `set FULMETRY_PROPERTY_SEED to ${options.seed}, then run ` +
       `bun test ${replayFile}`;
     super(
       `${options.name} failed at generated case ${options.caseIndex}; seed=${options.seed}; ` +
@@ -153,11 +153,11 @@ export async function runSeededProperty<T>(options: SeededPropertyOptions<T>): P
 export function propertySeed(environmentValue: string | undefined, fallback: number): number {
   if (environmentValue === undefined) return fallback;
   if (!/^(?:0|[1-9]\d{0,9})$/.test(environmentValue)) {
-    throw new TypeError("PCBOO_PROPERTY_SEED must be an unsigned decimal 32-bit integer");
+    throw new TypeError("FULMETRY_PROPERTY_SEED must be an unsigned decimal 32-bit integer");
   }
   const parsed = Number(environmentValue);
   if (!Number.isSafeInteger(parsed) || parsed > 0xffff_ffff) {
-    throw new RangeError("PCBOO_PROPERTY_SEED must be at most 4294967295");
+    throw new RangeError("FULMETRY_PROPERTY_SEED must be at most 4294967295");
   }
   return parsed;
 }

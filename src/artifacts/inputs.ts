@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { lstat, readFile, realpath } from "node:fs/promises";
 import { isAbsolute, resolve, sep } from "node:path";
@@ -77,12 +77,12 @@ export async function createBuildInputSnapshot(options: {
     throw new Error("Build snapshot requires at least one source input");
   }
   const configInputs = normalized.filter(({ role }) => role === "config");
-  if (configInputs.length !== 1 || configInputs[0]!.path !== "pcboo.config.ts") {
-    throw new Error("Build snapshot requires pcboo.config.ts as its sole config input");
+  if (configInputs.length !== 1 || configInputs[0]!.path !== "fulmetry.config.ts") {
+    throw new Error("Build snapshot requires fulmetry.config.ts as its sole config input");
   }
   const lockfileInputs = normalized.filter(({ role }) => role === "lockfile");
-  if (lockfileInputs.length !== 1 || lockfileInputs[0]!.path !== "pcboo.lock") {
-    throw new Error("Build snapshot requires pcboo.lock as its sole lockfile input");
+  if (lockfileInputs.length !== 1 || lockfileInputs[0]!.path !== "fulmetry.lock") {
+    throw new Error("Build snapshot requires fulmetry.lock as its sole lockfile input");
   }
   const logicalKeys = new Set(normalized.map(({ path, role }) => `${role}:${path}`));
   if (logicalKeys.size !== normalized.length) {

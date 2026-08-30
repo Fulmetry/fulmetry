@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@pcboo/pcboo",
+      "name": "fulmetry",
       "dependencies": {
         "@tscircuit/alphabet": "0.0.25",
         "circuit-json": "0.0.464",

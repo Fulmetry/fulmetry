@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import type { AnyCircuitElement } from "tscircuit";
 import {
@@ -228,7 +228,7 @@ function diagnosticForGroup(
     ...(count > elements.length ? { omittedObjectCount: count - elements.length } : {}),
     sourceLocations: [],
     evidence: [`circuit-json:${type}:${elements.length}`],
-    nextCommand: `pcboo inspect --status electrical --rule ELECTRICAL_${stableType}_001`,
+    nextCommand: `fulmetry inspect --status electrical --rule ELECTRICAL_${stableType}_001`,
   });
 }
 
@@ -290,7 +290,7 @@ export function assessCircuitElectrical(
       objects: [`circuit-json:emitted-diagnostic-overflow:${emittedOverflowRecordCount}`],
       sourceLocations: [],
       evidence: [`circuit-json:emitted-diagnostic-overflow:${emittedOverflowRecordCount}`],
-      nextCommand: "pcboo inspect --status electrical --rule ELECTRICAL_EMITTED_CLASS_OVERFLOW_001",
+      nextCommand: "fulmetry inspect --status electrical --rule ELECTRICAL_EMITTED_CLASS_OVERFLOW_001",
     }));
   }
   const connectivityFailures = new BoundedFindings();
@@ -565,7 +565,7 @@ export function assessCircuitElectrical(
         omittedObjectCount: omitted,
         omittedEvidenceCount: omitted,
       }),
-      nextCommand: "pcboo inspect --status electrical --rule ELECTRICAL_DRIVER_CONFLICT_001",
+      nextCommand: "fulmetry inspect --status electrical --rule ELECTRICAL_DRIVER_CONFLICT_001",
     }));
   }
   if (unsupportedDriverMetadata.length > 0) {
@@ -584,7 +584,7 @@ export function assessCircuitElectrical(
         omittedObjectCount: omitted,
         omittedEvidenceCount: omitted,
       }),
-      nextCommand: "pcboo inspect --status electrical --rule ELECTRICAL_DRIVER_METADATA_UNSUPPORTED_001",
+      nextCommand: "fulmetry inspect --status electrical --rule ELECTRICAL_DRIVER_METADATA_UNSUPPORTED_001",
     }));
   }
   if (pinObligationFailures.length > 0) {
@@ -603,7 +603,7 @@ export function assessCircuitElectrical(
         omittedObjectCount: omitted,
         omittedEvidenceCount: omitted,
       }),
-      nextCommand: "pcboo inspect --status electrical --rule ELECTRICAL_PIN_OBLIGATION_001",
+      nextCommand: "fulmetry inspect --status electrical --rule ELECTRICAL_PIN_OBLIGATION_001",
     }));
   }
   if (unsupportedPinMetadata.length > 0) {
@@ -622,7 +622,7 @@ export function assessCircuitElectrical(
         omittedObjectCount: omitted,
         omittedEvidenceCount: omitted,
       }),
-      nextCommand: "pcboo inspect --status electrical --rule ELECTRICAL_PIN_METADATA_UNSUPPORTED_001",
+      nextCommand: "fulmetry inspect --status electrical --rule ELECTRICAL_PIN_METADATA_UNSUPPORTED_001",
     }));
   }
   const sourceTraceById = new Map<string, typeof sourceTraces>();
@@ -1026,7 +1026,7 @@ export function assessCircuitElectrical(
         omittedObjectCount: omitted,
         omittedEvidenceCount: omitted,
       }),
-      nextCommand: "pcboo inspect --status electrical --rule ELECTRICAL_CONNECTIVITY_001",
+      nextCommand: "fulmetry inspect --status electrical --rule ELECTRICAL_CONNECTIVITY_001",
     }));
   }
   if (unsupportedConnectivity.length > 0) {
@@ -1045,7 +1045,7 @@ export function assessCircuitElectrical(
         omittedObjectCount: omitted,
         omittedEvidenceCount: omitted,
       }),
-      nextCommand: "pcboo inspect --status electrical --rule ELECTRICAL_CONNECTIVITY_UNSUPPORTED_001",
+      nextCommand: "fulmetry inspect --status electrical --rule ELECTRICAL_CONNECTIVITY_UNSUPPORTED_001",
     }));
   }
   const errorCount = diagnostics.filter((item) => item.severity === "error").length;

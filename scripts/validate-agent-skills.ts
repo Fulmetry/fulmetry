@@ -1,45 +1,45 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { lstat, opendir, readFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 
 const EXPECTED_SKILLS = Object.freeze([
-  "pcboo-best-practices",
-  "pcboo-design",
-  "pcboo-diagnose",
-  "pcboo-manufacturing",
-  "pcboo-resolve-models",
-  "pcboo-schematic-layout",
-  "pcboo-verify",
+  "fulmetry-best-practices",
+  "fulmetry-design",
+  "fulmetry-diagnose",
+  "fulmetry-manufacturing",
+  "fulmetry-resolve-models",
+  "fulmetry-schematic-layout",
+  "fulmetry-verify",
 ] as const);
 const MAX_SKILL_NAME_LENGTH = 64;
 const MAX_DESCRIPTION_LENGTH = 1024;
 const REQUIRED_SKILL_CONTRACTS: Readonly<Record<string, readonly string[]>> = Object.freeze({
-  "pcboo-best-practices": Object.freeze([
+  "fulmetry-best-practices": Object.freeze([
     "complete logical and physical design",
     "Do not launch the local server as the final handoff",
   ]),
-  "pcboo-design": Object.freeze([
+  "fulmetry-design": Object.freeze([
     "references/completion-and-preview.md",
     "require zero unresolved footprints",
-    "Only after the completion gate and `pcboo-resolve-models` audit pass, start `bun run dev`",
+    "Only after the completion gate and `fulmetry-resolve-models` audit pass, start `bun run dev`",
     "clearance and routing-congestion escalation rules",
   ]),
-  "pcboo-diagnose": Object.freeze([
+  "fulmetry-diagnose": Object.freeze([
     "browser geometry differs from Circuit JSON",
     "compare the current Circuit JSON inventory",
     "congestion decision tree",
   ]),
-  "pcboo-verify": Object.freeze([
+  "fulmetry-verify": Object.freeze([
     "component-to-footprint coverage",
     "required logical connections but zero PCB traces",
   ]),
-  "pcboo-resolve-models": Object.freeze([
+  "fulmetry-resolve-models": Object.freeze([
     "Runtime HTTP model dependencies are not a completion state",
     "Only after both gates pass may the workflow start `bun run dev`",
     "scripts/audit-cad-models.ts",
   ]),
-  "pcboo-schematic-layout": Object.freeze([
+  "fulmetry-schematic-layout": Object.freeze([
     "never reuse PCB coordinates as logical coordinates",
     "no two schematic-component bounding boxes overlap",
     "`schPinArrangement` must use numeric pin identifiers",
@@ -83,7 +83,7 @@ async function validateSkill(skillRoot: string): Promise<void> {
     if (!source.includes(required)) throw new Error(`${name}/SKILL.md is missing required workflow contract: ${required}`);
   }
 
-  if (name === "pcboo-design") {
+  if (name === "fulmetry-design") {
     const completion = await readFile(join(skillRoot, "references/completion-and-preview.md"), "utf8");
     for (const required of [
       "zero `pcb_missing_footprint_error` records",
@@ -92,7 +92,7 @@ async function validateSkill(skillRoot: string): Promise<void> {
       "Only after the applicable fresh-artifact and evidence gates pass",
       "Leave the server running",
     ]) {
-      if (!completion.includes(required)) throw new Error(`pcboo-design completion gate is missing: ${required}`);
+      if (!completion.includes(required)) throw new Error(`fulmetry-design completion gate is missing: ${required}`);
     }
     const physicalDesign = await readFile(join(skillRoot, "references/physical-design.md"), "utf8");
     for (const required of [
@@ -102,11 +102,11 @@ async function validateSkill(skillRoot: string): Promise<void> {
       "Never resize an outline constrained by an enclosure",
       "Prefer the smallest outline that passes",
     ]) {
-      if (!physicalDesign.includes(required)) throw new Error(`pcboo-design routing policy is missing: ${required}`);
+      if (!physicalDesign.includes(required)) throw new Error(`fulmetry-design routing policy is missing: ${required}`);
     }
   }
 
-  if (name === "pcboo-diagnose") {
+  if (name === "fulmetry-diagnose") {
     const diagnostics = await readFile(join(skillRoot, "references/diagnostics.md"), "utf8");
     for (const required of [
       "Keep `0.20 mm` as the ordinary general-clearance target",
@@ -114,7 +114,7 @@ async function validateSkill(skillRoot: string): Promise<void> {
       "enlarge the constrained axis or region by a small documented increment",
       "Never alter a verified land pattern to gain routing space",
     ]) {
-      if (!diagnostics.includes(required)) throw new Error(`pcboo-diagnose routing policy is missing: ${required}`);
+      if (!diagnostics.includes(required)) throw new Error(`fulmetry-diagnose routing policy is missing: ${required}`);
     }
   }
 
@@ -152,7 +152,7 @@ async function validateSkill(skillRoot: string): Promise<void> {
   await walk(skillRoot);
 }
 
-const skillsRoot = resolve(import.meta.dir, "../packages/create-pcboo/skills");
+const skillsRoot = resolve(import.meta.dir, "../packages/create-fulmetry/skills");
 const actual: string[] = [];
 for await (const entry of await opendir(skillsRoot)) {
   const stat = await lstat(join(skillsRoot, entry.name));
@@ -164,4 +164,4 @@ if (JSON.stringify(actual) !== JSON.stringify(EXPECTED_SKILLS)) {
   throw new Error(`Skill catalog mismatch: ${actual.join(", ")}`);
 }
 for (const name of actual) await validateSkill(join(skillsRoot, name));
-process.stdout.write(`Validated ${actual.length} PCBoo Agent Skills\n`);
+process.stdout.write(`Validated ${actual.length} Fulmetry Agent Skills\n`);

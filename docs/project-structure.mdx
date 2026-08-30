@@ -1,11 +1,11 @@
 ---
 title: Project structure
-description: Learn how PCBoo projects split circuit source, configuration, simulations, waivers, and generated evidence.
+description: Learn how Fulmetry projects split circuit source, configuration, simulations, waivers, and generated evidence.
 ---
 
 # Project structure
 
-A PCBoo project is intentionally made of ordinary files. Agents use the filesystem for authoring and the CLI for derived work; there is no required MCP server for normal project operations.
+A Fulmetry project is intentionally made of ordinary files. Agents use the filesystem for authoring and the CLI for derived work; there is no required MCP server for normal project operations.
 
 ```text
 my-board/
@@ -19,39 +19,39 @@ my-board/
 │   └── board.test.ts
 ├── waivers/
 │   └── reviewed-exception.json
-├── pcboo.config.ts
-├── pcboo.lock
+├── fulmetry.config.ts
+├── fulmetry.lock
 └── package.json
 ```
 
 ## Authored source
 
-`circuit/` contains the board entry point and composable circuit modules. PCBoo expects exactly one linked source board, PCB board, and root assembly group in the compiled result. Multiple boards are outside the current product contract.
+`circuit/` contains the board entry point and composable circuit modules. Fulmetry expects exactly one linked source board, PCB board, and root assembly group in the compiled result. Multiple boards are outside the current product contract.
 
 ## Configuration
 
-`pcboo.config.ts` names the entry file, output directory, active profiles, and optional board revision. Resolved configuration is part of project authority; changing a meaningful configuration value changes the project identity.
+`fulmetry.config.ts` names the entry file, output directory, active profiles, and optional board revision. Resolved configuration is part of project authority; changing a meaningful configuration value changes the project identity.
 
 ```ts
-import { defineConfig } from "pcboo";
+import { defineConfig } from "fulmetry";
 
 export default defineConfig({
   entry: "circuit/board.ts",
-  outputDirectory: ".pcboo",
-  profiles: ["pcboo-baseline-2-4layer"],
+  outputDirectory: ".fulmetry",
+  profiles: ["fulmetry-baseline-2-4layer"],
   boardRevision: "A",
 });
 ```
 
 ## Lock authority
 
-`pcboo.lock` fixes PCBoo's accepted engine and compatibility authority. It is not a general package-manager lockfile and should be reviewed like source.
+`fulmetry.lock` fixes Fulmetry's accepted engine and compatibility authority. It is not a general package-manager lockfile and should be reviewed like source.
 
 ## Tests and simulations
 
 - Ordinary project tests use Bun's test runner and produce an independent functional result.
 - Named simulation definitions live under `simulations/` and may use qualified local ngspice execution.
-- Authoritative project tests must not invoke subprocess APIs directly; use PCBoo's bounded actions instead.
+- Authoritative project tests must not invoke subprocess APIs directly; use Fulmetry's bounded actions instead.
 
 ## Waivers
 
@@ -59,4 +59,4 @@ Scoped waivers live in source-controlled `waivers/*.json` files. A valid waiver 
 
 ## Generated evidence
 
-PCBoo writes generated work beneath `.pcboo/` by default. Each finite command gets a fresh run directory with a complete `report.json`. Generated output is derived evidence, not authored circuit source, and the browser never edits source files.
+Fulmetry writes generated work beneath `.fulmetry/` by default. Each finite command gets a fresh run directory with a complete `report.json`. Generated output is derived evidence, not authored circuit source, and the browser never edits source files.

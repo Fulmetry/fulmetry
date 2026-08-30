@@ -1,6 +1,6 @@
 node_modules/
-.pcboo/
-.pcboo-ci/
+.fulmetry/
+.fulmetry-ci/
 dist/
 coverage/
 *.tsbuildinfo

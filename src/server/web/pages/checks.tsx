@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { AlertCircle, CheckCircle2, CircleDashed, Filter, ShieldCheck } from "lucide-react";
 import { useMemo, useState } from "react";

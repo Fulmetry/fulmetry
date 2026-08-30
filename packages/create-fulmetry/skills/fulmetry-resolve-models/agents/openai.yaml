@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fulmetry Resolve Models"
+  short_description: "Resolve and verify exact component 3D models"
+  default_prompt: "Use $fulmetry-resolve-models to resolve, vendor, license-check, and verify every component model before browser preview."

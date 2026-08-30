@@ -143,7 +143,7 @@ describe("manufacturing export adapter", () => {
     expect(expectation.platedDrills.filter(({ slot }) => slot !== undefined)).toHaveLength(1);
     expect(expectation.unsupported.join("\n")).not.toContain("only circular plated holes");
 
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-slotted-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-slotted-"));
     temporaryRoots.push(parent);
     const root = join(parent, "draft");
     await emitDraftManufacturingDirectory({ targetDirectory: root, files });
@@ -172,7 +172,7 @@ describe("manufacturing export adapter", () => {
   });
 
   test("publishes a new draft directory atomically and refuses overwrite", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-emission-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-emission-"));
     temporaryRoots.push(parent);
     const targetDirectory = join(parent, "run-001", "draft");
     const files = await exportManufacturingFiles({

@@ -1,15 +1,15 @@
 ---
 title: Current limitations
-description: Understand PCBoo's deliberately conservative initial release boundaries.
+description: Understand Fulmetry's deliberately conservative initial release boundaries.
 ---
 
 # Current limitations
 
-PCBoo favors explicit unsupported and incomplete results over broad claims. The most important current boundaries are summarized here; the repository README and product requirements remain the detailed authority.
+Fulmetry favors explicit unsupported and incomplete results over broad claims. The most important current boundaries are summarized here; the repository README and product requirements remain the detailed authority.
 
 ## Availability
 
-- The `pcboo` and `create-pcboo` registry packages are not published yet.
+- The `fulmetry` and `create-fulmetry` registry packages are not published yet.
 - The initial supported platform is Apple Silicon macOS with Bun 1.3.14 exactly.
 - A pinned Apple Silicon macOS CI workflow exists, but the repository README records whether its live hosted-runner authority has been observed.
 
@@ -32,7 +32,7 @@ PCBoo favors explicit unsupported and incomplete results over broad claims. The 
 
 ## Tools
 
-- PCBoo does not install ngspice or KiCad.
+- Fulmetry does not install ngspice or KiCad.
 - ngspice passage requires exact-executable qualification during the current run.
 - KiCad 10 is the initial live-supported major; KiCad 9 is detection-only.
 - Current converter output is known to produce KiCad ERC warnings, so a live interoperability fixture may correctly demonstrate an authenticated failed result rather than false passage.
@@ -47,15 +47,15 @@ PCBoo favors explicit unsupported and incomplete results over broad claims. The 
 ## Security and isolation
 
 - Verified source checks reject known nondeterministic and runtime-I/O surfaces, but they are not a sandbox for malicious project source.
-- Offline mode describes PCBoo-managed work; it does not universally contain trusted code.
+- Offline mode describes Fulmetry-managed work; it does not universally contain trusted code.
 - Project tests and selected external tools are trusted executable inputs.
 
 ## Upgrade process
 
-The initial release fixes the accepted tscircuit version. Maintainer upgrade and acceptance interfaces exist, but macOS refuses candidate execution until PCBoo has a qualified native descendant-process broker. Ordinary authoring and inspection remain available with the pinned engine.
+The initial release fixes the accepted tscircuit version. Maintainer upgrade and acceptance interfaces exist, but macOS refuses candidate execution until Fulmetry has a qualified native descendant-process broker. Ordinary authoring and inspection remain available with the pinned engine.
 
 ## Where to track future work
 
-- [Future explorations](https://github.com/pcboo-dev/pcboo/blob/main/FUTURE_EXPLORATIONS.md)
-- [Product requirements](https://github.com/pcboo-dev/pcboo/blob/main/PRODUCT_REQUIREMENTS.md)
-- [Engineering Gauntlet](https://github.com/pcboo-dev/pcboo/blob/main/GAUNTLET_PROMPT.md)
+- [Future explorations](https://github.com/Fulmetry/fulmetry/blob/main/FUTURE_EXPLORATIONS.md)
+- [Product requirements](https://github.com/Fulmetry/fulmetry/blob/main/PRODUCT_REQUIREMENTS.md)
+- [Engineering Gauntlet](https://github.com/Fulmetry/fulmetry/blob/main/GAUNTLET_PROMPT.md)

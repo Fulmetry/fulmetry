@@ -7,8 +7,8 @@ import { discoverProject } from "../src/project/discovery";
 import { PROJECT_INPUT_FILE_BYTES_LIMIT } from "../src/project/input-limits";
 import { digestProjectInputs } from "../src/project/input-digest";
 import {
-  loadPcbooLock,
-  parsePcbooLock,
+  loadFulmetryLock,
+  parseFulmetryLock,
   SUPPORTED_TSCIRCUIT_INTEGRITY,
   SUPPORTED_TSCIRCUIT_VERSION,
 } from "../src/project/lock";
@@ -35,16 +35,16 @@ function lock(overrides: Record<string, unknown> = {}): string {
 }
 
 async function project(name = "agent project ü") {
-  const parent = await mkdtemp(join(tmpdir(), "pcboo-project-"));
+  const parent = await mkdtemp(join(tmpdir(), "fulmetry-project-"));
   roots.push(parent);
   const root = join(parent, name);
   await mkdir(join(root, "circuit", "nested", "deep"), { recursive: true });
   await Bun.write(join(root, "circuit/board.tsx"), "export default []\n");
   await Bun.write(
-    join(root, "pcboo.config.ts"),
+    join(root, "fulmetry.config.ts"),
     "export default { entry: 'circuit/board.tsx', profiles: ['four-layer'] }\n",
   );
-  await Bun.write(join(root, "pcboo.lock"), lock());
+  await Bun.write(join(root, "fulmetry.lock"), lock());
   return root;
 }
 
@@ -52,28 +52,28 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true })));
 });
 
-describe("PCBoo project discovery and loading", () => {
+describe("Fulmetry project discovery and loading", () => {
   test("discovers a complete Unicode project from a descendant without executing config", async () => {
     const root = await project();
-    await Bun.write(join(root, "pcboo.config.ts"), "throw new Error('must not execute')\n");
+    await Bun.write(join(root, "fulmetry.config.ts"), "throw new Error('must not execute')\n");
     const found = await discoverProject(join(root, "circuit/nested/deep"));
     const canonicalRoot = await realpath(root);
     expect(found.root).toBe(canonicalRoot);
-    expect(found.configPath).toBe(join(canonicalRoot, "pcboo.config.ts"));
-    expect(found.lockfilePath).toBe(join(canonicalRoot, "pcboo.lock"));
+    expect(found.configPath).toBe(join(canonicalRoot, "fulmetry.config.ts"));
+    expect(found.lockfilePath).toBe(join(canonicalRoot, "fulmetry.lock"));
   });
 
   test("rejects an incomplete nearest project instead of searching past it", async () => {
     const root = await project();
     const nested = join(root, "circuit/nested");
-    await Bun.write(join(nested, "pcboo.config.ts"), "export default {}\n");
-    expect(discoverProject(join(nested, "deep"))).rejects.toThrow("Incomplete PCBoo project");
+    await Bun.write(join(nested, "fulmetry.config.ts"), "export default {}\n");
+    expect(discoverProject(join(nested, "deep"))).rejects.toThrow("Incomplete Fulmetry project");
   });
 
   test("rejects a crash-interrupted scaffold even if config and lock files are visible", async () => {
     const root = await project("partial-scaffold");
-    await Bun.write(join(root, ".pcboo-scaffold-incomplete"), "incomplete\n");
-    await expect(discoverProject(root)).rejects.toThrow("Incomplete PCBoo scaffold");
+    await Bun.write(join(root, ".fulmetry-scaffold-incomplete"), "incomplete\n");
+    await expect(discoverProject(root)).rejects.toThrow("Incomplete Fulmetry scaffold");
   });
 
   test("loads a serializable deterministic typed configuration", async () => {
@@ -81,12 +81,12 @@ describe("PCBoo project discovery and loading", () => {
     expect(await loadProjectConfig(root)).toEqual({
       schemaVersion: 1,
       entry: "circuit/board.tsx",
-      outputDirectory: ".pcboo",
+      outputDirectory: ".fulmetry",
       profiles: ["four-layer"],
     });
 
     await Bun.write(
-      join(root, "pcboo.config.ts"),
+      join(root, "fulmetry.config.ts"),
       "export default { entry: 'circuit/board.tsx', profiles: ['four-layer'], boardRevision: 'Rev_A-1' }\n",
     );
     expect((await loadProjectConfig(root)).boardRevision).toBe("Rev_A-1");
@@ -101,7 +101,7 @@ describe("PCBoo project discovery and loading", () => {
     ] as const) {
       const root = await project(`revision-${name}`);
       await Bun.write(
-        join(root, "pcboo.config.ts"),
+        join(root, "fulmetry.config.ts"),
         `export default { entry: 'circuit/board.tsx', boardRevision: ${JSON.stringify(revision)} }\n`,
       );
       await expect(loadProjectConfig(root)).rejects.toThrow(
@@ -113,7 +113,7 @@ describe("PCBoo project discovery and loading", () => {
   test("rejects nondeterministic, non-serializable, unknown, and escaping config", async () => {
     const nondeterministic = await project("random");
     await Bun.write(
-      join(nondeterministic, "pcboo.config.ts"),
+      join(nondeterministic, "fulmetry.config.ts"),
       "export default { entry: 'circuit/board.tsx', profiles: [String(Math.random())] }\n",
     );
     expect(loadProjectConfig(nondeterministic)).rejects.toThrow(
@@ -122,7 +122,7 @@ describe("PCBoo project discovery and loading", () => {
 
     const nonSerializable = await project("date");
     await Bun.write(
-      join(nonSerializable, "pcboo.config.ts"),
+      join(nonSerializable, "fulmetry.config.ts"),
       "export default { entry: 'circuit/board.tsx', value: new Date(0) }\n",
     );
     expect(loadProjectConfig(nonSerializable)).rejects.toThrow(
@@ -131,36 +131,36 @@ describe("PCBoo project discovery and loading", () => {
 
     const escaping = await project("escape");
     await Bun.write(
-      join(escaping, "pcboo.config.ts"),
+      join(escaping, "fulmetry.config.ts"),
       "export default { entry: '../outside.ts' }\n",
     );
     expect(loadProjectConfig(escaping)).rejects.toThrow("parent-relative");
 
     const environmentDriven = await project("environment");
-    process.env.PCBOO_TEST_DESIGN_INPUT = "environment-dependent-output";
+    process.env.FULMETRY_TEST_DESIGN_INPUT = "environment-dependent-output";
     try {
       await Bun.write(
-        join(environmentDriven, "pcboo.config.ts"),
-        "export default { entry: 'circuit/board.tsx', outputDirectory: process.env.PCBOO_TEST_DESIGN_INPUT ?? '.pcboo' }\n",
+        join(environmentDriven, "fulmetry.config.ts"),
+        "export default { entry: 'circuit/board.tsx', outputDirectory: process.env.FULMETRY_TEST_DESIGN_INPUT ?? '.fulmetry' }\n",
       );
       expect(loadProjectConfig(environmentDriven)).rejects.toThrow(
         "forbids undeclared runtime I/O global process",
       );
     } finally {
-      delete process.env.PCBOO_TEST_DESIGN_INPUT;
+      delete process.env.FULMETRY_TEST_DESIGN_INPUT;
     }
 
     const overlappingOutput = await project("overlapping-output");
     await Bun.write(
-      join(overlappingOutput, "pcboo.config.ts"),
+      join(overlappingOutput, "fulmetry.config.ts"),
       "export default { entry: 'circuit/board.tsx', outputDirectory: 'circuit' }\n",
     );
     expect(loadProjectConfig(overlappingOutput)).rejects.toThrow("cannot contain the circuit entry");
 
-    for (const outputDirectory of [".", "./.pcboo"]) {
+    for (const outputDirectory of [".", "./.fulmetry"]) {
       const ambiguous = await project(`ambiguous-output-${outputDirectory.length}`);
       await Bun.write(
-        join(ambiguous, "pcboo.config.ts"),
+        join(ambiguous, "fulmetry.config.ts"),
         `export default { entry: 'circuit/board.tsx', outputDirectory: ${JSON.stringify(outputDirectory)} }\n`,
       );
       expect(loadProjectConfig(ambiguous)).rejects.toThrow("dot, empty, or parent-relative");
@@ -170,7 +170,7 @@ describe("PCBoo project discovery and loading", () => {
   test("rejects clock-driven config even when adjacent evaluations share one time bucket", async () => {
     const root = await project("clock-bucket");
     await Bun.write(
-      join(root, "pcboo.config.ts"),
+      join(root, "fulmetry.config.ts"),
       "export default { entry: 'circuit/board.tsx', profiles: [String((Date.now() / 60000).toFixed(0))] }\n",
     );
 
@@ -180,7 +180,7 @@ describe("PCBoo project discovery and loading", () => {
 
     const runtimeLoader = await project("import-meta-runtime-loader");
     await Bun.write(
-      join(runtimeLoader, "pcboo.config.ts"),
+      join(runtimeLoader, "fulmetry.config.ts"),
       `void import.meta.require("node:os"); export default { entry: "circuit/board.tsx" }\n`,
     );
     expect(loadProjectConfig(runtimeLoader)).rejects.toThrow(
@@ -193,7 +193,7 @@ describe("PCBoo project discovery and loading", () => {
     const base = {
       projectRoot: root,
       entry: "circuit/board.tsx",
-      outputDirectory: ".pcboo",
+      outputDirectory: ".fulmetry",
     } as const;
     const first = await digestProjectInputs({ ...base, profiles: ["profile-a"] });
     const second = await digestProjectInputs({ ...base, profiles: ["profile-b"] });
@@ -221,9 +221,9 @@ describe("PCBoo project discovery and loading", () => {
 
   test("rejects runtime I/O config before execution without echoing hostile source values", async () => {
     const root = await project("hostile-config");
-    const secret = "pcboo-test-secret-do-not-echo";
+    const secret = "fulmetry-test-secret-do-not-echo";
     await Bun.write(
-      join(root, "pcboo.config.ts"),
+      join(root, "fulmetry.config.ts"),
       `process.stderr.write(${JSON.stringify(secret)}); throw new Error(${JSON.stringify(secret)});\n`,
     );
     let message = "";
@@ -236,11 +236,11 @@ describe("PCBoo project discovery and loading", () => {
     expect(message).not.toContain(secret);
 
     const dynamic = await project("dynamic-secret-key");
-    process.env.PCBOO_TEST_SECRET_KEY = secret;
+    process.env.FULMETRY_TEST_SECRET_KEY = secret;
     try {
       await Bun.write(
-        join(dynamic, "pcboo.config.ts"),
-        "export default { entry: 'circuit/board.tsx', [process.env.PCBOO_TEST_SECRET_KEY]: () => true };\n",
+        join(dynamic, "fulmetry.config.ts"),
+        "export default { entry: 'circuit/board.tsx', [process.env.FULMETRY_TEST_SECRET_KEY]: () => true };\n",
       );
       let dynamicMessage = "";
       try {
@@ -251,24 +251,24 @@ describe("PCBoo project discovery and loading", () => {
       expect(dynamicMessage).toContain("forbids undeclared runtime I/O global process");
       expect(dynamicMessage).not.toContain(secret);
     } finally {
-      delete process.env.PCBOO_TEST_SECRET_KEY;
+      delete process.env.FULMETRY_TEST_SECRET_KEY;
     }
   });
 
   test("bounds configuration time and output and propagates cancellation", async () => {
     const infinite = await project("infinite-config");
-    await Bun.write(join(infinite, "pcboo.config.ts"), "while (true) {}\nexport default { entry: 'circuit/board.tsx' };\n");
+    await Bun.write(join(infinite, "fulmetry.config.ts"), "while (true) {}\nexport default { entry: 'circuit/board.tsx' };\n");
     await expect(loadProjectConfig(infinite, { timeoutMs: 100 })).rejects.toThrow("exceeded 100 ms");
 
     const oversized = await project("oversized-config");
     await Bun.write(
-      join(oversized, "pcboo.config.ts"),
+      join(oversized, "fulmetry.config.ts"),
       "export default { entry: 'circuit/board.tsx', profiles: ['x'.repeat(2048)] };\n",
     );
     await expect(loadProjectConfig(oversized, { outputLimit: 1024 })).rejects.toThrow("exceeded 1024 bytes");
 
     const cancelled = await project("cancelled-config");
-    await Bun.write(join(cancelled, "pcboo.config.ts"), "while (true) {}\nexport default { entry: 'circuit/board.tsx' };\n");
+    await Bun.write(join(cancelled, "fulmetry.config.ts"), "while (true) {}\nexport default { entry: 'circuit/board.tsx' };\n");
     const controller = new AbortController();
     const pending = loadProjectConfig(cancelled, { timeoutMs: 5_000, signal: controller.signal });
     setTimeout(() => controller.abort(), 75);
@@ -279,7 +279,7 @@ describe("PCBoo project discovery and loading", () => {
     await Bun.write(helper, "");
     await truncate(helper, PROJECT_INPUT_FILE_BYTES_LIMIT + 1);
     await Bun.write(
-      join(oversizedImport, "pcboo.config.ts"),
+      join(oversizedImport, "fulmetry.config.ts"),
       "import './oversized-config-helper.ts'; export default { entry: 'circuit/board.tsx' };\n",
     );
     await expect(loadProjectConfig(oversizedImport)).rejects.toThrow(
@@ -289,16 +289,16 @@ describe("PCBoo project discovery and loading", () => {
 
   test("parses an exact versioned lock contract and rejects drift or extra fields", async () => {
     const root = await project();
-    expect((await loadPcbooLock(root)).tscircuit.version).toBe(SUPPORTED_TSCIRCUIT_VERSION);
-    expect(() => parsePcbooLock('{"schemaVersion":1,"schemaVersion":1}'))
+    expect((await loadFulmetryLock(root)).tscircuit.version).toBe(SUPPORTED_TSCIRCUIT_VERSION);
+    expect(() => parseFulmetryLock('{"schemaVersion":1,"schemaVersion":1}'))
       .toThrow("duplicate key");
-    expect(() => parsePcbooLock(lock({
+    expect(() => parseFulmetryLock(lock({
       tscircuit: { version: "999.0.0", integrity: "sha512-drift" },
     }))).toThrow(`supports tscircuit ${SUPPORTED_TSCIRCUIT_VERSION}`);
-    expect(() => parsePcbooLock(lock({
+    expect(() => parseFulmetryLock(lock({
       tscircuit: { version: SUPPORTED_TSCIRCUIT_VERSION, integrity: "sha512-drift" },
     }))).toThrow("integrity does not match");
-    expect(() => parsePcbooLock(lock({ inventedDesignIntent: true }))).toThrow(
+    expect(() => parseFulmetryLock(lock({ inventedDesignIntent: true }))).toThrow(
       "fields must be exactly",
     );
     const allowedAsset = {
@@ -311,16 +311,16 @@ describe("PCBoo project discovery and loading", () => {
       licenseNoticeDigest: `sha256:${"b".repeat(64)}`,
       redistribution: "allowed" as const,
     };
-    expect(parsePcbooLock(lock({ assets: { enclosure: allowedAsset } })).assets.enclosure)
+    expect(parseFulmetryLock(lock({ assets: { enclosure: allowedAsset } })).assets.enclosure)
       .toEqual(allowedAsset);
-    expect(() => parsePcbooLock(lock({
+    expect(() => parseFulmetryLock(lock({
       assets: { enclosure: { ...allowedAsset, redistribution: "maybe" } },
     }))).toThrow("redistribution is invalid");
-    expect(() => parsePcbooLock(lock({
+    expect(() => parseFulmetryLock(lock({
       assets: { enclosure: { ...allowedAsset, licenseNoticeDigest: "sha256:BAD" } },
     }))).toThrow("licenseNoticeDigest must be a lowercase sha256 digest");
     const { redistribution: _redistribution, ...legacyAsset } = allowedAsset;
-    expect(() => parsePcbooLock(lock({ assets: { enclosure: legacyAsset } })))
+    expect(() => parseFulmetryLock(lock({ assets: { enclosure: legacyAsset } })))
       .toThrow("fields must be exactly");
   });
 });

@@ -200,7 +200,7 @@ export async function validateCanonicalExpectation(options: {
   requireEqual("features.nonPlatedHoleCount", elements.filter((element) => element.type === "pcb_hole").length,
     expectation.features.nonPlatedHoleCount);
 
-  const lock = JSON.parse(await readFile(join(root, "pcboo.lock"), "utf8")) as { tscircuit?: { version?: unknown } };
+  const lock = JSON.parse(await readFile(join(root, "fulmetry.lock"), "utf8")) as { tscircuit?: { version?: unknown } };
   const batteryPin = expectation.compatibility.batteryVoltageBackfill;
   requireEqual("compatibility.batteryVoltageBackfill.engineVersion", lock.tscircuit?.version, batteryPin.engineVersion);
   const battery = [...sourceById.values()].find((element) => element.name === batteryPin.component);
@@ -400,7 +400,7 @@ export function manufacturingSetSha256(files: readonly { readonly path: string; 
 
 export async function canonicalInputRecords(root: string): Promise<readonly { path: string; size: number; sha256: string }[]> {
   const sourcePaths = (await listRegularFiles(join(root, "circuit"))).map((path) => `circuit/${path}`);
-  const paths = ["expectation.json", "pcboo.config.ts", "pcboo.lock", ...sourcePaths].sort();
+  const paths = ["expectation.json", "fulmetry.config.ts", "fulmetry.lock", ...sourcePaths].sort();
   return Promise.all(paths.map((path) => manifestFileRecord(root, path)));
 }
 
@@ -419,7 +419,7 @@ export async function validateCanonicalManifest(options: {
   };
   requireEqual("schemaVersion", manifest.schemaVersion, 1);
   requireEqual("fixtureName", manifest.fixtureName, name);
-  const lock = JSON.parse(await readFile(join(root, "pcboo.lock"), "utf8")) as {
+  const lock = JSON.parse(await readFile(join(root, "fulmetry.lock"), "utf8")) as {
     tscircuit: { version: string; integrity: string }; adapters: Record<string, string>;
   };
   requireEqual("tscircuit.version", manifest.tscircuit.version, lock.tscircuit.version);

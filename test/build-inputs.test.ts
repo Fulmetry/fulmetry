@@ -10,19 +10,19 @@ import {
 const roots: string[] = [];
 
 async function project() {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-inputs-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-inputs-"));
   roots.push(root);
   await mkdir(join(root, "circuits", "démo board"), { recursive: true });
   await Bun.write(join(root, "circuits", "démo board", "board.tsx"), "export const Board = 1\n");
-  await Bun.write(join(root, "pcboo.config.ts"), "export default {}\n");
-  await Bun.write(join(root, "pcboo.lock"), "version = 1\n");
+  await Bun.write(join(root, "fulmetry.config.ts"), "export default {}\n");
+  await Bun.write(join(root, "fulmetry.lock"), "version = 1\n");
   return root;
 }
 
 const descriptors = [
   { path: "circuits/démo board/board.tsx", role: "source" as const },
-  { path: "pcboo.config.ts", role: "config" as const },
-  { path: "pcboo.lock", role: "lockfile" as const },
+  { path: "fulmetry.config.ts", role: "config" as const },
+  { path: "fulmetry.lock", role: "lockfile" as const },
 ];
 
 afterEach(async () => {
@@ -49,7 +49,7 @@ describe("build input snapshots", () => {
   test("detects stale source, config, and lockfile bytes", async () => {
     const root = await project();
     const snapshot = await createBuildInputSnapshot({ projectRoot: root, inputs: descriptors });
-    await Bun.write(join(root, "pcboo.config.ts"), "export default { changed: true }\n");
+    await Bun.write(join(root, "fulmetry.config.ts"), "export default { changed: true }\n");
 
     const refreshed = await refreshBuildInputSnapshot(root, snapshot);
     expect(refreshed.digest).not.toBe(snapshot.digest);
@@ -62,7 +62,7 @@ describe("build input snapshots", () => {
         projectRoot: root,
         inputs: descriptors.filter(({ role }) => role !== "config"),
       }),
-    ).rejects.toThrow("pcboo.config.ts as its sole config");
+    ).rejects.toThrow("fulmetry.config.ts as its sole config");
     await Bun.write(join(root, "decoy-config.ts"), "export default {}\n");
     await expect(
       createBuildInputSnapshot({
@@ -71,7 +71,7 @@ describe("build input snapshots", () => {
           ? { path: "decoy-config.ts", role: "config" as const }
           : descriptor),
       }),
-    ).rejects.toThrow("pcboo.config.ts as its sole config");
+    ).rejects.toThrow("fulmetry.config.ts as its sole config");
     await Bun.write(join(root, "decoy.lock"), "version = 1\n");
     await expect(
       createBuildInputSnapshot({
@@ -80,7 +80,7 @@ describe("build input snapshots", () => {
           ? { path: "decoy.lock", role: "lockfile" as const }
           : descriptor),
       }),
-    ).rejects.toThrow("pcboo.lock as its sole lockfile");
+    ).rejects.toThrow("fulmetry.lock as its sole lockfile");
     await expect(
       createBuildInputSnapshot({
         projectRoot: root,

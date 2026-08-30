@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { lstat, mkdir, mkdtemp, realpath } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -41,7 +41,7 @@ export interface FreeroutingDsnArtifact {
 
 export interface FreeroutingRunOptions {
   readonly circuitJson: readonly AnyCircuitElement[];
-  /** Existing PCBoo run directory. The adapter creates one fresh child. */
+  /** Existing Fulmetry run directory. The adapter creates one fresh child. */
   readonly runDirectory: string;
   readonly clearanceMm: number;
   readonly jarPath: string;
@@ -62,7 +62,7 @@ export interface FreeroutingCandidate {
   readonly candidateCircuitJson?: readonly AnyCircuitElement[];
   readonly evidence: Readonly<{
     schemaVersion: 1;
-    adapter: { name: "pcboo-freerouting"; version: typeof FREEROUTING_ADAPTER_VERSION };
+    adapter: { name: "fulmetry-freerouting"; version: typeof FREEROUTING_ADAPTER_VERSION };
     tool: { name: "freerouting"; version: string; jarSha256: string };
     java?: { version: string; executableSha256: string };
     limits: { heapMb: number; threads: number; maxPasses: number; maxElements: number; timeoutMs: number };
@@ -418,7 +418,7 @@ export async function runFreeroutingCandidate(
   options: FreeroutingRunOptions,
 ): Promise<Readonly<FreeroutingCandidate>> {
   if (options.freeroutingVersion !== FREEROUTING_SUPPORTED_VERSION) {
-    throw new TypeError(`PCBoo qualifies Freerouting ${FREEROUTING_SUPPORTED_VERSION}`);
+    throw new TypeError(`Fulmetry qualifies Freerouting ${FREEROUTING_SUPPORTED_VERSION}`);
   }
   const heapMb = boundedInteger(options.heapMb ?? FREEROUTING_DEFAULT_HEAP_MB, 128, 4_096, "Freerouting heap");
   const threads = boundedInteger(options.threads ?? 1, 1, 4, "Freerouting thread count");
@@ -440,7 +440,7 @@ export async function runFreeroutingCandidate(
   const jar = await requireRegularJar(options.jarPath, options.jarSha256);
   const baseEvidence = {
     schemaVersion: 1 as const,
-    adapter: { name: "pcboo-freerouting" as const, version: FREEROUTING_ADAPTER_VERSION },
+    adapter: { name: "fulmetry-freerouting" as const, version: FREEROUTING_ADAPTER_VERSION },
     tool: { name: "freerouting" as const, version: options.freeroutingVersion, jarSha256: jar.sha256 },
     limits: { heapMb, threads, maxPasses, maxElements, timeoutMs },
     input: { dsnSha256: dsn.dsnSha256, circuitSha256, clearanceMm: dsn.clearanceMm, layerNames: dsn.layerNames },
@@ -594,7 +594,7 @@ export async function runFreeroutingCandidate(
   };
   return Object.freeze({
     state: "candidate",
-    message: "Freerouting produced a bounded candidate; PCBoo checks and source promotion are still required",
+    message: "Freerouting produced a bounded candidate; Fulmetry checks and source promotion are still required",
     candidateCircuitJson: Object.freeze(candidateCircuitJson),
     evidence: Object.freeze({ ...evidenceWithJava, output }),
     directory: resolve(directory),

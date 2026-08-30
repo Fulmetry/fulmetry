@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { startInspectionServer, type InspectionServer } from "../server";
 import { requireSupportedBunRuntime } from "../runtime";
@@ -41,7 +41,7 @@ export async function startDevCommand(options: {
       if (port !== undefined) throw new TypeError("--port may be specified only once");
       port = parsePort(options.argv[++index]);
     } else {
-      throw new TypeError(`Unknown pcboo dev argument: ${argument}`);
+      throw new TypeError(`Unknown fulmetry dev argument: ${argument}`);
     }
   }
   requireSupportedBunRuntime();
@@ -52,7 +52,7 @@ export async function startDevCommand(options: {
   });
   const payload = Object.freeze({
     schemaVersion: "1" as const,
-    command: "pcboo dev" as const,
+    command: "fulmetry dev" as const,
     protocol: "http" as const,
     url: server.url.href,
     hostname: server.hostname,
@@ -63,7 +63,7 @@ export async function startDevCommand(options: {
   const stdout = json
     ? `${JSON.stringify(payload, null, 2)}\n`
     : [
-        `PCBoo inspection: ${server.url.href}`,
+        `Fulmetry inspection: ${server.url.href}`,
         ...server.warnings.map(({ code, message }) => `${code}: ${message}`),
         "Fixed inspection and derived-action routes; authored source is never edited. Press Ctrl-C to stop.",
         "",

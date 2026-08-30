@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import {
   Activity,
@@ -75,13 +75,13 @@ function StatusBeacon({ project }: { project: ProjectResponse }) {
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return <AppLink href="/" className="flex min-w-0 items-center gap-3">
-    <span className={cn("pcboo-spectrum-mark shrink-0", compact && "is-compact")} aria-hidden="true"><i /><i /><i /></span>
-    <div className="min-w-0"><p className={cn("truncate font-bold tracking-[-0.045em] text-white", compact ? "text-lg" : "text-xl")}>PCBoo</p><p className="-mt-0.5 truncate font-mono text-[8px] font-medium uppercase tracking-[0.2em] text-[#87928c]">Circuit workbench</p></div>
+    <span className={cn("fulmetry-spectrum-mark shrink-0", compact && "is-compact")} aria-hidden="true"><i /><i /><i /></span>
+    <div className="min-w-0"><p className={cn("truncate font-bold tracking-[-0.045em] text-white", compact ? "text-lg" : "text-xl")}>Fulmetry</p><p className="-mt-0.5 truncate font-mono text-[8px] font-medium uppercase tracking-[0.2em] text-[#87928c]">Circuit workbench</p></div>
   </AppLink>;
 }
 
 function WorkspaceNavigation({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
-  return <nav className="grid gap-1.5" aria-label="PCBoo workspace">
+  return <nav className="grid gap-1.5" aria-label="Fulmetry workspace">
     {navigation.map((item) => {
       const Icon = item.icon;
       const selected = matches(pathname, item.href);
@@ -128,7 +128,7 @@ export function Shell({ pathname, project, children }: { pathname: string; proje
       {mobileOpen && <><button className="fixed inset-0 top-14 z-30 bg-black/70 lg:hidden" aria-label="Close navigation overlay" onClick={() => setMobileOpen(false)} /><aside className="fixed inset-y-0 left-0 top-14 z-40 flex w-72 flex-col border-r border-white/10 bg-[#0e1110] p-4 shadow-2xl lg:hidden"><p className="mb-3 px-3 text-[10px] font-black uppercase tracking-[0.16em] text-[#6f6962]">Views</p><WorkspaceNavigation pathname={pathname} onNavigate={() => setMobileOpen(false)} /><div className="mt-auto rounded-xl border border-white/10 bg-[#141816] p-3"><StatusBeacon project={project} /></div></aside></>}
 
       {project.server.warnings.length > 0 && <div className="shrink-0 border-b border-orange-500/30 bg-orange-500/10 px-4 py-2 text-xs text-orange-100 sm:px-6">{project.server.warnings.map((warning) => <span key={warning.code} className="mr-4"><strong>{warning.code}</strong> — {warning.message}</span>)}</div>}
-      <main className={cn("min-h-0 flex-1 overscroll-contain", immersiveDesign ? "overflow-hidden p-2 sm:p-2.5" : "overflow-y-auto p-4 sm:p-6 lg:p-7")} data-pcboo-workspace-pane>{children}</main>
+      <main className={cn("min-h-0 flex-1 overscroll-contain", immersiveDesign ? "overflow-hidden p-2 sm:p-2.5" : "overflow-y-auto p-4 sm:p-6 lg:p-7")} data-fulmetry-workspace-pane>{children}</main>
     </div>
   </div>;
 }
@@ -145,5 +145,5 @@ export function MobileSectionNav({ pathname }: { pathname: string }) {
 }
 
 export function ProductMark() {
-  return <span className="inline-flex items-center gap-2"><Boxes size={16} className="text-orange-400" /> PCBoo workspace</span>;
+  return <span className="inline-flex items-center gap-2"><Boxes size={16} className="text-orange-400" /> Fulmetry workspace</span>;
 }

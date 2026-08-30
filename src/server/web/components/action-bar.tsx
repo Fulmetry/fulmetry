@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { CheckCircle2, Cpu, Factory, LoaderCircle, Play } from "lucide-react";
 import { useState } from "react";

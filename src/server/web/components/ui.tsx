@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -29,7 +29,7 @@ export function Button({ className, variant, size, ...props }: ButtonHTMLAttribu
 }
 
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <section data-pcboo-card className={cn("rounded-[18px] border border-white/[0.12] bg-[#141816] shadow-[0_18px_40px_rgba(0,0,0,.24)]", className)} {...props} />;
+  return <section data-fulmetry-card className={cn("rounded-[18px] border border-white/[0.12] bg-[#141816] shadow-[0_18px_40px_rgba(0,0,0,.24)]", className)} {...props} />;
 }
 
 export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {

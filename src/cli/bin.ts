@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 
 import { argumentFailure, runCli, unsupportedBunRuntimeRun } from "./runner";
@@ -18,7 +18,7 @@ export async function main(argv: readonly string[] = Bun.argv.slice(2)): Promise
       if (error instanceof UnsupportedBunRuntimeError) {
         const failure = unsupportedBunRuntimeRun(
           argv.includes("--json"),
-          "pcboo dev",
+          "fulmetry dev",
         );
         if (failure.stdout) await Bun.write(Bun.stdout, failure.stdout);
         if (failure.stderr) await Bun.write(Bun.stderr, failure.stderr);
@@ -27,7 +27,7 @@ export async function main(argv: readonly string[] = Bun.argv.slice(2)): Promise
       const failure = argumentFailure(
         error instanceof Error ? error.message : String(error),
         argv.includes("--json"),
-        "pcboo dev",
+        "fulmetry dev",
       );
       if (failure.stdout) await Bun.write(Bun.stdout, failure.stdout);
       if (failure.stderr) await Bun.write(Bun.stderr, failure.stderr);

@@ -72,7 +72,7 @@ async function writeSmokeTestbench(root: string, modelDigest: string, expected =
 }
 
 async function project(): Promise<{ root: string; entry: string }> {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-server-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-server-"));
   roots.push(root);
   await mkdir(join(root, "src", "nested"), { recursive: true });
   await mkdir(join(root, "simulations"));
@@ -93,10 +93,10 @@ async function project(): Promise<{ root: string; entry: string }> {
   const modelDigest = `sha256:${new Bun.CryptoHasher("sha256").update(model).digest("hex")}`;
   await writeSmokeTestbench(root, modelDigest);
   await Bun.write(
-    join(root, "pcboo.config.ts"),
-    "export default { entry: 'src/board.ts', outputDirectory: '.pcboo' }\n",
+    join(root, "fulmetry.config.ts"),
+    "export default { entry: 'src/board.ts', outputDirectory: '.fulmetry' }\n",
   );
-  await Bun.write(join(root, "pcboo.lock"), lock());
+  await Bun.write(join(root, "fulmetry.lock"), lock());
   return { root, entry };
 }
 
@@ -129,7 +129,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true })));
 });
 
-describe("fixed PCBoo inspection and action server", () => {
+describe("fixed Fulmetry inspection and action server", () => {
   test("binds to loopback on an ephemeral port and serves every fixed route", async () => {
     const { root } = await project();
     const server = await start(root);
@@ -189,7 +189,7 @@ describe("fixed PCBoo inspection and action server", () => {
       { type: "cad_component", cad_component_id: "cad_component_1", pcb_component_id: "pcb_component_1", source_component_id: "source_component_1", position: { x: 1, y: 2, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, model_origin_alignment: "center_of_component_on_board_surface", anchor_alignment: "center_of_component_on_board_surface", footprinter_string: "res0603" }
     ]\n`);
     const policyWithoutDigest = {
-      name: "pcboo-recorded-sourcing",
+      name: "fulmetry-recorded-sourcing",
       version: "1.0.0",
       maxAgeSeconds: 4,
       maxFutureSkewSeconds: 300,
@@ -227,7 +227,7 @@ describe("fixed PCBoo inspection and action server", () => {
         },
       },
     };
-    await Bun.write(join(root, "pcboo.lock"), `${JSON.stringify(lockDocument, null, 2)}\n`);
+    await Bun.write(join(root, "fulmetry.lock"), `${JSON.stringify(lockDocument, null, 2)}\n`);
 
     const server = await start(root);
     const before = await (await fetch(new URL("/api/checks", server.url))).json() as any;
@@ -237,7 +237,7 @@ describe("fixed PCBoo inspection and action server", () => {
       method: "POST",
       headers: {
         Origin: server.url.origin,
-        "X-PCBoo-Action-Token": server.actionToken,
+        "X-Fulmetry-Action-Token": server.actionToken,
         "Content-Type": "application/json",
       },
       body: "{}",
@@ -488,7 +488,7 @@ describe("fixed PCBoo inspection and action server", () => {
       method: "POST",
       headers: {
         Origin: server.url.origin,
-        "X-PCBoo-Action-Token": server.actionToken,
+        "X-Fulmetry-Action-Token": server.actionToken,
         "Content-Type": "application/json",
       },
       body: "{}",
@@ -511,9 +511,9 @@ describe("fixed PCBoo inspection and action server", () => {
     const pcb = await fetch(new URL("/pcb", server.url));
     const html = await pcb.text();
     expect(html).toContain('id="root"');
-    expect(html).toMatch(/\/assets\/pcboo-app-[a-z0-9]+\.js/u);
+    expect(html).toMatch(/\/assets\/fulmetry-app-[a-z0-9]+\.js/u);
     expect(html).toContain("circuit sha256:");
-    const scriptPath = html.match(/src="(\/assets\/pcboo-app-[a-z0-9]+\.js)"/u)?.[1];
+    const scriptPath = html.match(/src="(\/assets\/fulmetry-app-[a-z0-9]+\.js)"/u)?.[1];
     expect(scriptPath).toBeDefined();
     const script = await fetch(new URL(scriptPath!, server.url));
     expect(script.headers.get("content-type")).toMatch(/^text\/javascript/);
@@ -547,13 +547,13 @@ describe("fixed PCBoo inspection and action server", () => {
     const noticeDigest = `sha256:${new Bun.CryptoHasher("sha256").update(notice).digest("hex")}`;
     await Bun.write(join(root, "models", "assembly.glb"), model);
     await Bun.write(join(root, "models", "LICENSE.txt"), notice);
-    await Bun.write(join(root, "pcboo.lock"), lock({
+    await Bun.write(join(root, "fulmetry.lock"), lock({
       assembly: {
         source: "https://example.invalid/assembly.glb",
         version: "fixture-1",
         digest,
         license: "CC0-1.0",
-        attribution: "PCBoo test fixture",
+        attribution: "Fulmetry test fixture",
         licenseNotice: "models/LICENSE.txt",
         licenseNoticeDigest: noticeDigest,
         redistribution: "allowed",
@@ -572,7 +572,7 @@ describe("fixed PCBoo inspection and action server", () => {
     await Bun.write(join(root, "models", "assembly.glb"), new Uint8Array([...model, 1]));
     const changed = await fetch(new URL("/models/assembly.glb", server.url));
     expect(changed.status).toBe(409);
-    expect(await changed.text()).toContain("Model bytes are not approved by pcboo.lock.assets");
+    expect(await changed.text()).toContain("Model bytes are not approved by fulmetry.lock.assets");
   });
 
   test("publishes verified engine identity without filesystem locations", async () => {
@@ -595,7 +595,7 @@ describe("fixed PCBoo inspection and action server", () => {
   test("refuses clock-driven resolved configuration instead of serving unstable freshness", async () => {
     const { root } = await project();
     await Bun.write(
-      join(root, "pcboo.config.ts"),
+      join(root, "fulmetry.config.ts"),
       "export default { entry: 'src/board.ts', profiles: [String((Date.now() / 60000).toFixed(0))] }\n",
     );
 
@@ -619,7 +619,7 @@ describe("fixed PCBoo inspection and action server", () => {
   test("rejects reflective runtime recovery in resolved configuration", async () => {
     const { root } = await project();
     await Bun.write(
-      join(root, "pcboo.config.ts"),
+      join(root, "fulmetry.config.ts"),
       `const F=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(()=>{}),"constructor").value;void F;export default {entry:"src/board.ts"}\n`,
     );
 
@@ -691,7 +691,7 @@ describe("fixed PCBoo inspection and action server", () => {
       headers: {
         Host: `evil.test:${server.port}`,
         Origin: hostileOrigin,
-        "X-PCBoo-Action-Token": server.actionToken,
+        "X-Fulmetry-Action-Token": server.actionToken,
         "Content-Type": "application/json",
       },
       body: "{}",
@@ -710,7 +710,7 @@ describe("fixed PCBoo inspection and action server", () => {
       method: "POST",
       headers: {
         Origin: server.url.origin,
-        "X-PCBoo-Action-Token": server.actionToken,
+        "X-Fulmetry-Action-Token": server.actionToken,
         "Content-Type": "application/json",
       },
       body: "{}",
@@ -787,7 +787,7 @@ describe("fixed PCBoo inspection and action server", () => {
 
   test("converges on the last rapid change while concurrent readers observe digest-bound snapshots", async () => {
     const { root, entry } = await project();
-    await mkdir(join(root, ".pcboo"), { recursive: true });
+    await mkdir(join(root, ".fulmetry"), { recursive: true });
     const server = await start(root, { watchDebounceMs: 20 });
     const initialCircuit = await (await fetch(new URL("/api/circuit", server.url))).json() as {
       elements: AnyCircuitElement[];
@@ -949,7 +949,7 @@ describe("fixed PCBoo inspection and action server", () => {
     );
     const actionHeaders = {
       Origin: server.url.origin,
-      "X-PCBoo-Action-Token": server.actionToken,
+      "X-Fulmetry-Action-Token": server.actionToken,
       "Content-Type": "application/json",
     };
     const assertPendingAdmission = async () => {
@@ -1020,7 +1020,7 @@ describe("fixed PCBoo inspection and action server", () => {
     };
     const headers = {
       Origin: server.url.origin,
-      "X-PCBoo-Action-Token": initial.server.actionToken,
+      "X-Fulmetry-Action-Token": initial.server.actionToken,
       "Content-Type": "application/json",
     };
     expect((await fetch(new URL("/api/actions/check", server.url), {
@@ -1047,7 +1047,7 @@ describe("fixed PCBoo inspection and action server", () => {
       expect(stale.status, route).toBe(409);
       const text = await stale.text();
       expect(text, route).toContain("Stored artifact evidence changed");
-      expect(text, route).not.toContain(".pcboo/runs/");
+      expect(text, route).not.toContain(".fulmetry/runs/");
     }
     const staleInspection = await (await fetch(new URL("/api/inspect?name=R1", server.url))).json() as {
       snapshot: { state: string };
@@ -1085,7 +1085,7 @@ describe("fixed PCBoo inspection and action server", () => {
     const expectedAuthority = await digestProjectInputs({
       projectRoot: root,
       entry: "src/board.ts",
-      outputDirectory: ".pcboo",
+      outputDirectory: ".fulmetry",
       profiles: [],
     });
     expect(expectedAuthority.inputPaths).toContain("scratch/deep/new-authority.txt");
@@ -1113,7 +1113,7 @@ describe("fixed PCBoo inspection and action server", () => {
     };
     const headers = {
       Origin: server.url.origin,
-      "X-PCBoo-Action-Token": initial.server.actionToken,
+      "X-Fulmetry-Action-Token": initial.server.actionToken,
       "Content-Type": "application/json",
     };
     let release!: () => void;
@@ -1154,7 +1154,7 @@ describe("fixed PCBoo inspection and action server", () => {
     const server = await start(root, { actionBodyTimeoutMs: 100 });
     const headers = {
       Origin: server.url.origin,
-      "X-PCBoo-Action-Token": server.actionToken,
+      "X-Fulmetry-Action-Token": server.actionToken,
       "Content-Type": "application/json",
     };
     const stalledBody = () => new ReadableStream<Uint8Array>({
@@ -1193,7 +1193,7 @@ describe("fixed PCBoo inspection and action server", () => {
     const projectUrl = new URL("/api/project", server.url);
     const initial = await (await fetch(projectUrl)).json() as { snapshot: { revision: number }; server: { actionToken: string } };
     const action = new URL("/api/actions/build", server.url);
-    const actionHeaders = { Origin: server.url.origin, "X-PCBoo-Action-Token": initial.server.actionToken, "Content-Type": "application/json" };
+    const actionHeaders = { Origin: server.url.origin, "X-Fulmetry-Action-Token": initial.server.actionToken, "Content-Type": "application/json" };
     expect((await fetch(action, { method: "POST", body: "{}" })).status).toBe(403);
     expect((await fetch(action, {
       method: "POST",
@@ -1206,7 +1206,7 @@ describe("fixed PCBoo inspection and action server", () => {
       body: "{}",
     });
     expect(built.status).toBe(200);
-    expect(await built.json()).toMatchObject({ result: { command: "pcboo build", exitClassification: "success" } });
+    expect(await built.json()).toMatchObject({ result: { command: "fulmetry build", exitClassification: "success" } });
     expect(Buffer.compare(before, await readFile(entry))).toBe(0);
     await Bun.sleep(250);
     const after = await (await fetch(projectUrl)).json() as { snapshot: { revision: number } };
@@ -1215,14 +1215,14 @@ describe("fixed PCBoo inspection and action server", () => {
     expect(artifacts.artifacts.map(({ kind }) => kind)).toContain("circuit-json");
     const checked = await fetch(new URL("/api/actions/check", server.url), { method: "POST", headers: actionHeaders, body: "{}" });
     expect(checked.status).toBe(200);
-    expect(await checked.json()).toMatchObject({ result: { command: "pcboo check", requestedDimensions: ["electrical", "fabrication"] } });
+    expect(await checked.json()).toMatchObject({ result: { command: "fulmetry check", requestedDimensions: ["electrical", "fabrication"] } });
     const simulated = await fetch(new URL("/api/actions/simulate", server.url), { method: "POST", headers: actionHeaders, body: JSON.stringify({ name: "smoke" }) });
     expect(simulated.status).toBe(200);
-    expect(await simulated.json()).toMatchObject({ result: { command: "pcboo simulate smoke", requestedDimensions: ["functional"] } });
+    expect(await simulated.json()).toMatchObject({ result: { command: "fulmetry simulate smoke", requestedDimensions: ["functional"] } });
     const exported = await fetch(new URL("/api/actions/export-kicad", server.url), { method: "POST", headers: actionHeaders, body: "{}" });
     expect(exported.status).toBe(200);
     const exportedBody = await exported.json() as { result: { command: string; exitClassification: string; project: { sourceDigest: string }; artifacts: Array<{ kind: string; path: string }> } };
-    expect(exportedBody.result).toMatchObject({ command: "pcboo export kicad", exitClassification: "incomplete" });
+    expect(exportedBody.result).toMatchObject({ command: "fulmetry export kicad", exitClassification: "incomplete" });
     const handoffReport = exportedBody.result.artifacts.find(({ kind }) => kind === "kicad-handoff-report");
     expect(handoffReport).toBeDefined();
     const liveReport = JSON.parse(await Bun.file(join(root, handoffReport!.path)).text());
@@ -1242,7 +1242,7 @@ describe("fixed PCBoo inspection and action server", () => {
     const checks = await (await fetch(new URL("/api/checks", server.url))).json() as { statuses: Record<string, { state: string }>; lastAction: { command: string } };
     expect(checks.statuses.electrical?.state).not.toBe("not-run");
     expect(["unavailable", "incomplete"]).toContain(checks.statuses.functional!.state);
-    expect(checks.lastAction.command).toBe("pcboo export kicad");
+    expect(checks.lastAction.command).toBe("fulmetry export kicad");
   }, 120_000);
 
   test("live-syncs verification evidence written by an external CLI action", async () => {
@@ -1274,7 +1274,7 @@ describe("fixed PCBoo inspection and action server", () => {
 
     const checks = await (await fetch(new URL("/api/checks", server.url))).json() as any;
     expect(checks.lastAction).toMatchObject({
-      command: "pcboo check",
+      command: "fulmetry check",
       runId: "external-live-sync",
     });
     expect(checks.evidenceActions).toEqual(expect.arrayContaining([
@@ -1294,7 +1294,7 @@ describe("fixed PCBoo inspection and action server", () => {
     });
     const headers = {
       Origin: server.url.origin,
-      "X-PCBoo-Action-Token": server.actionToken,
+      "X-Fulmetry-Action-Token": server.actionToken,
       "Content-Type": "application/json",
     };
     const action = await fetch(new URL("/api/actions/build", server.url), {
@@ -1313,9 +1313,9 @@ describe("fixed PCBoo inspection and action server", () => {
       const { root } = await project();
       const server = await start(root, {
         beforeActionPublication: async () => {
-          const runIds = await readdir(join(root, ".pcboo", "runs"));
+          const runIds = await readdir(join(root, ".fulmetry", "runs"));
           if (runIds.length !== 1) throw new Error("Expected exactly one action run");
-          const runDirectory = join(root, ".pcboo", "runs", runIds[0]!);
+          const runDirectory = join(root, ".fulmetry", "runs", runIds[0]!);
           const target = join(runDirectory, targetName);
           if (attack === "bytes") {
             await Bun.write(target, `mutated ${targetName} before publication\n`);
@@ -1329,7 +1329,7 @@ describe("fixed PCBoo inspection and action server", () => {
         method: "POST",
         headers: {
           Origin: server.url.origin,
-          "X-PCBoo-Action-Token": server.actionToken,
+          "X-Fulmetry-Action-Token": server.actionToken,
           "Content-Type": "application/json",
         },
         body: "{}",
@@ -1371,7 +1371,7 @@ describe("fixed PCBoo inspection and action server", () => {
       method: "POST",
       headers: {
         Origin: server.url.origin,
-        "X-PCBoo-Action-Token": server.actionToken,
+        "X-Fulmetry-Action-Token": server.actionToken,
         "Content-Type": "application/json",
       },
       body: "{}",
@@ -1412,7 +1412,7 @@ describe("fixed PCBoo inspection and action server", () => {
         sourcing: { state: "unchecked" },
       },
     });
-    expect((await readdir(join(root, ".pcboo", "runs"))).length).toBe(1);
+    expect((await readdir(join(root, ".fulmetry", "runs"))).length).toBe(1);
   }, 120_000);
 
   test("client cancellation at the final publication boundary commits no action authority", async () => {
@@ -1436,7 +1436,7 @@ describe("fixed PCBoo inspection and action server", () => {
       method: "POST",
       headers: {
         Origin: server.url.origin,
-        "X-PCBoo-Action-Token": server.actionToken,
+        "X-Fulmetry-Action-Token": server.actionToken,
         "Content-Type": "application/json",
       },
       body: "{}",
@@ -1470,7 +1470,7 @@ describe("fixed PCBoo inspection and action server", () => {
       evidence: { state: "none" },
       lastAction: null,
     });
-    expect((await readdir(join(root, ".pcboo", "runs"))).length).toBe(1);
+    expect((await readdir(join(root, ".fulmetry", "runs"))).length).toBe(1);
   }, 120_000);
 
   test.skipIf(process.platform === "win32")(
@@ -1481,7 +1481,7 @@ describe("fixed PCBoo inspection and action server", () => {
         entry,
         `export default ${canonicalCircuitJson(await manufacturingFixture(2)).trim()}\n`,
       );
-      const toolRoot = await mkdtemp(join(tmpdir(), "pcboo-server-cancel-kicad-"));
+      const toolRoot = await mkdtemp(join(tmpdir(), "fulmetry-server-cancel-kicad-"));
       roots.push(toolRoot);
       const executable = join(toolRoot, "kicad-cli");
       const childPidPath = join(toolRoot, "child.pid");
@@ -1498,7 +1498,7 @@ describe("fixed PCBoo inspection and action server", () => {
         method: "POST",
         headers: {
           Origin: server.url.origin,
-          "X-PCBoo-Action-Token": server.actionToken,
+          "X-Fulmetry-Action-Token": server.actionToken,
           "Content-Type": "application/json",
         },
         body: "{}",
@@ -1564,7 +1564,7 @@ describe("fixed PCBoo inspection and action server", () => {
         evidence: { state: "none" },
         artifacts: [],
       });
-      expect((await readdir(join(root, ".pcboo", "runs"))).length).toBe(1);
+      expect((await readdir(join(root, ".fulmetry", "runs"))).length).toBe(1);
     },
     120_000,
   );
@@ -1580,7 +1580,7 @@ describe("fixed PCBoo inspection and action server", () => {
       method: "POST",
       headers: {
         Origin: server.url.origin,
-        "X-PCBoo-Action-Token": server.actionToken,
+        "X-Fulmetry-Action-Token": server.actionToken,
         "Content-Type": "application/json",
       },
       body: "{}",
@@ -1601,7 +1601,7 @@ describe("fixed PCBoo inspection and action server", () => {
     });
     const headers = {
       Origin: server.url.origin,
-      "X-PCBoo-Action-Token": server.actionToken,
+      "X-Fulmetry-Action-Token": server.actionToken,
       "Content-Type": "application/json",
     };
     const action = await fetch(new URL("/api/actions/export-kicad", server.url), {
@@ -1624,7 +1624,7 @@ describe("fixed PCBoo inspection and action server", () => {
       const server = await start(root);
       const headers = {
         Origin: server.url.origin,
-        "X-PCBoo-Action-Token": server.actionToken,
+        "X-Fulmetry-Action-Token": server.actionToken,
         "Content-Type": "application/json",
       };
       const action = await fetch(new URL("/api/actions/build", server.url), {
@@ -1659,7 +1659,7 @@ describe("fixed PCBoo inspection and action server", () => {
 
   test.skipIf(process.platform === "win32")("guards retained simulation artifacts on every simulation route", async () => {
     const { root } = await project();
-    const toolRoot = await mkdtemp(join(tmpdir(), "pcboo-server-ngspice-artifacts-"));
+    const toolRoot = await mkdtemp(join(tmpdir(), "fulmetry-server-ngspice-artifacts-"));
     roots.push(toolRoot);
     const executable = join(toolRoot, "ngspice");
     const raw = [
@@ -1671,7 +1671,7 @@ describe("fixed PCBoo inspection and action server", () => {
     const server = await start(root, { externalToolPaths: { ngspice: executable } });
     const headers = {
       Origin: server.url.origin,
-      "X-PCBoo-Action-Token": server.actionToken,
+      "X-Fulmetry-Action-Token": server.actionToken,
       "Content-Type": "application/json",
     };
     const action = await fetch(new URL("/api/actions/simulate", server.url), {
@@ -1701,7 +1701,7 @@ describe("fixed PCBoo inspection and action server", () => {
       const server = await start(root);
       const headers = {
         Origin: server.url.origin,
-        "X-PCBoo-Action-Token": server.actionToken,
+        "X-Fulmetry-Action-Token": server.actionToken,
         "Content-Type": "application/json",
       };
       const action = await fetch(new URL("/api/actions/build", server.url), {
@@ -1739,7 +1739,7 @@ describe("fixed PCBoo inspection and action server", () => {
     const server = await start(root, { externalToolPaths: { ngspice: null } });
     const headers = {
       Origin: server.url.origin,
-      "X-PCBoo-Action-Token": server.actionToken,
+      "X-Fulmetry-Action-Token": server.actionToken,
       "Content-Type": "application/json",
     };
     const action = await fetch(new URL("/api/actions/simulate", server.url), {
@@ -1769,7 +1769,7 @@ describe("fixed PCBoo inspection and action server", () => {
       snapshot: { revision: number; projectDigest: string };
       server: { actionToken: string };
     };
-    const headers = { Origin: server.url.origin, "X-PCBoo-Action-Token": initial.server.actionToken, "Content-Type": "application/json" };
+    const headers = { Origin: server.url.origin, "X-Fulmetry-Action-Token": initial.server.actionToken, "Content-Type": "application/json" };
     const action = await fetch(new URL("/api/actions/simulate", server.url), {
       method: "POST", headers, body: JSON.stringify({ name: "smoke" }),
     });

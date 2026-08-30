@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { appendFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -12,12 +12,12 @@ import net from "node:net";
 import tls from "node:tls";
 import { mock } from "bun:test";
 
-const configuredLogPath = process.env.PCBOO_NETWORK_OBSERVER_LOG;
+const configuredLogPath = process.env.FULMETRY_NETWORK_OBSERVER_LOG;
 if (configuredLogPath === undefined || configuredLogPath.length === 0) {
-  throw new Error("PCBOO_NETWORK_OBSERVER_LOG is required by the network observer preload");
+  throw new Error("FULMETRY_NETWORK_OBSERVER_LOG is required by the network observer preload");
 }
 const logPath: string = configuredLogPath;
-const readyLogPath = process.env.PCBOO_NETWORK_OBSERVER_READY_LOG;
+const readyLogPath = process.env.FULMETRY_NETWORK_OBSERVER_READY_LOG;
 if (readyLogPath !== undefined && readyLogPath.length > 0) {
   appendFileSync(readyLogPath, `${JSON.stringify({ pid: process.pid, ppid: process.ppid })}\n`, {
     encoding: "utf8",
@@ -38,7 +38,7 @@ function block(kind: string, values: readonly unknown[]): never {
   appendFileSync(logPath, `${JSON.stringify({ kind, target: boundedTarget(values) })}\n`, {
     encoding: "utf8",
   });
-  throw new Error(`PCBOO_NETWORK_EGRESS_OBSERVED: ${kind}`);
+  throw new Error(`FULMETRY_NETWORK_EGRESS_OBSERVED: ${kind}`);
 }
 
 const blocked = (kind: string) => (...values: unknown[]): never => block(kind, values);
@@ -75,10 +75,10 @@ function observedChildOptions(options: unknown): unknown {
     ...record,
     env: {
       ...environment,
-      PCBOO_NETWORK_OBSERVER_LOG: logPath,
+      FULMETRY_NETWORK_OBSERVER_LOG: logPath,
       ...(readyLogPath === undefined || readyLogPath.length === 0
         ? {}
-        : { PCBOO_NETWORK_OBSERVER_READY_LOG: readyLogPath }),
+        : { FULMETRY_NETWORK_OBSERVER_READY_LOG: readyLogPath }),
     },
   };
 }

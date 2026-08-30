@@ -24,17 +24,17 @@ import {
 
 const [version, integrity, contentSha256, baselineVersion] = process.argv.slice(2);
 if (!version || !integrity || !contentSha256 || !baselineVersion) throw new TypeError("Acceptance fixture preparation requires old and new engine identity");
-const pcbooRoot = dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
+const fulmetryRoot = dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
 
 for (const fixtureName of CANONICAL_FIXTURE_NAMES) {
   const root = canonicalFixtureRoot(fixtureName);
   const expectation = JSON.parse(await readFile(join(root, "expectation.json"), "utf8")) as CanonicalExpectation;
-  const lock = JSON.parse(await readFile(join(root, "pcboo.lock"), "utf8")) as {
+  const lock = JSON.parse(await readFile(join(root, "fulmetry.lock"), "utf8")) as {
     tscircuit: { version: string; integrity: string }; adapters: Record<string, string>;
   };
   if (lock.tscircuit.version !== baselineVersion) throw new Error(`${fixtureName} lock is not the reviewed baseline`);
   const identity = await requireTscircuitIdentity({
-    projectRoot: root, pcbooRoot, expectedVersion: version, expectedContentSha256: contentSha256,
+    projectRoot: root, fulmetryRoot, expectedVersion: version, expectedContentSha256: contentSha256,
   });
   if (identity.project?.version !== version || identity.project.contentSha256 !== contentSha256) {
     throw new Error(`${fixtureName} did not resolve the accepted candidate engine`);
@@ -53,7 +53,7 @@ for (const fixtureName of CANONICAL_FIXTURE_NAMES) {
   await emitDraftManufacturingDirectory({ targetDirectory: manufacturingRoot, files });
   await writeFile(join(root, "circuit.json"), canonicalCircuitJson(evaluated.circuitJson));
   lock.tscircuit = { version, integrity };
-  await writeFile(join(root, "pcboo.lock"), `${JSON.stringify(lock, null, 2)}\n`);
+  await writeFile(join(root, "fulmetry.lock"), `${JSON.stringify(lock, null, 2)}\n`);
   for (const value of Object.values(expectation.compatibility) as Array<{ engineVersion?: string }>) {
     if (value.engineVersion !== baselineVersion) throw new Error(`${fixtureName} compatibility metadata is not the reviewed baseline`);
     value.engineVersion = version;

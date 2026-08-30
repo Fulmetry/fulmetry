@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 export const TSCIRCUIT_UPGRADE_SNAPSHOT_SCHEMA_VERSION = 2 as const;
 export const TSCIRCUIT_UPGRADE_REPORT_SCHEMA_VERSION = 3 as const;

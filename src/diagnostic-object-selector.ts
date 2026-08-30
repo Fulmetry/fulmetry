@@ -1,8 +1,8 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 
 /**
- * Parse the bounded internal-detail selector grammar emitted by PCBoo's own
+ * Parse the bounded internal-detail selector grammar emitted by Fulmetry's own
  * deterministic assessors. The head is an exact circuit object selector;
  * details are non-empty, colon-separated, whitespace-free tokens.
  */

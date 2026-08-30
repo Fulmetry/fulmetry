@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { expect, test } from "bun:test";
 import { mkdtemp, rename, rm, symlink, writeFile } from "node:fs/promises";
@@ -43,7 +43,7 @@ test("Windows Job Object records preserve actual child exit codes, including res
 test("Windows Job Object records fail closed when malformed, oversized, missing, symlinked, or replaced", async () => {
   expect(() => parseWindowsJobResult(Buffer.from('{"containmentApplied":true}')))
     .toThrow(ProcessContainmentUnavailableError);
-  const root = await mkdtemp(join(tmpdir(), "pcboo-windows-job-record-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-windows-job-record-"));
   try {
     const oversized = join(root, "oversized.json");
     await writeFile(oversized, new Uint8Array(64 * 1024 + 1));
@@ -90,7 +90,7 @@ test("Linux cgroup records distinguish actual reserved exits, setup failure, and
 
 test.skipIf(process.platform !== "win32")("a missing Windows target reports typed containment unavailability", async () => {
   const child = await spawnContainedProcess({
-    command: ["Z:\\pcboo-guaranteed-missing\\no-such-executable.exe"],
+    command: ["Z:\\fulmetry-guaranteed-missing\\no-such-executable.exe"],
     env: {},
   });
   await expect(child.exited).rejects.toBeInstanceOf(ProcessContainmentUnavailableError);
@@ -114,7 +114,7 @@ test.skipIf(process.platform !== "darwin")("macOS Seatbelt denies a contained ta
 });
 
 test.skipIf(process.platform !== "darwin")("macOS distinguishes Seatbelt application failure from a real target exit 71", async () => {
-  const marker = join(tmpdir(), `pcboo-macos-profile-${crypto.randomUUID()}`);
+  const marker = join(tmpdir(), `fulmetry-macos-profile-${crypto.randomUUID()}`);
   const rejected = await spawnContainedProcess({
     command: [process.execPath, "-e", `await Bun.write(${JSON.stringify(marker)}, "launched")`],
     env: { PATH: process.env.PATH ?? "" },

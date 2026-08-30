@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fulmetry Schematic Layout"
+  short_description: "Clean and verify readable Fulmetry schematics"
+  default_prompt: "Use $fulmetry-schematic-layout to organize this schematic and prove it is readable."

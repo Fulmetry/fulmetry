@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { Activity, FlaskConical, Play, Waves } from "lucide-react";
 import type { ActionKind, WorkspaceData } from "../types";

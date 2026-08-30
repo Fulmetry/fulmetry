@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish matching PCBoo packages / macOS Apple Silicon
+    name: Publish matching Fulmetry packages / macOS Apple Silicon
     runs-on: macos-15
     timeout-minutes: 30
     steps:
@@ -35,12 +35,12 @@ jobs:
             if (!/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(tag)) throw new Error(`Invalid release tag ${tag}`);
             const version = tag.slice(1);
             const framework = await Bun.file("package.json").json();
-            const creator = await Bun.file("packages/create-pcboo/package.json").json();
-            if (framework.name !== "@pcboo/pcboo" || creator.name !== "create-pcboo") {
+            const creator = await Bun.file("packages/create-fulmetry/package.json").json();
+            if (framework.name !== "fulmetry" || creator.name !== "create-fulmetry") {
               throw new Error(`Unexpected package identities ${framework.name} and ${creator.name}`);
             }
             if (framework.version !== version || creator.version !== version) {
-              throw new Error(`Tag ${tag} does not match pcboo@${framework.version} and create-pcboo@${creator.version}`);
+              throw new Error(`Tag ${tag} does not match fulmetry@${framework.version} and create-fulmetry@${creator.version}`);
             }
           '
       - run: bun install --frozen-lockfile
@@ -51,16 +51,16 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           version="${RELEASE_TAG#v}"
-          if npm view "@pcboo/pcboo@$version" version >/dev/null 2>&1; then
-            echo "@pcboo/pcboo@$version already exists; refusing to republish or continue partially." >&2
+          if npm view "fulmetry@$version" version >/dev/null 2>&1; then
+            echo "fulmetry@$version already exists; refusing to republish or continue partially." >&2
             exit 1
           fi
-          if npm view "create-pcboo@$version" version >/dev/null 2>&1; then
-            echo "create-pcboo@$version already exists; refusing to republish or continue partially." >&2
+          if npm view "create-fulmetry@$version" version >/dev/null 2>&1; then
+            echo "create-fulmetry@$version already exists; refusing to republish or continue partially." >&2
             exit 1
           fi
       - name: Publish framework with OIDC provenance
         run: npm publish --access public --provenance
       - name: Publish initializer with OIDC provenance
-        working-directory: packages/create-pcboo
+        working-directory: packages/create-fulmetry
         run: npm publish --access public --provenance

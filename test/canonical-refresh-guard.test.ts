@@ -123,8 +123,8 @@ describe("canonical golden refresh engine boundary", () => {
     expect(anchor.accepted.version).toBe(SUPPORTED_TSCIRCUIT_VERSION);
     expect(anchor.runtimeClosures).toEqual({
       "darwin-arm64": {
-        repository: "53d34fb7b463ba7af0d57823d2c90199b388aeb006fa7b990fbab91f23052d4c",
-        packedConsumer: "57420ea87027cc5b66e51eaf3b8a353fb6db269286553eb4548bc25ecfe48824",
+        repository: "c91df9f11f9e273a472dde2e57dc847a139f688e55f893450b32c0a3e1338b11",
+        packedConsumer: "66d63a9829bae38f4f8dd1ee35e6387eeb6c645fe05ec5b2aeeb3ea880bf46ab",
       },
     });
   });

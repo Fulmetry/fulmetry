@@ -1,8 +1,8 @@
 # Third-Party Notices
 
-PCBoo is an independent MIT-licensed project built on tscircuit. It is not an official tscircuit product and does not imply endorsement by or affiliation with tscircuit Inc.
+Fulmetry is an independent MIT-licensed project built on tscircuit. It is not an official tscircuit product and does not imply endorsement by or affiliation with tscircuit Inc.
 
-The following direct runtime, optional, and peer packages are declared by PCBoo but are not bundled into PCBoo's package tarball. Their own license terms remain in force. The normal package prepack boundary recursively accepts only reviewed MIT/SPDX-marked PCBoo TypeScript, TSX, and CSS under src, reconciles bare imports to this table, requires the exact qualified top-level inventory, complete PCBoo MIT text, this generated notice, and exact reviewed installed package content. Explicit SPDX fallbacks classify exact pinned nonbundled bytes using package metadata and SPDX when a package omits license text, and are not represented as package-specific copyright notices.
+The following direct runtime, optional, and peer packages are declared by Fulmetry but are not bundled into Fulmetry's package tarball. Their own license terms remain in force. The normal package prepack boundary recursively accepts only reviewed MIT/SPDX-marked Fulmetry TypeScript, TSX, and CSS under src, reconciles bare imports to this table, requires the exact qualified top-level inventory, complete Fulmetry MIT text, this generated notice, and exact reviewed installed package content. Explicit SPDX fallbacks classify exact pinned nonbundled bytes using package metadata and SPDX when a package omits license text, and are not represented as package-specific copyright notices.
 
 | Package | Pinned version | License | Evidence | Source |
 | --- | ---: | --- | --- | --- |
@@ -28,4 +28,4 @@ The following direct runtime, optional, and peer packages are declared by PCBoo 
 | tscircuit | 0.0.2261 | MIT | Reviewed package content sha256:c0880767e6967a6b7f8423604882ba6989d9a58108355b3835f48309f09cf487 + package license file | https://www.npmjs.com/package/tscircuit |
 | typescript | 5.9.3 | Apache-2.0 | Reviewed package content sha256:1247d2a746ccfbc5d73c07f6d61c2e05197373d4668f258a0681e77298eccf27 + package license file | https://www.npmjs.com/package/typescript |
 
-PCBoo's MIT license does not relicense user circuit source, vendored models or footprints, datasheets, or generated manufacturing artifacts. Those materials retain their respective ownership, provenance, and redistribution terms.
+Fulmetry's MIT license does not relicense user circuit source, vendored models or footprints, datasheets, or generated manufacturing artifacts. Those materials retain their respective ownership, provenance, and redistribution terms.

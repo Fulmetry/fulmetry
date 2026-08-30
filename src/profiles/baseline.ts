@@ -1,12 +1,12 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 export const BASELINE_FABRICATION_PROFILE = Object.freeze({
-  name: "pcboo-baseline-2-4layer",
+  name: "fulmetry-baseline-2-4layer",
   version: "1.6.0",
-  digest: "sha256:e58d733810e286fc52996496939c66153533537e2deff6fba17e3fe437a72ca4",
+  digest: "sha256:4f7fdfbfab5d039d337c22e2e53dcf171b462c932016849f00daf36d89b984b4",
   jurisdiction: "generic PCB fabrication",
   manufacturer: "manufacturer-neutral",
-  source: "PCBoo conservative built-in rules",
+  source: "Fulmetry conservative built-in rules",
   edition: "2026-08",
   supportedRules: Object.freeze([
     "positive-dimensions",

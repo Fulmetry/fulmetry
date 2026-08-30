@@ -110,11 +110,11 @@ describe("versioned product performance qualification", () => {
       "small",
       "cold-build",
       "0".repeat(64),
-      join(import.meta.dir, "../.pcboo-ci/should-not-exist.json"),
+      join(import.meta.dir, "../.fulmetry-ci/should-not-exist.json"),
     ], { cwd: join(import.meta.dir, ".."), stdout: "ignore", stderr: "pipe" });
     expect(await child.exited).not.toBe(0);
     expect(await new Response(child.stderr).text()).toContain("PERFORMANCE_BASELINE_CHANGED");
-    expect(await Bun.file(join(import.meta.dir, "../.pcboo-ci/should-not-exist.json")).exists()).toBeFalse();
+    expect(await Bun.file(join(import.meta.dir, "../.fulmetry-ci/should-not-exist.json")).exists()).toBeFalse();
   });
 
   test("validates the exact uploadable report schema and rejects stale or partial evidence", async () => {
@@ -188,7 +188,7 @@ describe("versioned product performance qualification", () => {
 
   test("signal cancellation removes stale validity and terminates the active workload", async () => {
     if (process.platform === "win32") return;
-    const reportPath = join(import.meta.dir, `../.pcboo-ci/performance-${process.platform}-${process.arch}.json`);
+    const reportPath = join(import.meta.dir, `../.fulmetry-ci/performance-${process.platform}-${process.arch}.json`);
     await mkdir(dirname(reportPath), { recursive: true });
     await writeFile(reportPath, "stale-passed-report\n");
     const child = Bun.spawn([

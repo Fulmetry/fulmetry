@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 export const PROJECT_INPUT_FILE_LIMIT = 10_000;
 export const PROJECT_INPUT_ENTRY_LIMIT = 12_000;

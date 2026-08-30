@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fulmetry Design"
+  short_description: "Complete and verify physical Fulmetry boards"
+  default_prompt: "Use $fulmetry-design to create a complete routed Fulmetry board and launch its verified browser preview."

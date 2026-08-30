@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.page/schema.json",
-  "name": "PCBoo",
+  "name": "Fulmetry",
   "description": "Build circuits with your coding agent using composable TypeScript and reviewable evidence.",
   "socialPreview": false,
   "theme": {
@@ -18,11 +18,11 @@
     "links": [
       {
         "title": "Website",
-        "href": "https://pcboo-dev.github.io/"
+        "href": "https://fulmetry.com/"
       },
       {
         "title": "GitHub",
-        "href": "https://github.com/pcboo-dev/pcboo",
+        "href": "https://github.com/Fulmetry/fulmetry",
         "cta": true
       }
     ]
@@ -31,12 +31,12 @@
     {
       "icon": "github",
       "title": "Source code",
-      "href": "https://github.com/pcboo-dev/pcboo"
+      "href": "https://github.com/Fulmetry/fulmetry"
     },
     {
       "icon": "globe",
-      "title": "PCBoo website",
-      "href": "https://pcboo-dev.github.io/"
+      "title": "Fulmetry website",
+      "href": "https://fulmetry.com/"
     }
   ],
   "sidebar": [
@@ -49,7 +49,7 @@
       ]
     },
     {
-      "group": "Build with PCBoo",
+      "group": "Build with Fulmetry",
       "pages": [
         { "title": "Author circuits", "href": "/authoring" },
         { "title": "Commands", "href": "/commands" },
@@ -67,7 +67,7 @@
       "group": "Project",
       "pages": [
         { "title": "Current limitations", "href": "/limitations" },
-        { "title": "Product requirements", "href": "https://github.com/pcboo-dev/pcboo/blob/main/PRODUCT_REQUIREMENTS.md" }
+        { "title": "Product requirements", "href": "https://github.com/Fulmetry/fulmetry/blob/main/PRODUCT_REQUIREMENTS.md" }
       ]
     }
   ],
@@ -82,8 +82,8 @@
     "noindex": false
   },
   "social": {
-    "website": "https://pcboo-dev.github.io/",
-    "github": "https://github.com/pcboo-dev"
+    "website": "https://fulmetry.com/",
+    "github": "https://github.com/Fulmetry"
   },
   "og": {
     "github": true

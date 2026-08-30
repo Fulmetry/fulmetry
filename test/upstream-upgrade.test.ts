@@ -43,7 +43,7 @@ function fixture(
     manufacturing?: readonly { path: string; size: number; sha256: string }[];
   } = {},
 ) {
-  const inputs = options.inputs ?? [file("circuit/board.tsx", "1"), file("pcboo.lock", "2")];
+  const inputs = options.inputs ?? [file("circuit/board.tsx", "1"), file("fulmetry.lock", "2")];
   const manufacturing = options.manufacturing ?? [
     file("board-F_Cu.gbr", "3", 30),
     file("board.drl", "4", 40),
@@ -80,7 +80,7 @@ function snapshot(
 function candidateSnapshot() {
   return snapshot("0.0.2262", [fixture("board", {
     semantic: "7",
-    inputs: [file("circuit/board.tsx", "8"), file("pcboo.lock", "2")],
+    inputs: [file("circuit/board.tsx", "8"), file("fulmetry.lock", "2")],
     manufacturing: [file("board-B_Cu.gbr", "9", 31), file("board-F_Cu.gbr", "a", 32)],
   })], "b");
 }

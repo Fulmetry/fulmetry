@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { lstat, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative } from "node:path";
@@ -134,7 +134,7 @@ async function fingerprintRegularPackage(realPackageRoot: string): Promise<strin
 }
 
 /**
- * Inspects untrusted candidate package bytes without treating them as PCBoo's accepted engine.
+ * Inspects untrusted candidate package bytes without treating them as Fulmetry's accepted engine.
  * The candidate entrypoint is resolved but deliberately never imported or executed.
  */
 export async function inspectTscircuitCandidatePackage(

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fulmetry Best Practices"
+  short_description: "Route Fulmetry work through safe workflows"
+  default_prompt: "Use $fulmetry-best-practices to make this Fulmetry circuit change safely."
