@@ -8,7 +8,7 @@ const roots: string[] = [];
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))));
 
 async function fixture() {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-path-transaction-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-path-transaction-"));
   roots.push(root);
   const transaction = join(root, "transaction");
   await mkdir(join(transaction, "staged"), { recursive: true });

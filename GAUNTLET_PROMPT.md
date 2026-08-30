@@ -1,34 +1,34 @@
-# PCBoo Engineering Gauntlet Prompt
+# Fulmetry Engineering Gauntlet Prompt
 
 This is a deliberate engineering adaptation of the game-oriented Gauntlet Loop. It preserves the relentless builder-versus-independent-critic method while making deterministic evidence, rather than visual taste, the primary oracle.
 
-Copy the prompt below into a fresh Codex task from the PCBoo repository. The human remains the brake.
+Copy the prompt below into a fresh Codex task from the Fulmetry repository. The human remains the brake.
 
 ```text
-Run the Gauntlet Loop on PCBoo in /Users/alok/projects/pcboo. This is an explicit non-game use of the method. Use /goal for the persistent objective. Do not merely compose a plan or restate this prompt: inspect the repository, implement the product, run the evidence, criticize the result independently, repair it, and continue until I stop you.
+Run the Gauntlet Loop on Fulmetry in /Users/alok/projects/fulmetry. This is an explicit non-game use of the method. Use /goal for the persistent objective. Do not merely compose a plan or restate this prompt: inspect the repository, implement the product, run the evidence, criticize the result independently, repair it, and continue until I stop you.
 
-I want you to build PCBoo at the quality level of a mature, widely adopted developer framework such as Next.js, on top of tscircuit as its circuit engine, with the verification discipline expected from a trustworthy compiler and EDA manufacturing toolchain. Its initial Apple Silicon macOS product should be exceptionally clear, deterministic, composable, agent-friendly, and honest about what it has and has not proven. Every part must be production-grade, from Bun project scaffolding and multi-file TypeScript authoring to circuit inspection, simulations, independent manufacturing verification, detached KiCad handoff, provenance, licensing, security, and documentation.
+I want you to build Fulmetry at the quality level of a mature, widely adopted developer framework such as Next.js, on top of tscircuit as its circuit engine, with the verification discipline expected from a trustworthy compiler and EDA manufacturing toolchain. Its initial Apple Silicon macOS product should be exceptionally clear, deterministic, composable, agent-friendly, and honest about what it has and has not proven. Every part must be production-grade, from Bun project scaffolding and multi-file TypeScript authoring to circuit inspection, simulations, independent manufacturing verification, detached KiCad handoff, provenance, licensing, security, and documentation.
 
 Fan out independent builder agents across genuinely separable workstreams. Give each workstream a separate critic that did not implement it. Critics must be harsh, evidence-driven, and actively try to falsify the builder's claims. A builder saying that code looks correct, a test file existing, a screenshot looking plausible, tscircuit returning success, or an exporter producing files is not verification. If a critic cannot reproduce a claim from a clean checkout with exact commands and inspectable artifacts, the claim fails and the builder continues.
 
-Do not stop after one successful cycle. Continue comparing PCBoo against its authoritative requirements and the relevant mature references. For developer experience, compare against the clarity and predictability of established Bun/TypeScript frameworks. For circuit semantics, compare PCBoo output with the pinned upstream tscircuit engine. For manufacturing artifacts, use independent parsers and reconciliations rather than trusting the code that wrote them. For engineering correctness, objective evidence overrides aesthetic or narrative judgment. Use blind A/B comparison only where it is meaningful—for example, unlabeled CLI transcripts or inspection responses judged for clarity and actionability—not as a substitute for electrical, geometric, simulation, or manufacturing oracles. The human is the brake; keep improving until I stop you.
+Do not stop after one successful cycle. Continue comparing Fulmetry against its authoritative requirements and the relevant mature references. For developer experience, compare against the clarity and predictability of established Bun/TypeScript frameworks. For circuit semantics, compare Fulmetry output with the pinned upstream tscircuit engine. For manufacturing artifacts, use independent parsers and reconciliations rather than trusting the code that wrote them. For engineering correctness, objective evidence overrides aesthetic or narrative judgment. Use blind A/B comparison only where it is meaningful—for example, unlabeled CLI transcripts or inspection responses judged for clarity and actionability—not as a substitute for electrical, geometric, simulation, or manufacturing oracles. The human is the brake; keep improving until I stop you.
 
 AUTHORITATIVE CONTRACT
 
 1. Read PRODUCT_REQUIREMENTS.md completely before changing code. It is the primary product and quality contract.
 2. Read FUTURE_EXPLORATIONS.md completely. Its contents are explicitly deferred and must not silently enter the current scope.
-3. Read README.md and LICENSE. Preserve PCBoo's MIT license, tscircuit credit, third-party notices, and the statement that PCBoo is independent and not officially endorsed by tscircuit.
+3. Read README.md and LICENSE. Preserve Fulmetry's MIT license, tscircuit credit, third-party notices, and the statement that Fulmetry is independent and not officially endorsed by tscircuit.
 4. Inspect the actual repository, dependency graph, installed tools, and current test state. Do not assume that a documented capability exists.
 5. Preserve unrelated user changes. Do not commit, push, publish packages, install external EDA applications, or make external state changes unless I explicitly request them.
 
 PRODUCT BOUNDARY THAT MUST SURVIVE EVERY ROUND
 
-- PCBoo is a Bun-required TypeScript framework around tscircuit, analogous in layering—not feature identity—to Next.js around React.
-- tscircuit remains the circuit authoring and compiler foundation. PCBoo adds conventions, stable commands, inspection, testing, verification, interoperability, provenance, and a fixed local browser interface.
-- PCBoo is agent-first but agent-independent. It does not contain its own model, chat product, or required MCP server.
+- Fulmetry is a Bun-required TypeScript framework around tscircuit, analogous in layering—not feature identity—to Next.js around React.
+- tscircuit remains the circuit authoring and compiler foundation. Fulmetry adds conventions, stable commands, inspection, testing, verification, interoperability, provenance, and a fixed local browser interface.
+- Fulmetry is agent-first but agent-independent. It does not contain its own model, chat product, or required MCP server.
 - Each project has one board and one deterministic assembly definition. Multi-board workspaces and named assembly variants are deferred.
 - The browser is interactive for inspection, measurement, layer control, checks, and simulations, but never edits circuit source, configuration, placement, or routing.
-- PCBoo reports fabrication, electrical, functional, standards-evidence, and sourcing statuses independently. Never collapse them into one ambiguous ready state.
+- Fulmetry reports fabrication, electrical, functional, standards-evidence, and sourcing statuses independently. Never collapse them into one ambiguous ready state.
 - Draft artifacts may be produced for diagnosis. A verified production bundle is blocked by every required failure, unsupported capability, unavailable required check, or artifact-integrity error.
 - The conservative mandatory manufacturing baseline is ordinary two- and four-layer boards with SMT, PTH, and through vias. Advanced technologies are supported only when every relevant adapter proves the capability.
 - Project source is trusted executable TypeScript, not a security sandbox. Reproducibility checks must not be described as protection from malicious code.
@@ -39,7 +39,7 @@ FAN-OUT WORKSTREAMS
 Divide work only where agents can proceed independently without editing the same files. At minimum, repeatedly audit these concerns:
 
 - Bun scaffolding, project discovery, configuration, lockfile, cache, vendoring, and offline behavior.
-- Curated `pcboo` authoring exports, exact tscircuit implementation identity, Circuit JSON compatibility, and explicit upgrades.
+- Curated `fulmetry` authoring exports, exact tscircuit implementation identity, Circuit JSON compatibility, and explicit upgrades.
 - Compact CLI diagnostics, focused inspection commands, versioned JSON reports, exit classifications, and artifact paths.
 - Fixed localhost development server and non-authoring schematic, PCB, layer, diagnostic, simulation, and artifact views.
 - Stable component identities, hierarchical source provenance, connectivity inspection, ERC, DRC, placement, and routing rules.
@@ -65,23 +65,23 @@ MANDATORY VERIFICATION GAUNTLET
 
 A. Upstream identity and compatibility
 
-- Prove that every curated authoring export from `pcboo` is the exact supported tscircuit implementation, not a wrapper, subclass, or duplicate engine instance.
-- Compile fixtures that mix `pcboo` and direct tscircuit imports and verify semantic equivalence of normalized Circuit JSON.
-- Pin the exact supported tscircuit version in `pcboo.lock` and test incompatible versions, schema changes, changed defaults, and duplicate installations.
+- Prove that every curated authoring export from `fulmetry` is the exact supported tscircuit implementation, not a wrapper, subclass, or duplicate engine instance.
+- Compile fixtures that mix `fulmetry` and direct tscircuit imports and verify semantic equivalence of normalized Circuit JSON.
+- Pin the exact supported tscircuit version in `fulmetry.lock` and test incompatible versions, schema changes, changed defaults, and duplicate installations.
 - An upgrade must show semantic and artifact digest changes before the lockfile is accepted.
 
 B. Project determinism and filesystem ownership
 
 - Prove one-board and one-assembly enforcement, multi-file composition, stable discovery from descendant directories, and paths with spaces and non-ASCII characters.
-- Prove that design intent comes from source, project behavior from `pcboo.config.ts`, external requirements from named profiles, resolutions from `pcboo.lock`, and only secrets or local tool paths from the environment.
+- Prove that design intent comes from source, project behavior from `fulmetry.config.ts`, external requirements from named profiles, resolutions from `fulmetry.lock`, and only secrets or local tool paths from the environment.
 - Run verified builds twice in fresh processes with sanitized undeclared environment input. Compare normalized circuit and artifact digests and fail actionable nondeterminism fixtures.
-- Prove that source, config, tests, lockfile, waivers, and intentional vendoring are distinct from ignored `.pcboo/` cache and ordinary output.
-- Prove `--offline` blocks PCBoo-managed network access and that network refresh cannot alter the circuit digest without a source or lockfile change.
+- Prove that source, config, tests, lockfile, waivers, and intentional vendoring are distinct from ignored `.fulmetry/` cache and ordinary output.
+- Prove `--offline` blocks Fulmetry-managed network access and that network refresh cannot alter the circuit digest without a source or lockfile change.
 
 C. Diagnostics and agent usability
 
 - Default CLI output must be concise and contain stable rule IDs, exact source locations, affected objects, measurements, status dimensions, and a focused next command.
-- Full detail must live in a bounded `.pcboo/runs/<run-id>/` report. `--json` must conform to a versioned schema and communicate the same outcome as text.
+- Full detail must live in a bounded `.fulmetry/runs/<run-id>/` report. `--json` must conform to a versioned schema and communicate the same outcome as text.
 - Verify filtering and inspection by component, pad, net, layer, region, rule, and status without forcing the agent to load an entire report.
 - Test all exit classifications, including failure, warning-only, unavailable, incomplete, cancelled, and unsupported.
 - A blind DX critic may compare unlabeled transcripts with mature CLI tools, but cannot override objective correctness.
@@ -131,19 +131,19 @@ H. Status and release gating
 I. Server, security, reliability, and platforms
 
 - Bind to loopback by default. Require an explicit `--host` for network exposure and show the security warning.
-- Serve only fixed PCBoo routes. Prove that browser interactions cannot mutate authored source or configuration.
+- Serve only fixed Fulmetry routes. Prove that browser interactions cannot mutate authored source or configuration.
 - Test traversal, symlink escapes, malicious filenames and identifiers, unsafe subprocess arguments, hostile model includes, oversized inputs, secret redaction, cross-origin behavior, and atomic output publication.
 - Test cancellation, timeouts, concurrent readers, rapid file changes, interrupted writes, and child-process cleanup. No partial or cancelled artifact may be marked valid.
 - Run the declared Bun release on Apple Silicon macOS. Treat Linux, Windows, Intel macOS, and Node.js as unsupported until their future qualification work is explicitly adopted.
-- Prove through a network-observed default workflow that PCBoo sends no telemetry or project data.
+- Prove through a network-observed default workflow that Fulmetry sends no telemetry or project data.
 
 J. Licensing, attribution, and documentation
 
-- Preserve PCBoo's MIT License and prominent, accurate tscircuit credit without implying affiliation or endorsement.
+- Preserve Fulmetry's MIT License and prominent, accurate tscircuit credit without implying affiliation or endorsement.
 - Generate `THIRD_PARTY_NOTICES.md` from the code and asset graph actually included in a distribution.
 - Reject missing, unknown, incompatible, or non-redistributable licenses at the applicable packaging boundary.
 - Preserve provenance and redistribution status for vendored footprints, models, component data, and other assets.
-- Do not relabel user circuit source or ordinary generated manufacturing files as MIT merely because PCBoo produced them.
+- Do not relabel user circuit source or ordinary generated manufacturing files as MIT merely because Fulmetry produced them.
 - Execute every documented command and example in clean CI. Documentation must describe limitations, status semantics, detached KiCad handoff, trusted-code boundary, default privacy, and non-certification language accurately.
 
 CRITIC RULES
@@ -158,8 +158,8 @@ CRITIC RULES
 
 DO NOT
 
-- Do not build a Gauntlet state machine, scoreboard, capture farm, meta-harness, or round ledger. Work on PCBoo and its real test suite.
-- Do not reimplement tscircuit merely to make PCBoo appear independent.
+- Do not build a Gauntlet state machine, scoreboard, capture farm, meta-harness, or round ledger. Work on Fulmetry and its real test suite.
+- Do not reimplement tscircuit merely to make Fulmetry appear independent.
 - Do not add a visual editor, custom project routes, built-in agent runtime, required MCP layer, Node compatibility burden, multi-board model, assembly variants, signing system, stable public plugin API, or automatic external-tool installer unless I explicitly promote that deferred scope.
 - Do not weaken a failing test, broaden a tolerance, add a waiver, update a golden file, or mark a feature unsupported merely to make CI green without proving that the requirement changed.
 - Do not accept documentation, screenshots, type-checking, or builder confidence as substitutes for runtime and artifact evidence.

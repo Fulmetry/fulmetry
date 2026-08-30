@@ -1,19 +1,19 @@
 {
-  "name": "@pcboo/pcboo",
-  "version": "0.1.2",
+  "name": "fulmetry",
+  "version": "0.2.0",
   "description": "A Bun-first circuit project framework built on tscircuit",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pcboo-dev/pcboo.git"
+    "url": "git+https://github.com/Fulmetry/fulmetry.git"
   },
-  "homepage": "https://github.com/pcboo-dev/pcboo#readme",
+  "homepage": "https://github.com/Fulmetry/fulmetry#readme",
   "bugs": {
-    "url": "https://github.com/pcboo-dev/pcboo/issues"
+    "url": "https://github.com/Fulmetry/fulmetry/issues"
   },
   "type": "module",
   "packageManager": "bun@1.3.14",
   "bin": {
-    "pcboo": "src/cli/pcboo.js"
+    "fulmetry": "src/cli/fulmetry.js"
   },
   "files": [
     "src",
@@ -64,7 +64,7 @@
     "./simulation": "./src/simulation/index.ts"
   },
   "scripts": {
-    "pcboo": "bun ./src/cli/bin.ts",
+    "fulmetry": "bun ./src/cli/bin.ts",
     "prepack": "bun ./scripts/validate-package-boundary.ts",
     "test": "bun run test:regular && bun run test:cli && bun run test:heavy:accept-tscircuit-upgrade && bun run test:heavy:artifact-manifest && bun run test:heavy:manufacturing-properties && bun run test:heavy:semantic-properties && bun run test:heavy:manufacturing-verify && bun run test:heavy:production-promotion && bun run test:heavy:scaffold && bun run test:heavy:server && bun run test:performance",
     "test:regular": "bun ./scripts/run-ci-gate.ts regular-01 && bun ./scripts/run-ci-gate.ts regular-02 && bun ./scripts/run-ci-gate.ts regular-03 && bun ./scripts/run-ci-gate.ts regular-04 && bun ./scripts/run-ci-gate.ts regular-05 && bun ./scripts/run-ci-gate.ts regular-06 && bun ./scripts/run-ci-gate.ts regular-07 && bun ./scripts/run-ci-gate.ts regular-08 && bun ./scripts/run-ci-gate.ts regular-09 && bun ./scripts/run-ci-gate.ts regular-10 && bun ./scripts/run-ci-gate.ts regular-11 && bun ./scripts/run-ci-gate.ts regular-12 && bun ./scripts/run-ci-gate.ts regular-13 && bun ./scripts/run-ci-gate.ts regular-14 && bun ./scripts/run-ci-gate.ts regular-15 && bun ./scripts/run-ci-gate.ts regular-16",

@@ -1,26 +1,26 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 
-export const PCBOO_CANCELLATION_ERROR_CODE = "PCBOO_OPERATION_CANCELLED" as const;
+export const FULMETRY_CANCELLATION_ERROR_CODE = "FULMETRY_OPERATION_CANCELLED" as const;
 
 /** An internal cancellation signal whose identity does not depend on human-readable prose. */
-export class PcbooCancellationError extends Error {
-  readonly code = PCBOO_CANCELLATION_ERROR_CODE;
+export class FulmetryCancellationError extends Error {
+  readonly code = FULMETRY_CANCELLATION_ERROR_CODE;
 
   constructor(message: string) {
     super(message);
-    this.name = "PcbooCancellationError";
+    this.name = "FulmetryCancellationError";
   }
 }
 
-export function isPcbooCancellationError(error: unknown): error is PcbooCancellationError {
-  return error instanceof PcbooCancellationError &&
-    error.code === PCBOO_CANCELLATION_ERROR_CODE;
+export function isFulmetryCancellationError(error: unknown): error is FulmetryCancellationError {
+  return error instanceof FulmetryCancellationError &&
+    error.code === FULMETRY_CANCELLATION_ERROR_CODE;
 }
 
-export function throwIfPcbooCancelled(
+export function throwIfFulmetryCancelled(
   signal: AbortSignal | undefined,
   message: string,
 ): void {
-  if (signal?.aborted) throw new PcbooCancellationError(message);
+  if (signal?.aborted) throw new FulmetryCancellationError(message);
 }

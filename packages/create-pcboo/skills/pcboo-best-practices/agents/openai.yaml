@@ -1,4 +1,0 @@
-interface:
-  display_name: "PCBoo Best Practices"
-  short_description: "Route PCBoo work through safe workflows"
-  default_prompt: "Use $pcboo-best-practices to make this PCBoo circuit change safely."

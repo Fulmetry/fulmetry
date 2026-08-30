@@ -18,7 +18,7 @@ const roots: string[] = [];
 async function project(name: string): Promise<{ root: string; run: string; report: string }> {
   const root = await mkdtemp(join(tmpdir(), `${name}-`));
   roots.push(root);
-  const run = join(root, ".pcboo", "runs", "authority");
+  const run = join(root, ".fulmetry", "runs", "authority");
   await mkdir(run, { recursive: true });
   return { root, run, report: join(run, "report.json") };
 }
@@ -36,7 +36,7 @@ afterEach(async () => {
 
 describe("run evidence filesystem authority", () => {
   test("captures and revalidates one exact bounded tree", async () => {
-    const fixture = await project("pcboo-evidence-authority");
+    const fixture = await project("fulmetry-evidence-authority");
     const nested = join(fixture.run, "nested");
     await mkdir(nested);
     const file = join(nested, "evidence.json");
@@ -56,7 +56,7 @@ describe("run evidence filesystem authority", () => {
   });
 
   test("rejects a sparse evidence artifact above the per-file limit before hashing it", async () => {
-    const fixture = await project("pcboo-evidence-file-limit");
+    const fixture = await project("fulmetry-evidence-file-limit");
     const file = join(fixture.run, "oversized.bin");
     await Bun.write(file, "");
     await truncate(file, RUN_EVIDENCE_FILE_BYTES_LIMIT + 1);
@@ -70,7 +70,7 @@ describe("run evidence filesystem authority", () => {
   });
 
   test("rejects aggregate evidence bytes above the bounded command total", async () => {
-    const fixture = await project("pcboo-evidence-total-limit");
+    const fixture = await project("fulmetry-evidence-total-limit");
     const chunkSize = Math.floor(RUN_EVIDENCE_TOTAL_BYTES_LIMIT / 5) + 1;
     const artifacts: ArtifactReference[] = [];
     for (let index = 0; index < 5; index += 1) {
@@ -89,7 +89,7 @@ describe("run evidence filesystem authority", () => {
   }, 30_000);
 
   test("streams and bounds broad and deep evidence directory trees", async () => {
-    const broad = await project("pcboo-evidence-entry-limit");
+    const broad = await project("fulmetry-evidence-entry-limit");
     for (let start = 0; start <= RUN_EVIDENCE_ENTRY_LIMIT; start += 64) {
       await Promise.all(Array.from(
         { length: Math.min(64, RUN_EVIDENCE_ENTRY_LIMIT + 1 - start) },
@@ -103,7 +103,7 @@ describe("run evidence filesystem authority", () => {
       artifacts: [],
     })).rejects.toThrow(`exceeds ${RUN_EVIDENCE_ENTRY_LIMIT} entries`);
 
-    const deep = await project("pcboo-evidence-depth-limit");
+    const deep = await project("fulmetry-evidence-depth-limit");
     let directory = deep.run;
     for (let depth = 0; depth <= RUN_EVIDENCE_DEPTH_LIMIT; depth += 1) {
       directory = join(directory, "d");
@@ -118,7 +118,7 @@ describe("run evidence filesystem authority", () => {
   });
 
   test("applies the same file bound to selected failure evidence", async () => {
-    const fixture = await project("pcboo-selected-evidence-limit");
+    const fixture = await project("fulmetry-selected-evidence-limit");
     const file = join(fixture.run, "error.txt");
     await Bun.write(file, "");
     await truncate(file, RUN_EVIDENCE_FILE_BYTES_LIMIT + 1);
@@ -132,7 +132,7 @@ describe("run evidence filesystem authority", () => {
   });
 
   test("shares count and aggregate-byte budgets across selected failure evidence", async () => {
-    const counted = await project("pcboo-selected-evidence-count");
+    const counted = await project("fulmetry-selected-evidence-count");
     const countedArtifacts: ArtifactReference[] = [];
     for (let index = 0; index <= RUN_EVIDENCE_ENTRY_LIMIT; index += 1) {
       const file = join(counted.run, `error-${index}.txt`);
@@ -146,7 +146,7 @@ describe("run evidence filesystem authority", () => {
       artifacts: countedArtifacts,
     })).rejects.toThrow(`exceeds ${RUN_EVIDENCE_ENTRY_LIMIT} entries`);
 
-    const aggregate = await project("pcboo-selected-evidence-total");
+    const aggregate = await project("fulmetry-selected-evidence-total");
     const chunkSize = Math.floor(RUN_EVIDENCE_TOTAL_BYTES_LIMIT / 5) + 1;
     const aggregateArtifacts: ArtifactReference[] = [];
     for (let index = 0; index < 5; index += 1) {
@@ -164,7 +164,7 @@ describe("run evidence filesystem authority", () => {
   }, 30_000);
 
   test("allows a canonical system-root alias but rejects a symlink below the project root", async () => {
-    const fixture = await project("pcboo-evidence-local-ancestor-symlink");
+    const fixture = await project("fulmetry-evidence-local-ancestor-symlink");
     const ordinaryFile = join(fixture.run, "ordinary.json");
     await Bun.write(ordinaryFile, "{}\n");
     await expect(captureRunEvidenceAuthority({
@@ -174,19 +174,19 @@ describe("run evidence filesystem authority", () => {
       artifacts: [artifact(fixture.root, ordinaryFile)],
     })).resolves.toMatchObject({ mode: "exact-tree" });
 
-    const external = await mkdtemp(join(tmpdir(), "pcboo-evidence-external-"));
+    const external = await mkdtemp(join(tmpdir(), "fulmetry-evidence-external-"));
     roots.push(external);
     const externalRun = join(external, "runs", "authority");
     await mkdir(externalRun, { recursive: true });
     const externalFile = join(externalRun, "evidence.json");
     await Bun.write(externalFile, "{}\n");
-    await rm(join(fixture.root, ".pcboo"), { recursive: true, force: true });
+    await rm(join(fixture.root, ".fulmetry"), { recursive: true, force: true });
     await symlink(
       external,
-      join(fixture.root, ".pcboo"),
+      join(fixture.root, ".fulmetry"),
       process.platform === "win32" ? "junction" : "dir",
     );
-    const redirectedRun = join(fixture.root, ".pcboo", "runs", "authority");
+    const redirectedRun = join(fixture.root, ".fulmetry", "runs", "authority");
     const redirectedReport = join(redirectedRun, "report.json");
     const redirectedArtifact = artifact(fixture.root, join(redirectedRun, "evidence.json"));
 
@@ -205,7 +205,7 @@ describe("run evidence filesystem authority", () => {
   });
 
   test("rejects intermediate directory symlinks instead of following evidence through them", async () => {
-    const fixture = await project("pcboo-evidence-symlink");
+    const fixture = await project("fulmetry-evidence-symlink");
     const outside = join(fixture.root, "outside");
     await mkdir(outside);
     await Bun.write(join(outside, "evidence.json"), "{}\n");

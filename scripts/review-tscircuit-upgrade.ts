@@ -79,7 +79,7 @@ function compareText(left: string, right: string): number {
 export function parseReviewTscircuitUpgradeArguments(argv: readonly string[]): ReviewTscircuitUpgradeArguments {
   if (argv[0] !== "review") {
     throw new TypeError(
-      "Usage: bun run upgrade:tscircuit review --candidate-package <explicit dir> --candidate-lock <explicit bun.lock> --integrity <canonical npm SRI> [--candidate-packed-package <clean consumer node_modules/tscircuit>] [--output <.pcboo/upgrade-reviews/...json>]",
+      "Usage: bun run upgrade:tscircuit review --candidate-package <explicit dir> --candidate-lock <explicit bun.lock> --integrity <canonical npm SRI> [--candidate-packed-package <clean consumer node_modules/tscircuit>] [--output <.fulmetry/upgrade-reviews/...json>]",
     );
   }
   let candidatePackageDirectory: string | undefined;
@@ -143,7 +143,7 @@ async function copyFixtureSource(projectRoot: string, stageRoot: string): Promis
     const target = join(stagedFixtures, "canonical", name);
     await mkdir(target, { recursive: true });
     await cp(join(source, "circuit"), join(target, "circuit"), { recursive: true, errorOnExist: true });
-    for (const file of ["expectation.json", "pcboo.config.ts", "pcboo.lock"]) {
+    for (const file of ["expectation.json", "fulmetry.config.ts", "fulmetry.lock"]) {
       await cp(join(source, file), join(target, file));
     }
   }
@@ -187,7 +187,7 @@ async function createStage(
   candidatePackageRoot: string,
   integrity: string,
 ): Promise<string> {
-  const stageRoot = await mkdtemp(join(tmpdir(), "pcboo-tscircuit-review-"));
+  const stageRoot = await mkdtemp(join(tmpdir(), "fulmetry-tscircuit-review-"));
   try {
     await mkdir(join(stageRoot, "test", "helpers"), { recursive: true });
     await Promise.all([
@@ -375,15 +375,15 @@ async function candidateSnapshot(options: Readonly<{
 function validateOutputRelativePath(value: string): string {
   if (
     value.includes("\\") || ASCII_CONTROL_PATTERN.test(value) || isAbsolute(value) || /^[A-Za-z]:/u.test(value) ||
-    !value.startsWith(".pcboo/upgrade-reviews/") || !value.endsWith(".json") ||
+    !value.startsWith(".fulmetry/upgrade-reviews/") || !value.endsWith(".json") ||
     value.split("/").some((segment) => segment === "" || segment === "." || segment === "..")
-  ) throw new TypeError("Upgrade review output must be a safe project-relative .pcboo/upgrade-reviews/*.json path");
+  ) throw new TypeError("Upgrade review output must be a safe project-relative .fulmetry/upgrade-reviews/*.json path");
   return value;
 }
 
 function outputRelativePath(output: string | undefined, report: TscircuitUpgradeReviewReport): string {
   return validateOutputRelativePath(output ??
-    `.pcboo/upgrade-reviews/tscircuit-${report.candidate.engine.version}-${report.reportSha256}.json`);
+    `.fulmetry/upgrade-reviews/tscircuit-${report.candidate.engine.version}-${report.reportSha256}.json`);
 }
 
 async function requireAbsentOutput(projectRoot: string, relativePath: string): Promise<void> {
@@ -552,7 +552,7 @@ export async function reviewTscircuitUpgrade(
   const bunVersion = requireSupportedUpgradeReviewBunVersion(Bun.version);
   const projectRoot = await realpath(options.projectRoot);
   if (projectRoot !== await realpath(MODULE_PROJECT_ROOT)) {
-    throw new TypeError("Tscircuit upgrade review projectRoot must be this PCBoo source repository");
+    throw new TypeError("Tscircuit upgrade review projectRoot must be this Fulmetry source repository");
   }
   if (typeof options.candidateLockPath !== "string" || options.candidateLockPath.length === 0) {
     throw new TypeError("candidateLockPath is required");
@@ -807,7 +807,7 @@ export async function reviewTscircuitUpgrade(
       || acceptedFinal.runtimeClosureSha256 !== acceptedBefore.runtimeClosureSha256
     ) throw new Error("Accepted baseline tscircuit package changed during upgrade review");
     if (await reviewInputIdentitySha256(projectRoot) !== initialReviewInputIdentity) {
-      throw new Error("PCBoo source or canonical review inputs changed during upgrade review");
+      throw new Error("Fulmetry source or canonical review inputs changed during upgrade review");
     }
     if (await reviewImplementationSha256(projectRoot) !== initialReviewImplementationSha256) {
       throw new Error("Upgrade review implementation changed during upgrade review");

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { constants } from "node:fs";
 import { lstat, open, realpath } from "node:fs/promises";

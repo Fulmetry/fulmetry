@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { chmod, lstat, mkdir, realpath, rm, rmdir, stat, writeFile } from "node:fs/promises";
 import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -13,8 +13,8 @@ import {
 } from "../external-tools";
 import { readBoundedRegularFile } from "../internal/bounded-file";
 import {
-  isPcbooCancellationError,
-  throwIfPcbooCancelled,
+  isFulmetryCancellationError,
+  throwIfFulmetryCancelled,
 } from "../internal/cancellation";
 import { spawnContainedProcess } from "../internal/contained-process";
 import {
@@ -143,14 +143,14 @@ function sha256(bytes: Uint8Array | string): string {
 }
 
 function throwIfSimulationCancelled(signal: AbortSignal | undefined): void {
-  throwIfPcbooCancelled(signal, "ngspice execution was cancelled");
+  throwIfFulmetryCancelled(signal, "ngspice execution was cancelled");
 }
 
 function functionalDiagnostic(id: string, message: string, name: string, evidence: readonly string[] = []): Diagnostic {
   return defineDiagnostic({
     id: diagnosticId(id), severity: "error", dimension: "functional", message,
     waiverPolicy: "forbidden", objects: [name], sourceLocations: [], evidence,
-    nextCommand: `pcboo simulate ${name}`,
+    nextCommand: `fulmetry simulate ${name}`,
   });
 }
 
@@ -334,7 +334,7 @@ export function generateNgspiceNetlist(options: {
     nodeByRoot.set(root, node);
   }
   const lines = [
-    `* PCBoo qualified ngspice adapter ${NGSPICE_ADAPTER_VERSION}`,
+    `* Fulmetry qualified ngspice adapter ${NGSPICE_ADAPTER_VERSION}`,
     ".option noacct",
     ".options filetype=ascii",
   ];
@@ -346,7 +346,7 @@ export function generateNgspiceNetlist(options: {
     return name;
   };
   for (const model of definition.models) {
-    if (model.device.kind === "subcircuit") throw new Error("Subcircuit pin ordering is not yet qualified by PCBoo's ngspice fixtures");
+    if (model.device.kind === "subcircuit") throw new Error("Subcircuit pin ordering is not yet qualified by Fulmetry's ngspice fixtures");
     for (const binding of model.bindings) {
       const component = componentByToken.get(binding.componentId);
       if (component === undefined) throw new Error(`Modeled component ${binding.componentId} is absent from Circuit JSON`);
@@ -380,7 +380,7 @@ export function generateNgspiceNetlist(options: {
         requireExactPrimitiveParameters(binding.parameters, "inductance");
         lines.push(`${claimElementName(id.startsWith("L") ? id : `L${id}`)} ${nodes.join(" ")} ${reconciledPrimitiveValue(component, "inductance", binding.parameters.inductance)}`);
       } else {
-        throw new Error(`Primitive ${model.device.name} is not yet qualified by PCBoo's ngspice fixtures`);
+        throw new Error(`Primitive ${model.device.name} is not yet qualified by Fulmetry's ngspice fixtures`);
       }
     }
   }
@@ -493,7 +493,7 @@ export function parseNgspiceAsciiRaw(bytes: Uint8Array, definition: SimulationDe
   const expectedNames = new Set(expected.map(({ vector }) => vector.toLowerCase()));
   const dataVariables = variables.filter((_, index) => index !== axisIndex);
   if (dataVariables.length !== expected.length || dataVariables.some(({ name }) => !expectedNames.has(name.toLowerCase()))) {
-    throw new Error("ngspice raw output does not exactly match the PCBoo-generated vector set");
+    throw new Error("ngspice raw output does not exactly match the Fulmetry-generated vector set");
   }
   for (const operand of expected) {
     const variable = variables.find(({ name }) => name.toLowerCase() === operand.vector.toLowerCase())!;
@@ -589,7 +589,7 @@ export async function runQualifiedNgspice(options: {
   const firstProbe = await probeNgspice({ ...(options.executable === undefined ? {} : { executable: options.executable }), ...(options.signal === undefined ? {} : { signal: options.signal }) });
   throwIfSimulationCancelled(options.signal);
   if (firstProbe.state === "unavailable") {
-    const unsupported = firstProbe.version !== undefined && firstProbe.reason?.includes("outside PCBoo's detected compatibility range");
+    const unsupported = firstProbe.version !== undefined && firstProbe.reason?.includes("outside Fulmetry's detected compatibility range");
     return unavailable(unsupported ? "SIM_NGSPICE_VERSION_UNSUPPORTED_001" : "SIM_NGSPICE_UNAVAILABLE_001", firstProbe.reason!, definition.name, firstProbe);
   }
   const simulationDirectory = join(options.runDirectory, "simulation");
@@ -703,7 +703,7 @@ export async function runQualifiedNgspice(options: {
     } finally {
       clearTimeout(timer); clearInterval(monitor); options.signal?.removeEventListener("abort", onAbort); terminate();
     }
-    if (cancelled) throwIfPcbooCancelled(options.signal, "ngspice execution was cancelled");
+    if (cancelled) throwIfFulmetryCancelled(options.signal, "ngspice execution was cancelled");
     throwIfSimulationCancelled(options.signal);
     await writeFile(join(simulationDirectory, "stdout.bin"), stdout, { flag: "wx" });
     await writeFile(join(simulationDirectory, "stderr.bin"), stderr, { flag: "wx" });
@@ -747,7 +747,7 @@ export async function runQualifiedNgspice(options: {
       circuitDigest: sha256(circuitBytes),
       netlistDigest: sha256(netlistBytes), modelDigests,
       qualificationSha256: qualification.sha256,
-      adapter: Object.freeze({ name: "pcboo-ngspice" as const, version: NGSPICE_ADAPTER_VERSION, primitiveSemantics: "ngspice-built-in-rcl" as const, modelFileUse: "provenance-only-not-included-for-built-in-rcl" as const }),
+      adapter: Object.freeze({ name: "fulmetry-ngspice" as const, version: NGSPICE_ADAPTER_VERSION, primitiveSemantics: "ngspice-built-in-rcl" as const, modelFileUse: "provenance-only-not-included-for-built-in-rcl" as const }),
       tool: Object.freeze({ name: "ngspice" as const, version: capturedProbe.version!, executableSha256: capturedProbe.executableSha256! }),
       execution: Object.freeze({ exitCode, timedOut: false, stdoutSha256: sha256(stdout), stderrSha256: sha256(stderr), rawOutputSha256: sha256(raw) }),
       solverStatus: "converged", analysisKind: definition.analysis.kind,
@@ -769,7 +769,7 @@ export async function runQualifiedNgspice(options: {
       !isIssuedNgspiceQualification(qualification, capturedProbe)
     ) {
       const failedCase = qualification.evidence.cases.find(({ status }) => status === "failed");
-      const diagnostic = functionalDiagnostic("SIM_NGSPICE_LIVE_QUALIFICATION_UNAVAILABLE_001", "The exact ngspice executable did not pass PCBoo's bounded four-case behavioral qualification", definition.name, [
+      const diagnostic = functionalDiagnostic("SIM_NGSPICE_LIVE_QUALIFICATION_UNAVAILABLE_001", "The exact ngspice executable did not pass Fulmetry's bounded four-case behavioral qualification", definition.name, [
         `tool:ngspice:${identityKey}`,
         `qualification:${qualification.sha256}`,
         ...(failedCase === undefined ? [] : [`qualification-case:${failedCase.id}:${failedCase.failure ?? "failed"}`]),
@@ -861,7 +861,7 @@ export async function runQualifiedNgspice(options: {
       ...(promotionAuthority === undefined ? {} : { promotionAuthority }),
     });
   } catch (error) {
-    if (options.signal?.aborted || isPcbooCancellationError(error)) {
+    if (options.signal?.aborted || isFulmetryCancellationError(error)) {
       await rm(simulationDirectory, { recursive: true, force: true }).catch(() => undefined);
       throw error;
     }

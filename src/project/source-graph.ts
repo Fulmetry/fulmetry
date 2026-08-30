@@ -1,11 +1,11 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { constants } from "node:fs";
 import { lstat, open, readFile, realpath } from "node:fs/promises";
 import { dirname, extname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
-import { PCBOO_PACKAGE_NAME } from "../version";
+import { FULMETRY_PACKAGE_NAME } from "../version";
 import {
   assertProjectInputFileSize,
   assertProjectInputTotalSize,
@@ -227,10 +227,10 @@ function assertAuthoringPackageImport(
 ): void {
   if (node.moduleSpecifier === undefined || !ts.isStringLiteralLike(node.moduleSpecifier)) return;
   const specifier = node.moduleSpecifier.text;
-  const isPcboo = specifier === "pcboo" || specifier === "pcboo/authoring";
+  const isFulmetry = specifier === "fulmetry" || specifier === "fulmetry/authoring";
   const isTscircuit = specifier === "tscircuit";
-  if (!isPcboo && !isTscircuit) {
-    if (specifier.startsWith("pcboo/") || specifier.startsWith("tscircuit/")) {
+  if (!isFulmetry && !isTscircuit) {
+    if (specifier.startsWith("fulmetry/") || specifier.startsWith("tscircuit/")) {
       throw new Error(`Verified source forbids operational package surface ${JSON.stringify(specifier)} in ${path}`);
     }
     return;
@@ -244,7 +244,7 @@ function assertAuthoringPackageImport(
   for (const binding of bindings.elements) {
     const importedName = binding.propertyName?.text ?? binding.name.text;
     const allowed = configMode
-      ? isPcboo && specifier === "pcboo" && importedName === "defineConfig"
+      ? isFulmetry && specifier === "fulmetry" && importedName === "defineConfig"
       : AUTHORING_IMPORTS.has(importedName);
     if (!allowed) {
       throw new Error(
@@ -275,7 +275,7 @@ async function findPackageRoot(start: string, packageName: string): Promise<stri
   }
 }
 
-const runtimePcbooRoot = findPackageRoot(fileURLToPath(import.meta.url), PCBOO_PACKAGE_NAME);
+const runtimeFulmetryRoot = findPackageRoot(fileURLToPath(import.meta.url), FULMETRY_PACKAGE_NAME);
 
 async function resolveLocalImport(
   projectRoot: string,
@@ -329,10 +329,10 @@ async function resolveLocalImport(
     ? specifier.split("/").slice(0, 2).join("/")
     : specifier.split("/")[0]!;
   if (canonical.split(sep).includes("node_modules")) {
-    if (bare && packageName === "pcboo") {
-      const importedRoot = await findPackageRoot(canonical, PCBOO_PACKAGE_NAME);
-      if (importedRoot !== await runtimePcbooRoot) {
-        throw new Error("Verified source resolved pcboo to a different physical package");
+    if (bare && packageName === "fulmetry") {
+      const importedRoot = await findPackageRoot(canonical, FULMETRY_PACKAGE_NAME);
+      if (importedRoot !== await runtimeFulmetryRoot) {
+        throw new Error("Verified source resolved fulmetry to a different physical package");
       }
       return undefined;
     }
@@ -346,10 +346,10 @@ async function resolveLocalImport(
         `Project source import escapes the project root: ${relative(projectRoot, importer)} -> ${specifier}`,
       );
     }
-    if (bare && packageName === "pcboo") {
-      const importedRoot = await findPackageRoot(canonical, PCBOO_PACKAGE_NAME);
-      if (importedRoot !== await runtimePcbooRoot) {
-        throw new Error("Verified source resolved pcboo to a different physical package");
+    if (bare && packageName === "fulmetry") {
+      const importedRoot = await findPackageRoot(canonical, FULMETRY_PACKAGE_NAME);
+      if (importedRoot !== await runtimeFulmetryRoot) {
+        throw new Error("Verified source resolved fulmetry to a different physical package");
       }
       return undefined;
     }
@@ -654,7 +654,7 @@ export async function discoverProjectSourceGraph(
   const enforceVerifiedSemantics = options.enforceVerifiedSemantics ?? true;
   const forbidAmbientNondeterminism =
     options.forbidAmbientNondeterminism ?? enforceVerifiedSemantics;
-  const configMode = entry.replaceAll("\\", "/") === "pcboo.config.ts";
+  const configMode = entry.replaceAll("\\", "/") === "fulmetry.config.ts";
   const root = await realpath(resolve(projectRoot));
   const unresolvedEntryPath = resolve(root, ...entry.replaceAll("\\", "/").split("/"));
   const entryPath = await realpath(unresolvedEntryPath);

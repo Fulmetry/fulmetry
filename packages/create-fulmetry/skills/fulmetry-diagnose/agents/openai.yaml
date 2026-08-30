@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fulmetry Diagnose"
+  short_description: "Diagnose Fulmetry artifacts and previews"
+  default_prompt: "Use $fulmetry-diagnose to explain and repair this Fulmetry artifact or browser mismatch."

@@ -58,8 +58,8 @@ interface WorkflowStep {
 
 describe("release workflow memory isolation", () => {
   test("applies the repository-test policy preload in authoritative gate runs", () => {
-    if (process.env.PCBOO_REPOSITORY_TEST_POLICY_REQUIRED === "1") {
-      expect(process.env.PCBOO_REPOSITORY_TEST_POLICY_ACTIVE).toBe("1");
+    if (process.env.FULMETRY_REPOSITORY_TEST_POLICY_REQUIRED === "1") {
+      expect(process.env.FULMETRY_REPOSITORY_TEST_POLICY_ACTIVE).toBe("1");
     }
   });
   test("partitions every named gate into bounded fresh regular shards and isolated heavy workers", async () => {
@@ -155,7 +155,7 @@ describe("release workflow memory isolation", () => {
     ).toBeLessThanOrEqual(1);
     for (const partition of partitions) {
       const expression = new RegExp(cliTestPartitionPattern(partition), "u");
-      expect(titles.filter((title) => expression.test(`PCBoo CLI ${title}`))).toEqual([...partition]);
+      expect(titles.filter((title) => expression.test(`Fulmetry CLI ${title}`))).toEqual([...partition]);
     }
     expect(CLI_PARTITION_TIMEOUT_MS).toBeGreaterThan(120_000);
     expect(CLI_OVERALL_TIMEOUT_MS).toBeGreaterThan(CLI_PARTITION_TIMEOUT_MS);
@@ -216,7 +216,7 @@ describe("release workflow memory isolation", () => {
   });
 
   test("the authoritative preload rejects focused and skipped repository-test variants", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "pcboo-repository-policy-"));
+    const directory = await mkdtemp(join(tmpdir(), "fulmetry-repository-policy-"));
     try {
       for (const [name, declaration] of [
         ["only", `test.only("focused", () => {});`],
@@ -241,7 +241,7 @@ describe("release workflow memory isolation", () => {
         });
         expect(child.exitCode, name).not.toBe(0);
         expect(new TextDecoder().decode(child.stderr), name).toContain(
-          "PCBOO_REPOSITORY_TEST_POLICY_FORBIDDEN",
+          "FULMETRY_REPOSITORY_TEST_POLICY_FORBIDDEN",
         );
       }
     } finally {
@@ -250,7 +250,7 @@ describe("release workflow memory isolation", () => {
   });
 
   test("discovers nested TSX tests in both conventional roots while excluding only exact heavy files", async () => {
-    const fixtureRoot = await mkdtemp(join(tmpdir(), "pcboo-regular-inventory-"));
+    const fixtureRoot = await mkdtemp(join(tmpdir(), "fulmetry-regular-inventory-"));
     try {
       await mkdir(join(fixtureRoot, "test", "nested"), { recursive: true });
       await mkdir(join(fixtureRoot, "tests", "nested"), { recursive: true });
@@ -310,7 +310,7 @@ describe("release workflow memory isolation", () => {
     expect(workflowEntries.sort()).toEqual(["ci.yml", "publish.yml"]);
     const workflowSource = await readFile(join(root, ".github/workflows/ci.yml"), "utf8");
     expect(new Bun.CryptoHasher("sha256").update(workflowSource).digest("hex")).toBe(
-      "c8e9277c816fef67e2c20c5bfe26a4baacd5bfd7e7299ff345bc40c5c0bd324c",
+      "d0eca120926285b2892a2d5d0d89060b350ca5409e767777dcf04846b45544c0",
     );
     const workflow = Bun.YAML.parse(workflowSource) as {
       jobs: Record<string, {
@@ -358,7 +358,7 @@ describe("release workflow memory isolation", () => {
           uses: uploadArtifact,
           with: {
             name: "performance-${{ runner.os }}-${{ runner.arch }}",
-            path: ".pcboo-ci/performance-*.json",
+            path: ".fulmetry-ci/performance-*.json",
             "if-no-files-found": "error",
           },
         },
@@ -372,7 +372,7 @@ describe("release workflow memory isolation", () => {
           uses: uploadArtifact,
           with: {
             name: "packed-consumer-resolution-darwin-arm64",
-            path: ".pcboo-ci/packed-consumer-diagnostic",
+            path: ".fulmetry-ci/packed-consumer-diagnostic",
             "if-no-files-found": "error",
           },
         }, {
@@ -380,7 +380,7 @@ describe("release workflow memory isolation", () => {
           uses: uploadArtifact,
           with: {
             name: "tscircuit-runtime-darwin-arm64",
-            path: ".pcboo-ci/tscircuit-runtime-darwin-arm64.json",
+            path: ".fulmetry-ci/tscircuit-runtime-darwin-arm64.json",
             "if-no-files-found": "error",
           },
         },
@@ -392,7 +392,7 @@ describe("release workflow memory isolation", () => {
           uses: uploadArtifact,
           with: {
             name: "ngspice-live-${{ runner.os }}-${{ runner.arch }}",
-            path: ".pcboo-ci/ngspice-live-darwin-arm64",
+            path: ".fulmetry-ci/ngspice-live-darwin-arm64",
             "if-no-files-found": "error",
           },
         },
@@ -404,7 +404,7 @@ describe("release workflow memory isolation", () => {
           uses: uploadArtifact,
           with: {
             name: "kicad-live-${{ runner.os }}-${{ runner.arch }}",
-            path: ".pcboo-ci/kicad-live-darwin-arm64",
+            path: ".fulmetry-ci/kicad-live-darwin-arm64",
             "if-no-files-found": "error",
           },
         },
@@ -433,14 +433,14 @@ describe("release workflow memory isolation", () => {
       name === "Upload performance qualification"
     )!;
     expect(performanceUpload.uses).toBe("actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02");
-    expect(performanceUpload.with?.path).toBe(".pcboo-ci/performance-*.json");
+    expect(performanceUpload.with?.path).toBe(".fulmetry-ci/performance-*.json");
     expect(performanceUpload.if).toContain("success()");
     expect(performanceUpload.if).toContain("steps.performance.outcome == 'success'");
     expect(performanceUpload.if).toContain("steps.performance_report.outcome == 'success'");
     const liveSteps = workflow.jobs["ngspice-live"]!.steps;
     expect(liveSteps.some(({ run }) => run?.includes("bun run test:live:ngspice"))).toBeTrue();
     expect(liveSteps.find(({ name }) => name === "Upload exact live qualification evidence")?.with?.path)
-      .toBe(".pcboo-ci/ngspice-live-darwin-arm64");
+      .toBe(".fulmetry-ci/ngspice-live-darwin-arm64");
     const kicadSteps = workflow.jobs["kicad-live"]!.steps;
     const installKicad = kicadSteps.find(({ name }) =>
       name === "Install exact official KiCad 10.0.5 distribution"
@@ -450,7 +450,7 @@ describe("release workflow memory isolation", () => {
     );
     expect(kicadSteps.some(({ run }) => run === "bun run test:live:kicad")).toBeTrue();
     expect(kicadSteps.find(({ name }) => name === "Upload exact live KiCad evidence")?.with?.path)
-      .toBe(".pcboo-ci/kicad-live-darwin-arm64");
+      .toBe(".fulmetry-ci/kicad-live-darwin-arm64");
 
     const distributionRuns = workflow.jobs["package-distribution"]!.steps
       .map(({ run }) => run)
@@ -490,7 +490,7 @@ describe("release workflow memory isolation", () => {
       { name: "Publish framework with OIDC provenance", run: "npm publish --access public --provenance" },
       {
         name: "Publish initializer with OIDC provenance",
-        "working-directory": "packages/create-pcboo",
+        "working-directory": "packages/create-fulmetry",
         run: "npm publish --access public --provenance",
       },
     ]);

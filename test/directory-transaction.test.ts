@@ -13,7 +13,7 @@ afterEach(async () => {
 });
 
 async function fixture() {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-directory-transaction-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-directory-transaction-"));
   roots.push(root);
   const targetA = join(root, "target-a");
   const targetB = join(root, "target-b");

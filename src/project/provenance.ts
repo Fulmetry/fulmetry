@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -459,7 +459,7 @@ export async function enrichDiagnosticProvenance(options: {
   readonly entry: string;
   readonly circuitJson: readonly unknown[];
   readonly diagnostics: readonly Diagnostic[];
-  /** @internal Only for detail tokens emitted directly by PCBoo assessments. */
+  /** @internal Only for detail tokens emitted directly by Fulmetry assessments. */
   readonly allowInternalDetailSelectors?: boolean;
 }): Promise<readonly Diagnostic[]> {
   const names = await indexAuthoredNames(options);

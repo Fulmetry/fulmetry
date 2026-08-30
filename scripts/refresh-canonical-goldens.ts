@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { evaluateProjectCircuitTwice } from "../src/project/evaluate";
 import { canonicalCircuitJson } from "../src/circuit-json";
 import { requireTscircuitIdentity } from "../src/engine-identity";
-import { parsePcbooLock } from "../src/project/lock";
+import { parseFulmetryLock } from "../src/project/lock";
 import { requireRuntimeEvidencePackageIdentity } from "../src/evidence-identity";
 import { requireManufacturingPackageIdentity } from "../src/manufacturing/identity";
 import {
@@ -58,23 +58,23 @@ if (!options.explicitAcceptance) {
   throw new Error(`Refusing to refresh canonical goldens without explicit ${ACCEPT_FLAG}`);
 }
 
-const pcbooRoot = dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
-const compatibilityAnchorPath = join(pcbooRoot, "compatibility", "tscircuit.json");
+const fulmetryRoot = dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
+const compatibilityAnchorPath = join(fulmetryRoot, "compatibility", "tscircuit.json");
 const compatibilityAnchor = parseTscircuitCompatibilityAnchorText(await readFile(compatibilityAnchorPath, "utf8"));
 const authorityEpoch = await capturePathAuthorityEpoch([
-  join(pcbooRoot, "package.json"),
-  join(pcbooRoot, "bun.lock"),
+  join(fulmetryRoot, "package.json"),
+  join(fulmetryRoot, "bun.lock"),
   compatibilityAnchorPath,
-  join(pcbooRoot, "src"),
+  join(fulmetryRoot, "src"),
   fileURLToPath(import.meta.url),
-  join(pcbooRoot, "test", "fixtures", "canonical.ts"),
+  join(fulmetryRoot, "test", "fixtures", "canonical.ts"),
 ]);
 await Promise.all([
   requireRuntimeEvidencePackageIdentity(),
   requireManufacturingPackageIdentity(),
 ]);
 
-const transactionRoot = await mkdtemp(join(dirname(canonicalFixturesRoot), ".pcboo-canonical-refresh-"));
+const transactionRoot = await mkdtemp(join(dirname(canonicalFixturesRoot), ".fulmetry-canonical-refresh-"));
 const stagedRoot = join(transactionRoot, "staged");
 await mkdir(stagedRoot);
 const prepared: Array<{
@@ -97,10 +97,10 @@ const requireCurrentMaintenanceAuthority = async (): Promise<void> => {
     await readFile(compatibilityAnchorPath, "utf8"),
   );
   for (const fixture of prepared) {
-    const lock = parsePcbooLock(await readFile(join(fixture.targetDirectory, "pcboo.lock"), "utf8"));
+    const lock = parseFulmetryLock(await readFile(join(fixture.targetDirectory, "fulmetry.lock"), "utf8"));
     const identity = await requireTscircuitIdentity({
       projectRoot: fixture.targetDirectory,
-      pcbooRoot,
+      fulmetryRoot,
     });
     requireAcceptedEngineForCanonicalRefresh({
       fixtureName: fixture.fixtureName,
@@ -131,11 +131,11 @@ try {
     const expectation = JSON.parse(
       await readFile(join(root, "expectation.json"), "utf8"),
     ) as CanonicalExpectation;
-    const lock = JSON.parse(await readFile(join(root, "pcboo.lock"), "utf8")) as {
+    const lock = JSON.parse(await readFile(join(root, "fulmetry.lock"), "utf8")) as {
       tscircuit: { version: string; integrity: string };
       adapters: Record<string, string>;
     };
-    const identity = await requireTscircuitIdentity({ projectRoot: root, pcbooRoot });
+    const identity = await requireTscircuitIdentity({ projectRoot: root, fulmetryRoot });
     requireAcceptedEngineForCanonicalRefresh({
       fixtureName,
       anchored: compatibilityAnchor.accepted,

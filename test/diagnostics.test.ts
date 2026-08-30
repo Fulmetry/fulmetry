@@ -19,7 +19,7 @@ describe("diagnostics", () => {
       objects: ["trace.T1", "pad.U1.4"],
       measurement: { actual: "0.12mm", required: ">=0.20mm" },
       sourceLocations: ["circuit/controller/mcu.tsx:42"],
-      nextCommand: "pcboo inspect trace.T1",
+      nextCommand: "fulmetry inspect trace.T1",
     });
 
     expect(formatCompactDiagnostic(diagnostic)).toBe(
@@ -27,7 +27,7 @@ describe("diagnostics", () => {
         "E PCB_CLEARANCE_001  circuit/controller/mcu.tsx:42  trace.T1",
         "  Copper clearance is below the active rule",
         "  Actual 0.12mm; required >=0.20mm",
-        "  Inspect: pcboo inspect trace.T1",
+        "  Inspect: fulmetry inspect trace.T1",
       ].join("\n"),
     );
   });

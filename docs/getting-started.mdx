@@ -1,11 +1,11 @@
 ---
 title: Getting started
-description: Understand the supported environment and the current path for trying PCBoo.
+description: Understand the supported environment and the current path for trying Fulmetry.
 ---
 
 # Getting started
 
-PCBoo is published to npm. This page covers the supported environment, the package flow for a new project, and how to work from the source repository as a contributor.
+Fulmetry is published to npm. This page covers the supported environment, the package flow for a new project, and how to work from the source repository as a contributor.
 
 ## Supported environment
 
@@ -16,7 +16,7 @@ The initial release authority is deliberately narrow:
 | Operating system | macOS |
 | Architecture | Apple Silicon (`arm64`) |
 | Runtime | Bun 1.3.14 exactly |
-| Circuit engine | The tscircuit version pinned by PCBoo |
+| Circuit engine | The tscircuit version pinned by Fulmetry |
 
 Unsupported Bun versions fail before project evaluation or authoritative output is published.
 
@@ -25,15 +25,15 @@ Unsupported Bun versions fail before project evaluation or authoritative output 
 Start a new project with:
 
 ```sh
-bun create pcboo my-board
+bun create fulmetry my-board
 cd my-board
 bun run build
 ```
 
-This runs the published [`create-pcboo`](https://www.npmjs.com/package/create-pcboo) package and installs the framework, [`@pcboo/pcboo`](https://www.npmjs.com/package/@pcboo/pcboo), for you.
+This runs the published [`create-fulmetry`](https://www.npmjs.com/package/create-fulmetry) package and installs the framework, [`fulmetry`](https://www.npmjs.com/package/fulmetry), for you.
 
 <Info>
-PCBoo is experimental. Manufacturing output must pass its explicit verification gates before any production use.
+Fulmetry is experimental. Manufacturing output must pass its explicit verification gates before any production use.
 </Info>
 
 ## Work from the source repository today
@@ -41,10 +41,10 @@ PCBoo is experimental. Manufacturing output must pass its explicit verification 
 Contributors can clone the implementation and install its locked dependencies:
 
 ```sh
-git clone https://github.com/pcboo-dev/pcboo.git
-cd pcboo
+git clone https://github.com/Fulmetry/fulmetry.git
+cd fulmetry
 bun install --frozen-lockfile
-bun run pcboo help
+bun run fulmetry help
 ```
 
 Check the repository before changing it:
@@ -54,20 +54,20 @@ bun run typecheck
 bun run test:regular
 ```
 
-Some live tests require separately installed and qualified tools. PCBoo itself does not install KiCad or ngspice.
+Some live tests require separately installed and qualified tools. Fulmetry itself does not install KiCad or ngspice.
 
 ## Generated projects
 
 The scaffold produces a normal single-package repository with:
 
 - a multi-file circuit under `circuit/`;
-- `pcboo.config.ts` for resolved project configuration;
-- deterministic `pcboo.lock` authority;
+- `fulmetry.config.ts` for resolved project configuration;
+- deterministic `fulmetry.lock` authority;
 - Bun tests;
 - an agent guide;
 - version-matched project-local Agent Skills under `.agents/skills/` and `.claude/skills/`; and
 - scripts for build, check, inspection, simulation, and export.
 
-The scaffold refuses to overwrite an existing path. Pass `--no-skills` to omit the skills. Existing projects can install the public catalog separately with `bunx --bun skills@latest add pcboo-dev/pcboo --copy` (or `npx skills@latest add pcboo-dev/pcboo --copy`); PCBoo projects use copies because symlinks are rejected by the authoritative project-input boundary.
+The scaffold refuses to overwrite an existing path. Pass `--no-skills` to omit the skills. Existing projects can install the public catalog separately with `bunx --bun skills@latest add Fulmetry/fulmetry --copy` (or `npx skills@latest add Fulmetry/fulmetry --copy`); Fulmetry projects use copies because symlinks are rejected by the authoritative project-input boundary.
 
 Next, see [Project structure](/project-structure) and [Author circuits](/authoring).

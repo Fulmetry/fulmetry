@@ -24,7 +24,7 @@ import {
 const temporaryRoots: string[] = [];
 
 async function temporaryPackage(): Promise<string> {
-  const parent = await mkdtemp(join(tmpdir(), "pcboo-engine-fingerprint-"));
+  const parent = await mkdtemp(join(tmpdir(), "fulmetry-engine-fingerprint-"));
   temporaryRoots.push(parent);
   const root = join(parent, "tscircuit");
   await mkdir(root);
@@ -365,7 +365,7 @@ describe("bounded engine-package fingerprinting", () => {
   test.skipIf(process.platform === "win32")(
     "binds Bun tuple-level command links and rejects targets outside the closure",
     async () => {
-      const parent = await mkdtemp(join(tmpdir(), "pcboo-bun-tuple-bin-"));
+      const parent = await mkdtemp(join(tmpdir(), "fulmetry-bun-tuple-bin-"));
       temporaryRoots.push(parent);
       const modules = join(parent, "node_modules", ".bun", "tscircuit@1.0.0", "node_modules");
       const root = join(modules, "tscircuit");

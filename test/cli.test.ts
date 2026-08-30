@@ -85,7 +85,7 @@ async function createProject(
   circuitJson: unknown[],
   name = "cli project ü",
 ): Promise<{ root: string; nested: string }> {
-  const parent = await mkdtemp(join(tmpdir(), "pcboo-cli-"));
+  const parent = await mkdtemp(join(tmpdir(), "fulmetry-cli-"));
   temporaryRoots.push(parent);
   const root = join(parent, name);
   const nested = join(root, "circuit", "nested");
@@ -97,14 +97,14 @@ async function createProject(
     `export default ${JSON.stringify(circuitJson.length === 0 ? minimalBoardCircuitFixture() : circuitJson)};\n`,
   );
   await Bun.write(
-    join(root, "pcboo.config.ts"),
+    join(root, "fulmetry.config.ts"),
     `export default ${JSON.stringify({
       entry: "circuit/board.ts",
       profiles: [BASELINE_FABRICATION_PROFILE.name],
     })};\n`,
   );
   await Bun.write(
-    join(root, "pcboo.lock"),
+    join(root, "fulmetry.lock"),
     `${JSON.stringify({
       schemaVersion: 1,
       tscircuit: {
@@ -198,13 +198,13 @@ afterEach(async () => {
   );
 });
 
-describe("PCBoo CLI", () => {
+describe("Fulmetry CLI", () => {
   test("shows bounded help without requiring a project", async () => {
     const run = await runCli({ argv: ["help"], cwd: tmpdir() });
 
     expect(run.exitCode).toBe(0);
-    expect(run.stdout).toContain("pcboo verify manufacturing");
-    expect(run.stdout).toContain("pcboo export gerbers");
+    expect(run.stdout).toContain("fulmetry verify manufacturing");
+    expect(run.stdout).toContain("fulmetry export gerbers");
     expect(run.stdout.length).toBeLessThan(2_000);
     expect(run.result).toBeUndefined();
   });
@@ -251,7 +251,7 @@ describe("PCBoo CLI", () => {
       const startup = JSON.parse(started.stdout);
       expect(startup).toMatchObject({
         schemaVersion: "1",
-        command: "pcboo dev",
+        command: "fulmetry dev",
         protocol: "http",
         hostname: "127.0.0.1",
         warnings: [],
@@ -296,9 +296,9 @@ describe("PCBoo CLI", () => {
       const result = JSON.parse(stdout);
       expect(result).toMatchObject({
         schemaVersion: "1",
-        command: "pcboo dev",
+        command: "fulmetry dev",
         exitClassification: "failure",
-        diagnostics: [{ id: "CLI_ARGUMENT_INVALID_001", nextCommand: "pcboo help" }],
+        diagnostics: [{ id: "CLI_ARGUMENT_INVALID_001", nextCommand: "fulmetry help" }],
       });
     }
   });
@@ -318,7 +318,7 @@ describe("PCBoo CLI", () => {
     expect(JSON.parse(json.stdout).diagnostics).toEqual([
       expect.objectContaining({
         id: "CLI_COMMAND_UNSUPPORTED_001",
-        nextCommand: "pcboo help",
+        nextCommand: "fulmetry help",
       }),
     ]);
   });
@@ -333,7 +333,7 @@ describe("PCBoo CLI", () => {
       expect.objectContaining({
         id: "CLI_ARGUMENT_INVALID_001",
         message: "build accepts no positional arguments",
-        nextCommand: "pcboo help",
+        nextCommand: "fulmetry help",
       }),
     ]);
   });
@@ -345,7 +345,7 @@ describe("PCBoo CLI", () => {
       expect(run.stderr).toBe("");
       expect(JSON.parse(run.stdout)).toMatchObject({
         schemaVersion: "1",
-        command: "pcboo help",
+        command: "fulmetry help",
         runId: "help",
         exitClassification: "success",
         requestedDimensions: [],
@@ -364,7 +364,7 @@ describe("PCBoo CLI", () => {
     const run = await runCli({ argv: ["test", "--json"], cwd: project.root, runId: "test-pass" });
 
     expect(run.exitCode).toBe(0);
-    expect(run.result?.command).toBe("pcboo test");
+    expect(run.result?.command).toBe("fulmetry test");
     expect(run.result?.requestedDimensions).toEqual(["functional"]);
     expect(run.result?.statuses.functional.state).toBe("passed");
     expect(run.result?.statuses.fabrication.state).toBe("not-run");
@@ -736,7 +736,7 @@ describe("PCBoo CLI", () => {
       externalToolPaths: { kicadCli: null },
     });
     expect(first.exitCode).toBe(3);
-    expect(first.result?.command).toBe("pcboo export kicad");
+    expect(first.result?.command).toBe("fulmetry export kicad");
     expect(first.result?.exitClassification).toBe("incomplete");
     expect(first.result?.statuses.fabrication.state).toBe("not-run");
     const handoffReport = first.result?.artifacts.find(({ kind }) => kind === "kicad-handoff-report");
@@ -767,7 +767,7 @@ describe("PCBoo CLI", () => {
   test("exports only a hash-bound draft Gerber set in a fresh offline run", async () => {
     const project = await createProject(await manufacturingFixture(4));
     await Bun.write(
-      join(project.root, "pcboo.config.ts"),
+      join(project.root, "fulmetry.config.ts"),
       `export default ${JSON.stringify({
         entry: "circuit/board.ts",
         profiles: [BASELINE_FABRICATION_PROFILE.name],
@@ -798,7 +798,7 @@ describe("PCBoo CLI", () => {
     });
 
     expect(run.exitCode).toBe(3);
-    expect(run.result?.command).toBe("pcboo export gerbers");
+    expect(run.result?.command).toBe("fulmetry export gerbers");
     expect(run.result?.exitClassification).toBe("incomplete");
     expect(run.result?.requestedDimensions).toEqual(["fabrication"]);
     expect(run.result?.statuses).toMatchObject({
@@ -813,7 +813,7 @@ describe("PCBoo CLI", () => {
       id: "FAB_DRAFT_EXPORT_UNVERIFIED_001",
       severity: "warning",
       waiverPolicy: "forbidden",
-      nextCommand: "pcboo verify manufacturing",
+      nextCommand: "fulmetry verify manufacturing",
     }));
     expect(run.result?.artifacts.some(({ path }) => path.endsWith("board-In1_Cu.gbr")))
       .toBeTrue();
@@ -911,7 +911,7 @@ describe("PCBoo CLI", () => {
     );
     expect(manifest.provenance.verificationResults.manufacturing).toBe("not-run");
     expect(manifest.artifacts.every(({ kind }) => kind.length > 0)).toBeTrue();
-    const runPathMarker = `.pcboo/runs/${run.result!.runId}/`;
+    const runPathMarker = `.fulmetry/runs/${run.result!.runId}/`;
     const expectedManifestPaths = (run.result?.artifacts ?? [])
       .filter(({ kind }) => kind !== "draft-artifact-manifest")
       .map(({ path }) => {
@@ -960,7 +960,7 @@ describe("PCBoo CLI", () => {
     expect(processStderr).toBe("");
     expect(JSON.parse(processStdout)).toMatchObject({
       schemaVersion: "1",
-      command: "pcboo export gerbers",
+      command: "fulmetry export gerbers",
       runId: "gerber-process-boundary",
       exitClassification: "incomplete",
       project: { networkPolicy: "offline" },
@@ -1020,7 +1020,7 @@ describe("PCBoo CLI", () => {
       testHooks: {
         beforeFinalReportPublication: async () => {
           await Bun.write(
-            join(artifactProject.root, ".pcboo/runs/gerber-artifact-race/manufacturing-draft/gerbers/board-F_Cu.gbr"),
+            join(artifactProject.root, ".fulmetry/runs/gerber-artifact-race/manufacturing-draft/gerbers/board-F_Cu.gbr"),
             "mutated after manifest capture\n",
           );
         },
@@ -1176,7 +1176,7 @@ describe("PCBoo CLI", () => {
     });
     const finalPath = join(
       project.root,
-      ".pcboo/runs/kicad-exclusive-commit-race/kicad-handoff/board.kicad_pcb",
+      ".fulmetry/runs/kicad-exclusive-commit-race/kicad-handoff/board.kicad_pcb",
     );
     expect(injected).toBeTrue();
     expect(await Bun.file(finalPath).text()).toBe(humanBytes);
@@ -1190,7 +1190,7 @@ describe("PCBoo CLI", () => {
 
   test("rejects a late mutation of isolated KiCad input instead of returning stale artifact references", async () => {
     const project = await createProject(await manufacturingFixture(2));
-    const inputPath = join(project.root, ".pcboo/runs/kicad-input-race/kicad-live-validation/input/board.kicad_pcb");
+    const inputPath = join(project.root, ".fulmetry/runs/kicad-input-race/kicad-live-validation/input/board.kicad_pcb");
     const run = await runCli({
       argv: ["export", "kicad", "--json"],
       cwd: project.root,
@@ -1220,7 +1220,7 @@ describe("PCBoo CLI", () => {
     ] as const;
     for (const attack of attacks) {
       const project = await createProject(await manufacturingFixture(2), `kicad-publication-${attack}`);
-      const handoffDirectory = join(project.root, `.pcboo/runs/${attack}/kicad-handoff`);
+      const handoffDirectory = join(project.root, `.fulmetry/runs/${attack}/kicad-handoff`);
       const run = await runCli({
         argv: ["export", "kicad", "--json"],
         cwd: project.root,
@@ -1284,7 +1284,7 @@ describe("PCBoo CLI", () => {
 
   test("rejects configuration changes between run preparation and evidence input capture", async () => {
     const project = await createProject(await manufacturingFixture(2), "prepared-config-authority");
-    const configPath = join(project.root, "pcboo.config.ts");
+    const configPath = join(project.root, "fulmetry.config.ts");
     const run = await runCli({
       argv: ["build"], cwd: project.root, runId: "prepared-config-authority",
       testHooks: {
@@ -1304,7 +1304,7 @@ describe("PCBoo CLI", () => {
       "reflective-config-runtime",
     );
     await Bun.write(
-      join(project.root, "pcboo.config.ts"),
+      join(project.root, "fulmetry.config.ts"),
       `const F=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(()=>{}),"constructor").value;void F;export default {entry:"circuit/board.ts",profiles:[${JSON.stringify(BASELINE_FABRICATION_PROFILE.name)}]}\n`,
     );
     const run = await runCli({
@@ -1454,7 +1454,7 @@ describe("PCBoo CLI", () => {
       argv: ["build"], cwd: project.root, runId: "malformed-final-config",
       testHooks: {
         beforeFinalReportPublication: async () => {
-          await Bun.write(join(project.root, "pcboo.config.ts"), "export default { entry: ;\n");
+          await Bun.write(join(project.root, "fulmetry.config.ts"), "export default { entry: ;\n");
         },
       },
     });
@@ -1534,7 +1534,7 @@ describe("PCBoo CLI", () => {
     }
     expect(await Bun.file(marker).exists()).toBeTrue();
     await Bun.write(join(project.root, "circuit/other.ts"), "export default [];\n");
-    await Bun.write(join(project.root, "pcboo.config.ts"), "export default { entry: 'circuit/other.ts', profiles: [] };\n");
+    await Bun.write(join(project.root, "fulmetry.config.ts"), "export default { entry: 'circuit/other.ts', profiles: [] };\n");
     const run = await pending;
     expect(run.exitCode).toBe(1);
     expect(run.result?.exitClassification).toBe("failure");
@@ -1631,10 +1631,10 @@ describe("PCBoo CLI", () => {
 
   test("refuses a symlinked runs directory instead of writing outside the project", async () => {
     const project = await createProject([]);
-    const outside = await mkdtemp(join(tmpdir(), "pcboo-cli-outside-"));
+    const outside = await mkdtemp(join(tmpdir(), "fulmetry-cli-outside-"));
     temporaryRoots.push(outside);
-    await mkdir(join(project.root, ".pcboo"));
-    await symlink(outside, join(project.root, ".pcboo", "runs"));
+    await mkdir(join(project.root, ".fulmetry"));
+    await symlink(outside, join(project.root, ".fulmetry", "runs"));
 
     const run = await runCli({
       argv: ["build"],
@@ -1655,7 +1655,7 @@ describe("PCBoo CLI", () => {
       `export const profiles = [${JSON.stringify(BASELINE_FABRICATION_PROFILE.name)}];\n`,
     );
     await Bun.write(
-      join(project.root, "pcboo.config.ts"),
+      join(project.root, "fulmetry.config.ts"),
       "import { profiles } from './config/profile'; export default { entry: 'circuit/board.ts', outputDirectory: 'config', profiles };\n",
     );
 
@@ -1677,16 +1677,16 @@ describe("PCBoo CLI", () => {
       `import { expect, test } from "bun:test"; test("must not be hidden", () => expect(true).toBeFalse());\n`;
     await Bun.write(hiddenTestPath, hiddenTestBytes);
     await Bun.write(
-      join(project.root, "tests/.pcboo-output-root.json"),
+      join(project.root, "tests/.fulmetry-output-root.json"),
       `${JSON.stringify({
         schemaVersion: 1,
-        kind: "pcboo-generated-output-root",
+        kind: "fulmetry-generated-output-root",
         outputDirectory: "tests",
         nonce: "00000000-0000-4000-8000-000000000000",
       })}\n`,
     );
     await Bun.write(
-      join(project.root, "pcboo.config.ts"),
+      join(project.root, "fulmetry.config.ts"),
       `export default ${JSON.stringify({
         entry: "circuit/board.ts",
         outputDirectory: "tests",
@@ -1701,14 +1701,14 @@ describe("PCBoo CLI", () => {
     });
 
     expect(run.exitCode).toBe(1);
-    expect(run.stderr).toContain("missing project-bound PCBoo ownership authority");
+    expect(run.stderr).toContain("missing project-bound Fulmetry ownership authority");
     expect(await Bun.file(join(project.root, "tests/runs/hidden-authored-test")).exists()).toBeFalse();
     expect(await Bun.file(hiddenTestPath).text()).toBe(hiddenTestBytes);
   });
 
-  test("allows the specified PCBoo-owned immutable cache in the default output root", async () => {
+  test("allows the specified Fulmetry-owned immutable cache in the default output root", async () => {
     const project = await createProject([]);
-    const cacheMarker = join(project.root, ".pcboo/cache/immutable-asset.txt");
+    const cacheMarker = join(project.root, ".fulmetry/cache/immutable-asset.txt");
     await mkdir(dirname(cacheMarker), { recursive: true });
     await Bun.write(cacheMarker, "pinned cache fixture\n");
 
@@ -1723,17 +1723,17 @@ describe("PCBoo CLI", () => {
     expect(await Bun.file(cacheMarker).text()).toBe("pinned cache fixture\n");
     expect(await Bun.file(join(
       project.root,
-      ".pcboo/runs/default-cache-control/report.json",
+      ".fulmetry/runs/default-cache-control/report.json",
     )).exists()).toBeTrue();
   });
 
   test("creates an exact ownership marker for a fresh custom output root", async () => {
     const project = await createProject([]);
     await Bun.write(
-      join(project.root, "pcboo.config.ts"),
+      join(project.root, "fulmetry.config.ts"),
       `export default ${JSON.stringify({
         entry: "circuit/board.ts",
-        outputDirectory: "generated/pcboo",
+        outputDirectory: "generated/fulmetry",
         profiles: [BASELINE_FABRICATION_PROFILE.name],
       })};\n`,
     );
@@ -1747,32 +1747,32 @@ describe("PCBoo CLI", () => {
     expect(run.exitCode).toBe(0);
     const authorityBytes = await Bun.file(join(
       project.root,
-      ".pcboo-output-ownership.json",
+      ".fulmetry-output-ownership.json",
     )).text();
     const markerBytes = await Bun.file(join(
       project.root,
-      "generated/pcboo/.pcboo-output-root.json",
+      "generated/fulmetry/.fulmetry-output-root.json",
     )).text();
     expect(markerBytes).toBe(authorityBytes);
     expect(JSON.parse(authorityBytes)).toMatchObject({
       schemaVersion: 1,
-      kind: "pcboo-generated-output-root",
-      outputDirectory: "generated/pcboo",
+      kind: "fulmetry-generated-output-root",
+      outputDirectory: "generated/fulmetry",
     });
     expect(JSON.parse(authorityBytes).nonce).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
     expect(await Bun.file(join(
       project.root,
-      "generated/pcboo/runs/custom-output-marker/report.json",
+      "generated/fulmetry/runs/custom-output-marker/report.json",
     )).exists()).toBeTrue();
   });
 
   test("discovers from a descendant, writes one fresh run, and leaves source unchanged", async () => {
     const project = await createProject([]);
     const sourcePath = join(project.root, "circuit", "board.ts");
-    const configPath = join(project.root, "pcboo.config.ts");
-    const lockPath = join(project.root, "pcboo.lock");
+    const configPath = join(project.root, "fulmetry.config.ts");
+    const lockPath = join(project.root, "fulmetry.lock");
     const before = await Promise.all(
       [sourcePath, configPath, lockPath].map((path) => readFile(path, "utf8")),
     );
@@ -1793,7 +1793,7 @@ describe("PCBoo CLI", () => {
     expect(run.result?.project?.projectDigest).toMatch(/^[a-f0-9]{64}$/);
     expect(JSON.stringify(run.result?.project)).not.toContain(project.root);
     expect(run.runDirectory).toBe(
-      join(await realpath(project.root), ".pcboo", "runs", "build-001"),
+      join(await realpath(project.root), ".fulmetry", "runs", "build-001"),
     );
     expect(
       (JSON.parse(await Bun.file(join(run.runDirectory!, "circuit.json")).text()) as Array<{ type: string }>)
@@ -2073,7 +2073,7 @@ describe("PCBoo CLI", () => {
       if (json) expect(JSON.parse(run.stdout), format).toEqual(run.result);
       else {
         expect(run.stdout, format).toContain("sourcing: unchecked");
-        expect(run.stdout, format).toContain("Read .pcboo/runs/");
+        expect(run.stdout, format).toContain("Read .fulmetry/runs/");
       }
     }
   });
@@ -2289,7 +2289,7 @@ describe("PCBoo CLI", () => {
       `${verified.stderr}\n${JSON.stringify(verified.result, null, 2)}`,
     ).toBe(0);
     expect(verified.result?.exitClassification).toBe("warning-only");
-    expect(verified.stdout).toContain("WARNING-ONLY pcboo verify manufacturing");
+    expect(verified.stdout).toContain("WARNING-ONLY fulmetry verify manufacturing");
     expect(verified.result?.statuses.fabrication.state).toBe("passed-with-waivers");
     expect(verified.result?.statuses.electrical.state).toBe("passed");
     expect(verified.result?.statuses.standards.state).toBe("passed-with-waivers");

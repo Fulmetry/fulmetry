@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { afterEach, expect, test } from "bun:test";
 import { cp, link, mkdir, mkdtemp, rename, rm, symlink, truncate, writeFile } from "node:fs/promises";
@@ -15,19 +15,19 @@ function sri(bytes: Uint8Array): string {
 }
 
 async function fixture(): Promise<Readonly<{ root: string; lock: Record<string, unknown> }>> {
-  const authority = await mkdtemp(join(tmpdir(), "pcboo-packed-consumer-test-"));
+  const authority = await mkdtemp(join(tmpdir(), "fulmetry-packed-consumer-test-"));
   roots.push(authority);
   const root = join(authority, "harness", "board");
   const packages = join(authority, "packages");
-  const pcbooRoot = join(root, "node_modules", "pcboo");
+  const fulmetryRoot = join(root, "node_modules", "fulmetry");
   const tscircuitRoot = join(root, "node_modules", "tscircuit");
   const cliRoot = join(root, "node_modules", "@tscircuit", "cli");
-  await mkdir(join(pcbooRoot, "src"), { recursive: true });
+  await mkdir(join(fulmetryRoot, "src"), { recursive: true });
   await mkdir(tscircuitRoot, { recursive: true });
   await mkdir(cliRoot, { recursive: true });
   await mkdir(packages);
-  const pcbooPackage = {
-    name: "@pcboo/pcboo", version: "0.0.0", type: "module", main: "src/index.ts",
+  const fulmetryPackage = {
+    name: "fulmetry", version: "0.0.0", type: "module", main: "src/index.ts",
     peerDependencies: { tscircuit: "0.0.2261" },
     os: ["darwin"], cpu: ["arm64"],
   };
@@ -37,40 +37,40 @@ async function fixture(): Promise<Readonly<{ root: string; lock: Record<string, 
     peerDependencies: { "circuit-json": "^0.0.464", tscircuit: "*" },
     bin: { "tscircuit-cli": "./cli/entrypoint.js" },
   };
-  const pcbooFiles = {
-    "package/package.json": `${JSON.stringify(pcbooPackage)}\n`,
-    "package/src/index.ts": "export const pcboo = true;\n",
+  const fulmetryFiles = {
+    "package/package.json": `${JSON.stringify(fulmetryPackage)}\n`,
+    "package/src/index.ts": "export const fulmetry = true;\n",
   };
-  await writeFile(join(pcbooRoot, "package.json"), pcbooFiles["package/package.json"]);
-  await writeFile(join(pcbooRoot, "src", "index.ts"), pcbooFiles["package/src/index.ts"]);
+  await writeFile(join(fulmetryRoot, "package.json"), fulmetryFiles["package/package.json"]);
+  await writeFile(join(fulmetryRoot, "src", "index.ts"), fulmetryFiles["package/src/index.ts"]);
   await writeFile(join(tscircuitRoot, "package.json"), `${JSON.stringify(tscircuitPackage)}\n`);
   await writeFile(join(tscircuitRoot, "index.js"), "export default 1;\n");
   await writeFile(join(cliRoot, "package.json"), `${JSON.stringify(cliPackage)}\n`);
-  const archive = new Bun.Archive(pcbooFiles, { compress: "gzip" });
-  const tarball = join(packages, "pcboo-0.0.0.tgz");
+  const archive = new Bun.Archive(fulmetryFiles, { compress: "gzip" });
+  const tarball = join(packages, "fulmetry-0.0.0.tgz");
   const tarballBytes = await archive.bytes();
   await writeFile(tarball, tarballBytes);
   const manifest = {
     name: "board", version: "0.0.0", private: true, type: "module", packageManager: "bun@1.3.14",
     engines: { bun: "1.3.14" },
     scripts: {
-      build: "pcboo build", check: "pcboo check", inspect: "pcboo inspect", dev: "pcboo dev",
-      test: "pcboo test", "export:gerbers": "pcboo export gerbers",
+      build: "fulmetry build", check: "fulmetry check", inspect: "fulmetry inspect", dev: "fulmetry dev",
+      test: "fulmetry test", "export:gerbers": "fulmetry export gerbers",
     },
-    dependencies: { pcboo: "file:../../packages/pcboo-0.0.0.tgz", tscircuit: "0.0.2261" },
+    dependencies: { fulmetry: "file:../../packages/fulmetry-0.0.0.tgz", tscircuit: "0.0.2261" },
     devDependencies: { "@types/bun": "1.3.14", "@types/node": "24.13.3" },
     overrides: { "@tscircuit/cli": "0.1.1858", "bun-match-svg": "0.0.15" },
     trustedDependencies: [],
   };
   await writeFile(join(root, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-  await cp(join(repositoryRoot, "test", "fixtures", "canonical", "led-2layer", "pcboo.lock"), join(root, "pcboo.lock"));
+  await cp(join(repositoryRoot, "test", "fixtures", "canonical", "led-2layer", "fulmetry.lock"), join(root, "fulmetry.lock"));
   const lock: Record<string, unknown> = {
     lockfileVersion: 1,
     configVersion: 1,
     overrides: { "@tscircuit/cli": "0.1.1858", "bun-match-svg": "0.0.15" },
     workspaces: { "": { name: "board", dependencies: manifest.dependencies, devDependencies: manifest.devDependencies } },
     packages: {
-      pcboo: ["@pcboo/pcboo@../../packages/pcboo-0.0.0.tgz", { peerDependencies: { tscircuit: "0.0.2261" } }, sri(tarballBytes)],
+      fulmetry: ["fulmetry@../../packages/fulmetry-0.0.0.tgz", { peerDependencies: { tscircuit: "0.0.2261" } }, sri(tarballBytes)],
       tscircuit: ["tscircuit@0.0.2261", "", {}, SUPPORTED_TSCIRCUIT_INTEGRITY],
       "@tscircuit/cli": ["@tscircuit/cli@0.1.1858", "", {
         peerDependencies: { "circuit-json": "^0.0.464", tscircuit: "*" },
@@ -91,7 +91,7 @@ const inspect = (root: string, afterInitialRead?: () => Promise<void>) => inspec
   repositoryRoot,
   expectedVersion: "0.0.2261",
   expectedIntegrity: SUPPORTED_TSCIRCUIT_INTEGRITY,
-  expectedPcbooVersion: "0.0.0",
+  expectedFulmetryVersion: "0.0.0",
   ...(afterInitialRead === undefined ? {} : { afterInitialRead }),
 });
 
@@ -99,8 +99,8 @@ test("authenticates a minimal physical packed consumer and its tarball", async (
   const value = await fixture();
   const descriptor = await inspect(value.root);
   expect(descriptor.runtimeClosureSha256).toMatch(/^[a-f0-9]{64}$/);
-  expect(descriptor.packedPcbooContentSha256).toMatch(/^[a-f0-9]{64}$/);
-  expect(descriptor.pcbooTarballIntegrity).toMatch(/^sha512-/);
+  expect(descriptor.packedFulmetryContentSha256).toMatch(/^[a-f0-9]{64}$/);
+  expect(descriptor.fulmetryTarballIntegrity).toMatch(/^sha512-/);
 });
 
 test("rejects extra lock authority, malformed tuples, and secondary engine aliases", async () => {
@@ -112,7 +112,7 @@ test("rejects extra lock authority, malformed tuples, and secondary engine alias
     const value = await fixture();
     mutation(value.lock);
     await writeFile(join(value.root, "bun.lock"), `${JSON.stringify(value.lock)}\n`);
-    await expect(inspect(value.root)).rejects.toThrow(/unexpected fields|exact tscircuit tuple|another PCBoo or tscircuit/);
+    await expect(inspect(value.root)).rejects.toThrow(/unexpected fields|exact tscircuit tuple|another Fulmetry or tscircuit/);
   }
 });
 
@@ -160,7 +160,7 @@ test("rejects a symlinked tscircuit CLI package slot", async () => {
 
 test("authenticates platform selectors from the tarball even though Bun omits them from its local-tarball tuple", async () => {
   const value = await fixture();
-  const tuple = (value.lock.packages as any).pcboo;
+  const tuple = (value.lock.packages as any).fulmetry;
   tuple[1].os = ["darwin"];
   await writeFile(join(value.root, "bun.lock"), `${JSON.stringify(value.lock)}\n`);
   await expect(inspect(value.root)).rejects.toThrow("lock metadata differs");
@@ -168,7 +168,7 @@ test("authenticates platform selectors from the tarball even though Bun omits th
 
 test("rejects package files hard-linked to repository authority", async () => {
   const value = await fixture();
-  const installed = join(value.root, "node_modules", "pcboo", "src", "index.ts");
+  const installed = join(value.root, "node_modules", "fulmetry", "src", "index.ts");
   await rm(installed);
   await link(join(repositoryRoot, "src", "index.ts"), installed);
   await expect(inspect(value.root)).rejects.toThrow("shares a hard-linked file");
@@ -176,7 +176,7 @@ test("rejects package files hard-linked to repository authority", async () => {
 
 test("rejects any hard link shared with an explicit candidate profile, regardless of relative path", async () => {
   const value = await fixture();
-  const candidate = join((await mkdtemp(join(tmpdir(), "pcboo-packed-candidate-"))), "tscircuit");
+  const candidate = join((await mkdtemp(join(tmpdir(), "fulmetry-packed-candidate-"))), "tscircuit");
   roots.push(dirname(candidate));
   await mkdir(candidate);
   await link(
@@ -189,20 +189,20 @@ test("rejects any hard link shared with an explicit candidate profile, regardles
     repositoryRoot,
     expectedVersion: "0.0.2261",
     expectedIntegrity: SUPPORTED_TSCIRCUIT_INTEGRITY,
-    expectedPcbooVersion: "0.0.0",
+    expectedFulmetryVersion: "0.0.0",
     independentTscircuitRoots: [candidate],
   })).rejects.toThrow("shares a hard-linked file");
 });
 
-test("rejects linked direct packages and an engine split beneath packed PCBoo", async () => {
+test("rejects linked direct packages and an engine split beneath packed Fulmetry", async () => {
   const linked = await fixture();
-  const pcboo = join(linked.root, "node_modules", "pcboo");
-  await rename(pcboo, `${pcboo}-store`);
-  await symlink(`${pcboo}-store`, pcboo, "dir");
+  const fulmetry = join(linked.root, "node_modules", "fulmetry");
+  await rename(fulmetry, `${fulmetry}-store`);
+  await symlink(`${fulmetry}-store`, fulmetry, "dir");
   await expect(inspect(linked.root)).rejects.toThrow("physical directory");
 
   const split = await fixture();
-  const nested = join(split.root, "node_modules", "pcboo", "node_modules", "tscircuit");
+  const nested = join(split.root, "node_modules", "fulmetry", "node_modules", "tscircuit");
   await mkdir(nested, { recursive: true });
   await writeFile(join(nested, "package.json"), JSON.stringify({ name: "tscircuit", version: "0.0.2261", main: "index.js" }));
   await writeFile(join(nested, "index.js"), "export default 2;\n");
@@ -215,11 +215,11 @@ test("rejects oversized metadata before reading and byte-identical directory rep
   await expect(inspect(oversized.root)).rejects.toThrow("no larger than 1048576 bytes");
 
   const raced = await fixture();
-  const pcboo = join(raced.root, "node_modules", "pcboo");
+  const fulmetry = join(raced.root, "node_modules", "fulmetry");
   await expect(inspect(raced.root, async () => {
-    const replacement = `${pcboo}-replacement`;
-    await cp(pcboo, replacement, { recursive: true });
-    await rm(pcboo, { recursive: true });
-    await rename(replacement, pcboo);
+    const replacement = `${fulmetry}-replacement`;
+    await cp(fulmetry, replacement, { recursive: true });
+    await rm(fulmetry, { recursive: true });
+    await rename(replacement, fulmetry);
   })).rejects.toThrow("authority changed during inspection");
 });

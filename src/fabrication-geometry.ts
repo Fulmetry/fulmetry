@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import type { AnyCircuitElement } from "tscircuit";
 import type { BaselineFabricationProfile } from "./profiles/baseline";
@@ -1026,7 +1026,7 @@ export function assessBaselineGeometry(
       !containsFeature(ownerCourtyards[0]!, padGeometry)
     ) padOwnerIntegrity.add(`${pad.pcb_smtpad_id}:outside-owner-courtyard`);
     if (
-      pad.port_hints?.includes("pcboo:mechanical") !== true &&
+      pad.port_hints?.includes("fulmetry:mechanical") !== true &&
       pad.pcb_port_id !== undefined
     ) {
       const ports = pcbPortsById.get(pad.pcb_port_id) ?? [];
@@ -1053,7 +1053,7 @@ export function assessBaselineGeometry(
       ownerCourtyards.length !== 1 || holeGeometry === undefined ||
       !containsFeature(ownerCourtyards[0]!, holeGeometry)
     ) padOwnerIntegrity.add(`${hole.pcb_plated_hole_id}:outside-owner-courtyard`);
-    if (hole.port_hints?.includes("pcboo:mechanical") !== true) {
+    if (hole.port_hints?.includes("fulmetry:mechanical") !== true) {
       if (hole.pcb_port_id === undefined) {
         padOwnerIntegrity.add(`${hole.pcb_plated_hole_id}:missing-pcb-port`);
         continue;

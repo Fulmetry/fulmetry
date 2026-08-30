@@ -1,4 +1,4 @@
-/* SPDX-FileCopyrightText: 2026 PCBoo contributors */
+/* SPDX-FileCopyrightText: 2026 Fulmetry contributors */
 /* SPDX-License-Identifier: MIT */
 @import "tailwindcss";
 
@@ -37,11 +37,11 @@ body {
   background-size: auto, auto, 7px 7px;
 }
 
-[data-pcboo-card] {
+[data-fulmetry-card] {
   position: relative;
 }
 
-[data-pcboo-card]::before {
+[data-fulmetry-card]::before {
   position: absolute;
   inset: -1px 1.25rem auto;
   height: 3px;
@@ -87,7 +87,7 @@ summary {
   filter: brightness(1.35) drop-shadow(0 0 2px rgb(156 255 87 / 55%));
 }
 
-.pcboo-spectrum-mark {
+.fulmetry-spectrum-mark {
   display: grid;
   grid-template-columns: repeat(3, 5px);
   align-items: start;
@@ -97,30 +97,30 @@ summary {
   transform: rotate(-12deg);
 }
 
-.pcboo-spectrum-mark i {
+.fulmetry-spectrum-mark i {
   display: block;
   width: 5px;
   height: 22px;
   background: #31d7de;
 }
 
-.pcboo-spectrum-mark i:nth-child(2) {
+.fulmetry-spectrum-mark i:nth-child(2) {
   height: 16px;
   margin-top: 3px;
   background: #c757ff;
 }
 
-.pcboo-spectrum-mark i:nth-child(3) {
+.fulmetry-spectrum-mark i:nth-child(3) {
   height: 10px;
   margin-top: 6px;
   background: #b6ff42;
 }
 
-.pcboo-spectrum-mark.is-compact {
+.fulmetry-spectrum-mark.is-compact {
   transform: rotate(-12deg) scale(.86);
 }
 
-/* Keep legacy page-level utility accents inside the current PCBoo identity. */
+/* Keep legacy page-level utility accents inside the current Fulmetry identity. */
 .text-orange-300,
 .text-orange-400 {
   color: #9cff57;
@@ -139,13 +139,13 @@ summary {
   border-color: #9cff57;
 }
 
-[data-pcboo-3d-host],
-[data-pcboo-3d-host] canvas {
+[data-fulmetry-3d-host],
+[data-fulmetry-3d-host] canvas {
   width: 100% !important;
   height: 100% !important;
 }
 
-[data-pcboo-3d-viewer] canvas {
+[data-fulmetry-3d-viewer] canvas {
   position: absolute;
   inset: 0;
   z-index: 0;

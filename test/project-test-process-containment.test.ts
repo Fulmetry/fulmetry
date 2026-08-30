@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
@@ -21,8 +21,8 @@ function isAlive(pid: number): boolean {
 }
 
 test("a green project test cannot leave a reparented new-session daemon", async () => {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-project-test-containment-"));
-  const outputDirectory = ".pcboo";
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-project-test-containment-"));
+  const outputDirectory = ".fulmetry";
   const runDirectory = join(root, outputDirectory, "run");
   const identityPath = join(runDirectory, "daemon.identity");
   const markerPath = join(runDirectory, "daemon-survived");
@@ -79,7 +79,7 @@ test("a green project test cannot leave a reparented new-session daemon", async 
 });
 
 test("records direct and computed subprocess authorities before test execution", async () => {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-project-test-process-scan-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-project-test-process-scan-"));
   try {
     await mkdir(join(root, "tests"));
     await Bun.write(join(root, "tests", "process.test.ts"), [
@@ -91,7 +91,7 @@ test("records direct and computed subprocess authorities before test execution",
     ].join("\n"));
     const authority = await captureProjectTestInputAuthority({
       projectRoot: root,
-      outputDirectory: ".pcboo",
+      outputDirectory: ".fulmetry",
     });
     expect(authority.subprocessDeclarations).toEqual([
       "tests/process.test.ts:2:33",

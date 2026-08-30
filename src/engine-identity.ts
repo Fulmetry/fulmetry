@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { realpath } from "node:fs/promises";
 import { dirname, join, parse } from "node:path";
@@ -33,7 +33,7 @@ export type EngineIdentityIssueCode =
 export interface EngineIdentityIssue {
   readonly code: EngineIdentityIssueCode;
   readonly message: string;
-  readonly scope?: "project" | "pcboo";
+  readonly scope?: "project" | "fulmetry";
 }
 
 export interface TscircuitEngineLocation {
@@ -48,13 +48,13 @@ export interface TscircuitIdentityReport {
   readonly compatible: boolean;
   readonly expectedVersion: string;
   readonly project?: TscircuitEngineLocation;
-  readonly pcboo?: TscircuitEngineLocation;
+  readonly fulmetry?: TscircuitEngineLocation;
   readonly issues: readonly EngineIdentityIssue[];
 }
 
 export interface InspectTscircuitIdentityOptions {
   readonly projectRoot: string;
-  readonly pcbooRoot?: string;
+  readonly fulmetryRoot?: string;
   readonly expectedVersion?: string;
   readonly expectedContentSha256?: string;
   readonly expectedRuntimeClosureSha256?: readonly string[];
@@ -148,14 +148,14 @@ export async function inspectTscircuitIdentity(
   ];
   const expectedRuntimeClosures = options.expectedRuntimeClosureSha256 ??
     (options.expectedContentSha256 === undefined ? platformRuntimeClosures ?? [] : []);
-  const pcbooRoot =
-    options.pcbooRoot ?? fileURLToPath(new URL(".", import.meta.url));
+  const fulmetryRoot =
+    options.fulmetryRoot ?? fileURLToPath(new URL(".", import.meta.url));
   const issues: EngineIdentityIssue[] = [];
   let project: TscircuitEngineLocation | undefined;
-  let pcboo: TscircuitEngineLocation | undefined;
+  let fulmetry: TscircuitEngineLocation | undefined;
 
   let projectReference: Awaited<ReturnType<typeof resolveEngineReference>> | undefined;
-  let pcbooReference: Awaited<ReturnType<typeof resolveEngineReference>> | undefined;
+  let fulmetryReference: Awaited<ReturnType<typeof resolveEngineReference>> | undefined;
   try {
     projectReference = await resolveEngineReference(options.projectRoot);
   } catch (error) {
@@ -168,31 +168,31 @@ export async function inspectTscircuitIdentity(
     });
   }
   try {
-    pcbooReference = await resolveEngineReference(pcbooRoot);
+    fulmetryReference = await resolveEngineReference(fulmetryRoot);
   } catch (error) {
     issues.push({
       code: "TSCIRCUIT_UNAVAILABLE",
-      scope: "pcboo",
-      message: `pcboo cannot resolve tscircuit: ${
+      scope: "fulmetry",
+      message: `fulmetry cannot resolve tscircuit: ${
         error instanceof Error ? error.message : String(error)
       }`,
     });
   }
-  if (projectReference !== undefined && pcbooReference !== undefined) {
-    if (projectReference.packageRoot === pcbooReference.packageRoot) {
+  if (projectReference !== undefined && fulmetryReference !== undefined) {
+    if (projectReference.packageRoot === fulmetryReference.packageRoot) {
       try {
         project = await resolveEngine(options.projectRoot);
-        const [projectAfter, pcbooAfter] = await Promise.all([
+        const [projectAfter, fulmetryAfter] = await Promise.all([
           resolveEngineReference(options.projectRoot),
-          resolveEngineReference(pcbooRoot),
+          resolveEngineReference(fulmetryRoot),
         ]);
         if (
           projectAfter.entryPath !== projectReference.entryPath ||
           projectAfter.packageRoot !== projectReference.packageRoot ||
-          pcbooAfter.entryPath !== pcbooReference.entryPath ||
-          pcbooAfter.packageRoot !== pcbooReference.packageRoot
+          fulmetryAfter.entryPath !== fulmetryReference.entryPath ||
+          fulmetryAfter.packageRoot !== fulmetryReference.packageRoot
         ) throw new Error("tscircuit resolution changed during identity inspection");
-        pcboo = Object.freeze({ ...project, entryPath: pcbooReference.entryPath });
+        fulmetry = Object.freeze({ ...project, entryPath: fulmetryReference.entryPath });
       } catch (error) {
         project = undefined;
         issues.push({
@@ -216,12 +216,12 @@ export async function inspectTscircuitIdentity(
         });
       }
       try {
-        pcboo = await resolveEngine(pcbooRoot);
+        fulmetry = await resolveEngine(fulmetryRoot);
       } catch (error) {
         issues.push({
           code: "TSCIRCUIT_UNAVAILABLE",
-          scope: "pcboo",
-          message: `pcboo cannot authenticate tscircuit: ${
+          scope: "fulmetry",
+          message: `fulmetry cannot authenticate tscircuit: ${
             error instanceof Error ? error.message : String(error)
           }`,
         });
@@ -230,20 +230,20 @@ export async function inspectTscircuitIdentity(
   }
   for (const [scope, engine] of [
     ["project", project],
-    ["pcboo", pcboo],
+    ["fulmetry", fulmetry],
   ] as const) {
     if (engine !== undefined && engine.version !== expectedVersion) {
       issues.push({
         code: "TSCIRCUIT_VERSION_MISMATCH",
         scope,
-        message: `${scope} resolved tscircuit ${engine.version}; PCBoo requires ${expectedVersion}`,
+        message: `${scope} resolved tscircuit ${engine.version}; Fulmetry requires ${expectedVersion}`,
       });
     }
     if (engine !== undefined && engine.contentSha256 !== expectedContentSha256) {
       issues.push({
         code: "TSCIRCUIT_CONTENT_MISMATCH",
         scope,
-        message: `${scope} resolved tscircuit content ${engine.contentSha256}; PCBoo requires ${expectedContentSha256}`,
+        message: `${scope} resolved tscircuit content ${engine.contentSha256}; Fulmetry requires ${expectedContentSha256}`,
       });
     }
     if (
@@ -255,28 +255,28 @@ export async function inspectTscircuitIdentity(
         scope,
         message:
           `${scope} resolved tscircuit runtime closure ${engine.runtimeClosureSha256}; ` +
-          `PCBoo has not qualified that dependency graph on ${process.platform}-${process.arch}`,
+          `Fulmetry has not qualified that dependency graph on ${process.platform}-${process.arch}`,
       });
     }
     if (engine !== undefined && expectedRuntimeClosures.length === 0 && options.expectedContentSha256 === undefined) {
       issues.push({
         code: "TSCIRCUIT_RUNTIME_CLOSURE_UNQUALIFIED",
         scope,
-        message: `PCBoo has no qualified tscircuit runtime closure for ${process.platform}-${process.arch}`,
+        message: `Fulmetry has no qualified tscircuit runtime closure for ${process.platform}-${process.arch}`,
       });
     }
   }
 
   if (
     project !== undefined &&
-    pcboo !== undefined &&
-    project.packageRoot !== pcboo.packageRoot
+    fulmetry !== undefined &&
+    project.packageRoot !== fulmetry.packageRoot
   ) {
     issues.push({
       code: "TSCIRCUIT_DUPLICATE_ENGINE",
       message:
-        `Project and PCBoo resolved different tscircuit package roots: ` +
-        `${project.packageRoot} and ${pcboo.packageRoot}`,
+        `Project and Fulmetry resolved different tscircuit package roots: ` +
+        `${project.packageRoot} and ${fulmetry.packageRoot}`,
     });
   }
 
@@ -284,7 +284,7 @@ export async function inspectTscircuitIdentity(
     compatible: issues.length === 0,
     expectedVersion,
     ...(project === undefined ? {} : { project }),
-    ...(pcboo === undefined ? {} : { pcboo }),
+    ...(fulmetry === undefined ? {} : { fulmetry }),
     issues: Object.freeze(issues.map((issue) => Object.freeze({ ...issue }))),
   });
 }

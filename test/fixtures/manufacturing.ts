@@ -7,7 +7,7 @@ import {
   Resistor,
   Trace,
   type AnyCircuitElement,
-} from "@pcboo/pcboo/authoring";
+} from "fulmetry/authoring";
 
 export async function manufacturingFixture(
   layers: 2 | 4,
@@ -21,6 +21,7 @@ export async function manufacturingFixture(
       name: "R1",
       resistance: "10k",
       footprint: "0603",
+      manufacturerPartNumber: "RC0603FR-0710KL",
       supplierPartNumbers: { jlcpcb: ["C25804"] },
       pcbX: -3,
       pcbY: 2,
@@ -30,6 +31,7 @@ export async function manufacturingFixture(
     new Led({
       name: "D1",
       footprint: "0603",
+      manufacturerPartNumber: "LTST-C190KGKT",
       supplierPartNumbers: { jlcpcb: ["C2286"] },
       layer: "bottom",
       pcbX: 3,
@@ -41,6 +43,7 @@ export async function manufacturingFixture(
     name: "J1",
     pinCount: 2,
     footprint: "pinrow2_nosquareplating",
+    manufacturerPartNumber: "M20-9990245",
     supplierPartNumbers: { jlcpcb: ["C124375"] },
     pcbX: 0,
     pcbY: -2,
@@ -107,7 +110,7 @@ export async function manufacturingFixture(
       const end = headerHoles[1]!;
       circuitJson.push({
         type: "pcb_trace",
-        pcb_trace_id: `pcb_trace_pcboo_inner_${index + 1}`,
+        pcb_trace_id: `pcb_trace_fulmetry_inner_${index + 1}`,
         source_trace_id: "source_trace_0",
         subcircuit_id: ground.subcircuit_id,
         route: [

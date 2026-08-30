@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 
 export interface NgspiceRawVariableDeclaration {
@@ -8,7 +8,7 @@ export interface NgspiceRawVariableDeclaration {
   readonly grid: number | null;
 }
 
-/** Parses the bounded ngspice ASCII-raw variable grammar used by PCBoo.
+/** Parses the bounded ngspice ASCII-raw variable grammar used by Fulmetry.
  * ngspice 46 adds `grid=3` to logarithmic frequency axes. No other trailing
  * metadata is admitted until it is explicitly understood and tested. */
 export function parseNgspiceRawVariableDeclaration(

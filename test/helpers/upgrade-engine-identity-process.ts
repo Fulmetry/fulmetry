@@ -14,7 +14,7 @@ const stageRoot = process.cwd();
 const expectedRoot = await realpath(expectedRootInput);
 const report = await inspectTscircuitIdentity({
   projectRoot: stageRoot,
-  pcbooRoot: join(stageRoot, "src"),
+  fulmetryRoot: join(stageRoot, "src"),
   expectedVersion,
   expectedContentSha256,
   expectedRuntimeClosureSha256: [expectedRuntimeClosureSha256],
@@ -22,19 +22,19 @@ const report = await inspectTscircuitIdentity({
 if (!report.compatible) {
   throw new Error(report.issues.map((issue) => `${issue.code}: ${issue.message}`).join("\n"));
 }
-if (report.project?.packageRoot !== expectedRoot || report.pcboo?.packageRoot !== expectedRoot) {
+if (report.project?.packageRoot !== expectedRoot || report.fulmetry?.packageRoot !== expectedRoot) {
   throw new Error(
-    "TSCIRCUIT_DUPLICATE_ENGINE: direct tscircuit and pcboo/authoring must resolve the exact supplied candidate root",
+    "TSCIRCUIT_DUPLICATE_ENGINE: direct tscircuit and fulmetry/authoring must resolve the exact supplied candidate root",
   );
 }
 if (
   report.project.runtimeClosureSha256 !== expectedRuntimeClosureSha256 ||
-  report.pcboo.runtimeClosureSha256 !== expectedRuntimeClosureSha256
+  report.fulmetry.runtimeClosureSha256 !== expectedRuntimeClosureSha256
 ) throw new Error("TSCIRCUIT_RUNTIME_CLOSURE_UNQUALIFIED: resolved candidate closure differs from reviewed authority");
 
 process.stdout.write(`${JSON.stringify({
   projectPackageRoot: report.project.packageRoot,
-  pcbooPackageRoot: report.pcboo.packageRoot,
+  fulmetryPackageRoot: report.fulmetry.packageRoot,
   version: report.project.version,
   contentSha256: report.project.contentSha256,
   runtimeClosureSha256: report.project.runtimeClosureSha256,

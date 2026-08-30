@@ -73,7 +73,7 @@ function syntheticSnapshot(version: string) {
 }
 
 async function tempReport(contents: string): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-accept-report-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-accept-report-"));
   temporary.push(root);
   const path = join(root, "report.json");
   await writeFile(path, contents);
@@ -84,7 +84,7 @@ async function repositorySha256(): Promise<string> {
   const files: string[] = [];
   const walk = async (root: string): Promise<void> => {
     for (const entry of await readdir(root, { withFileTypes: true })) {
-      if (root === ROOT && [".git", ".pcboo", "node_modules"].includes(entry.name)) continue;
+      if (root === ROOT && [".git", ".fulmetry", "node_modules"].includes(entry.name)) continue;
       const path = join(root, entry.name);
       const stat = await lstat(path);
       if (stat.isDirectory()) await walk(path);
@@ -98,7 +98,7 @@ async function repositorySha256(): Promise<string> {
 }
 
 async function copiedCandidate(): Promise<{ packageRoot: string; lockPath: string }> {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-accept-candidate-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-accept-candidate-"));
   temporary.push(root);
   const modules = join(root, "node_modules");
   await mkdir(modules);
@@ -151,11 +151,11 @@ describe("explicit tscircuit acceptance transaction", () => {
           closureSha256: digest("packed-closure"),
           lockSha256: digest("packed-lock"),
           manifestSha256: digest("packed-manifest"),
-          packedPcbooContentSha256: digest("packed-pcboo-content"),
-          projectPcbooLockSha256: digest("packed-pcboo-lock"),
+          packedFulmetryContentSha256: digest("packed-fulmetry-content"),
+          projectFulmetryLockSha256: digest("packed-fulmetry-lock"),
           singleEngineResolutionSha256: digest("single-engine"),
-          pcbooTarballSha256: digest("pcboo-tarball"),
-          pcbooTarballIntegrity: `sha512-${Buffer.alloc(64, 8).toString("base64")}`,
+          fulmetryTarballSha256: digest("fulmetry-tarball"),
+          fulmetryTarballIntegrity: `sha512-${Buffer.alloc(64, 8).toString("base64")}`,
           contractVersion: 2,
         },
       },
@@ -183,11 +183,11 @@ describe("explicit tscircuit acceptance transaction", () => {
       { repositoryLockSha256: digest("wrong-lock") },
       { packedConsumer: { ...evidence.profiles.packedConsumer, lockSha256: digest("wrong-packed-lock") } },
       { packedConsumer: { ...evidence.profiles.packedConsumer, manifestSha256: digest("wrong-packed-manifest") } },
-      { packedConsumer: { ...evidence.profiles.packedConsumer, packedPcbooContentSha256: digest("wrong-packed-content") } },
-      { packedConsumer: { ...evidence.profiles.packedConsumer, projectPcbooLockSha256: digest("wrong-project-lock") } },
+      { packedConsumer: { ...evidence.profiles.packedConsumer, packedFulmetryContentSha256: digest("wrong-packed-content") } },
+      { packedConsumer: { ...evidence.profiles.packedConsumer, projectFulmetryLockSha256: digest("wrong-project-lock") } },
       { packedConsumer: { ...evidence.profiles.packedConsumer, singleEngineResolutionSha256: digest("wrong-single-engine") } },
-      { packedConsumer: { ...evidence.profiles.packedConsumer, pcbooTarballSha256: digest("wrong-tarball") } },
-      { packedConsumer: { ...evidence.profiles.packedConsumer, pcbooTarballIntegrity: OTHER_INTEGRITY } },
+      { packedConsumer: { ...evidence.profiles.packedConsumer, fulmetryTarballSha256: digest("wrong-tarball") } },
+      { packedConsumer: { ...evidence.profiles.packedConsumer, fulmetryTarballIntegrity: OTHER_INTEGRITY } },
     ]) {
       expect(() => requireRuntimeEvidenceForAcceptance(evidence, { ...expected, ...mutation }))
         .toThrow("Runtime evidence");
@@ -220,7 +220,7 @@ describe("explicit tscircuit acceptance transaction", () => {
   });
 
   test("discovers staged TS and TSX tests with an optional recursive tests root", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-accept-test-inventory-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-accept-test-inventory-"));
     temporary.push(root);
     await mkdir(join(root, "test", "nested"), { recursive: true });
     await Promise.all([
@@ -240,7 +240,7 @@ describe("explicit tscircuit acceptance transaction", () => {
   });
 
   test("contains or refuses an external double-fork new-session descendant", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-accept-contained-child-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-accept-contained-child-"));
     temporary.push(root);
     const pidPath = join(root, "daemon.pid");
     const survivedPath = join(root, "daemon-survived.txt");
@@ -300,8 +300,8 @@ describe("explicit tscircuit acceptance transaction", () => {
   });
 
   test("allows only the acceptance-owned canonical fixture input transition", async () => {
-    const baseline = await mkdtemp(join(tmpdir(), "pcboo-accept-input-baseline-"));
-    const prepared = await mkdtemp(join(tmpdir(), "pcboo-accept-input-prepared-"));
+    const baseline = await mkdtemp(join(tmpdir(), "fulmetry-accept-input-baseline-"));
+    const prepared = await mkdtemp(join(tmpdir(), "fulmetry-accept-input-prepared-"));
     temporary.push(baseline, prepared);
     await mkdir(join(baseline, "circuit"));
     const board = "export default []\n";
@@ -319,8 +319,8 @@ describe("explicit tscircuit acceptance transaction", () => {
       },
     };
     await writeFile(join(baseline, "circuit/board.ts"), board);
-    await writeFile(join(baseline, "pcboo.config.ts"), config);
-    await writeFile(join(baseline, "pcboo.lock"), `${JSON.stringify(lock, null, 2)}\n`);
+    await writeFile(join(baseline, "fulmetry.config.ts"), config);
+    await writeFile(join(baseline, "fulmetry.lock"), `${JSON.stringify(lock, null, 2)}\n`);
     await writeFile(join(baseline, "expectation.json"), `${JSON.stringify(expectation, null, 2)}\n`);
     const candidate = {
       version: "1.2.4",
@@ -332,7 +332,7 @@ describe("explicit tscircuit acceptance transaction", () => {
       candidate,
     });
     await cp(baseline, prepared, { recursive: true, errorOnExist: false });
-    await writeFile(join(prepared, "pcboo.lock"), `${JSON.stringify({
+    await writeFile(join(prepared, "fulmetry.lock"), `${JSON.stringify({
       ...lock,
       tscircuit: candidate,
     }, null, 2)}\n`);
@@ -349,10 +349,10 @@ describe("explicit tscircuit acceptance transaction", () => {
     await expect(assertPreparedFixtureInputRecords({ fixtureRoot: prepared, expected }))
       .rejects.toThrow("acceptance-owned transition");
     await writeFile(join(prepared, "circuit/board.ts"), board);
-    await writeFile(join(prepared, "pcboo.config.ts"), `${config}// mutation\n`);
+    await writeFile(join(prepared, "fulmetry.config.ts"), `${config}// mutation\n`);
     await expect(assertPreparedFixtureInputRecords({ fixtureRoot: prepared, expected }))
       .rejects.toThrow("acceptance-owned transition");
-    await writeFile(join(prepared, "pcboo.config.ts"), config);
+    await writeFile(join(prepared, "fulmetry.config.ts"), config);
     const preparedExpectation = JSON.parse(await readFile(join(prepared, "expectation.json"), "utf8"));
     preparedExpectation.unreviewed = true;
     await writeFile(join(prepared, "expectation.json"), `${JSON.stringify(preparedExpectation, null, 2)}\n`);
@@ -360,15 +360,15 @@ describe("explicit tscircuit acceptance transaction", () => {
       .rejects.toThrow("acceptance-owned transition");
     delete preparedExpectation.unreviewed;
     await writeFile(join(prepared, "expectation.json"), `${JSON.stringify(preparedExpectation, null, 2)}\n`);
-    const preparedLock = JSON.parse(await readFile(join(prepared, "pcboo.lock"), "utf8"));
+    const preparedLock = JSON.parse(await readFile(join(prepared, "fulmetry.lock"), "utf8"));
     preparedLock.adapters.manufacturing = "mutated";
-    await writeFile(join(prepared, "pcboo.lock"), `${JSON.stringify(preparedLock, null, 2)}\n`);
+    await writeFile(join(prepared, "fulmetry.lock"), `${JSON.stringify(preparedLock, null, 2)}\n`);
     await expect(assertPreparedFixtureInputRecords({ fixtureRoot: prepared, expected }))
       .rejects.toThrow("acceptance-owned transition");
   });
 
   test("rejects candidate-controlled mutations to a staged publishable target", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-accept-stage-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-accept-stage-"));
     temporary.push(root);
     await mkdir(join(root, "src"));
     const target = join(root, "src", "licenses.ts");
@@ -386,7 +386,7 @@ describe("explicit tscircuit acceptance transaction", () => {
   });
 
   test("rejects candidate-controlled mutations to non-published repository gate inputs", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-accept-gate-stage-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-accept-gate-stage-"));
     temporary.push(root);
     await mkdir(join(root, "src"));
     await mkdir(join(root, "test", "fixtures", "canonical"), { recursive: true });
@@ -407,7 +407,7 @@ describe("explicit tscircuit acceptance transaction", () => {
     })).rejects.toThrow("changed staged repository gate inputs");
   });
 
-  test("pins the acceptance compiler to PCBoo's reviewed TypeScript package", async () => {
+  test("pins the acceptance compiler to Fulmetry's reviewed TypeScript package", async () => {
     const compiler = await requireTrustedAcceptanceTypeScript(ROOT);
     expect(compiler).toMatchObject({
       version: "5.9.3",
@@ -418,7 +418,7 @@ describe("explicit tscircuit acceptance transaction", () => {
   });
 
   test("rejects ambient substitutes for candidate-owned authoring type re-exports", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-accept-types-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-accept-types-"));
     temporary.push(root);
     await mkdir(join(root, "dist"));
     await writeFile(join(root, "package.json"), `${JSON.stringify({
@@ -439,7 +439,7 @@ describe("explicit tscircuit acceptance transaction", () => {
   });
 
   test("rejects a default-first conditional export that can bypass declared types", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-accept-decoy-types-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-accept-decoy-types-"));
     temporary.push(root);
     await mkdir(join(root, "dist"));
     await writeFile(join(root, "package.json"), `${JSON.stringify({
@@ -536,14 +536,14 @@ describe("explicit tscircuit acceptance transaction", () => {
     expect(await repositorySha256()).toBe(before);
   }, 60_000);
 
-  containmentTest("rejects a runtime-compatible candidate whose public type surface breaks PCBoo", async () => {
+  containmentTest("rejects a runtime-compatible candidate whose public type surface breaks Fulmetry", async () => {
     const candidate = await copiedCandidate();
     const declarationPath = join(candidate.packageRoot, "dist", "index.d.ts");
     const declaration = await readFile(declarationPath, "utf8");
     const typeExport = "export { AnyCircuitElement, CircuitJson } from 'circuit-json';";
     if (!declaration.includes(typeExport)) throw new Error("Fixture candidate has no expected public type export");
     await writeFile(declarationPath, declaration.replace(typeExport, ""));
-    const relative = `.pcboo/upgrade-reviews/acceptance-types-${crypto.randomUUID()}.json`;
+    const relative = `.fulmetry/upgrade-reviews/acceptance-types-${crypto.randomUUID()}.json`;
     const reportPath = join(ROOT, ...relative.split("/"));
     reports.push(reportPath);
     const review = await reviewTscircuitUpgrade({
@@ -571,7 +571,7 @@ describe("explicit tscircuit acceptance transaction", () => {
 
   containmentTest("rolls back every accepted authority when publication fails part-way", async () => {
     const candidate = await copiedCandidate();
-    const relative = `.pcboo/upgrade-reviews/acceptance-${crypto.randomUUID()}.json`;
+    const relative = `.fulmetry/upgrade-reviews/acceptance-${crypto.randomUUID()}.json`;
     const reportPath = join(ROOT, ...relative.split("/"));
     reports.push(reportPath);
     const review = await reviewTscircuitUpgrade({

@@ -28,7 +28,7 @@ function raw(digest: string, license = "CC0-1.0") {
 
 describe("simulation model assets", () => {
   test("binds local model bytes and rejects mutation, symlinks, and unknown licenses", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-model-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-model-"));
     roots.push(root);
     await mkdir(join(root, "models"));
     const bytes = ".model R R\n";
@@ -50,7 +50,7 @@ describe("simulation model assets", () => {
   });
 
   test("rejects recursive file access and ngspice control escapes even when digest-correct", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-hostile-model-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-hostile-model-"));
     roots.push(root);
     await mkdir(join(root, "models"));
     for (const bytes of [
@@ -66,7 +66,7 @@ describe("simulation model assets", () => {
   });
 
   test("rejects aggregate model-copy amplification before reading model bytes", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-model-aggregate-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-model-aggregate-"));
     roots.push(root);
     await mkdir(join(root, "models"));
     const modelPath = join(root, "models/shared.mod");
@@ -92,7 +92,7 @@ describe("simulation model assets", () => {
   });
 
   test("rechecks model size through a stable handle after aggregate preflight", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-model-race-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-model-race-"));
     roots.push(root);
     await mkdir(join(root, "models"));
     const modelPath = join(root, "models/r.mod");

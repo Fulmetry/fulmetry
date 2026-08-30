@@ -30,7 +30,7 @@ describe("command results", () => {
     expect(
       classifications.map((exitClassification) =>
         commandResult({
-          command: "pcboo check",
+          command: "fulmetry check",
           runId: `run-${exitClassification}`,
           exitClassification,
           requestedDimensions: exitClassification === "warning-only" ? ["electrical"] : [],
@@ -65,7 +65,7 @@ describe("command results", () => {
       sourcing: sourcingStatus("stale"),
     });
     const result = commandResult({
-      command: "pcboo check",
+      command: "fulmetry check",
       runId: "run-001",
       exitClassification: "failure",
       requestedDimensions: ["electrical", "functional", "standards"],
@@ -104,7 +104,7 @@ describe("command results", () => {
       evidence: references.map((value) => `circuit-json:${value}`),
     });
     const result = commandResult({
-      command: "pcboo check",
+      command: "fulmetry check",
       runId: "bounded-result",
       exitClassification: "failure",
       requestedDimensions: ["electrical"],
@@ -135,7 +135,7 @@ describe("command results", () => {
       sourcing: sourcingStatus("unchecked"),
     });
     const result = commandResult({
-      command: "pcboo simulate power.testbench.ts",
+      command: "fulmetry simulate power.testbench.ts",
       runId: "run-002",
       exitClassification: "unavailable",
       requestedDimensions: ["functional"],
@@ -156,7 +156,7 @@ describe("command results", () => {
       sourcing: sourcingStatus("unchecked"),
     });
     const result = commandResult({
-      command: "pcboo verify manufacturing",
+      command: "fulmetry verify manufacturing",
       runId: "run-003",
       exitClassification: "failure",
       requestedDimensions: ["fabrication", "electrical"],
@@ -168,19 +168,19 @@ describe("command results", () => {
           dimension: "fabrication",
           message: "Drill file is missing",
           waiverPolicy: "forbidden",
-          nextCommand: "pcboo explain PCB_DRILL_001",
+          nextCommand: "fulmetry explain PCB_DRILL_001",
         }),
       ],
     });
 
     const output = formatCompactResult(result);
-    expect(output).toContain("FAILURE pcboo verify manufacturing: 1 errors, 0 warnings");
+    expect(output).toContain("FAILURE fulmetry verify manufacturing: 1 errors, 0 warnings");
     expect(output).toContain("fabrication: failed");
     expect(output).toContain("electrical: passed");
     expect(output).toContain("functional: not-run");
     expect(output).toContain("standards: not-run");
     expect(output).toContain("sourcing: unchecked");
-    expect(output).toContain("Inspect: pcboo explain PCB_DRILL_001");
+    expect(output).toContain("Inspect: fulmetry explain PCB_DRILL_001");
   });
 
   test("rejects success when a requested status dimension failed", () => {
@@ -194,7 +194,7 @@ describe("command results", () => {
 
     expect(() =>
       commandResult({
-        command: "pcboo verify manufacturing",
+        command: "fulmetry verify manufacturing",
         runId: "run-false-pass",
         exitClassification: "success",
         requestedDimensions: ["fabrication", "electrical"],
@@ -204,7 +204,7 @@ describe("command results", () => {
 
     expect(() =>
       commandResult({
-        command: "pcboo verify manufacturing",
+        command: "fulmetry verify manufacturing",
         runId: "run-warning-false-pass",
         exitClassification: "warning-only",
         requestedDimensions: ["fabrication", "electrical"],
@@ -223,7 +223,7 @@ describe("command results", () => {
     });
 
     expect(() => commandResult({
-      command: "pcboo inspect",
+      command: "fulmetry inspect",
       runId: "hidden-constrained-sourcing",
       exitClassification: "success",
       requestedDimensions: ["sourcing"],
@@ -231,7 +231,7 @@ describe("command results", () => {
     })).toThrow("cannot hide requested warning or waiver evidence");
 
     expect(commandResult({
-      command: "pcboo inspect",
+      command: "fulmetry inspect",
       runId: "visible-constrained-sourcing",
       exitClassification: "warning-only",
       requestedDimensions: ["sourcing"],
@@ -257,7 +257,7 @@ describe("command results", () => {
 
     for (const exitClassification of ["success", "warning-only"] as const) {
       expect(() => commandResult({
-        command: "pcboo check",
+        command: "fulmetry check",
         runId: `run-active-error-${exitClassification}`,
         exitClassification,
         requestedDimensions: ["electrical"],
@@ -286,14 +286,14 @@ describe("command results", () => {
     });
 
     expect(() => commandResult({
-      command: "pcboo check",
+      command: "fulmetry check",
       runId: "run-missing-evidence",
       exitClassification: "failure",
       requestedDimensions: ["fabrication"],
       statuses,
     })).toThrow("without matching evidence in that dimension");
     expect(() => commandResult({
-      command: "pcboo check",
+      command: "fulmetry check",
       runId: "run-wrong-dimension-evidence",
       exitClassification: "failure",
       requestedDimensions: ["fabrication"],
@@ -301,7 +301,7 @@ describe("command results", () => {
       diagnostics: [wrongDimension],
     })).toThrow("without matching evidence in that dimension");
     expect(commandResult({
-      command: "pcboo check",
+      command: "fulmetry check",
       runId: "run-repeated-rule-occurrences",
       exitClassification: "failure",
       requestedDimensions: ["fabrication"],
@@ -318,7 +318,7 @@ describe("command results", () => {
       ],
     }).diagnostics).toHaveLength(2);
     expect(() => commandResult({
-      command: "pcboo check",
+      command: "fulmetry check",
       runId: "run-cross-dimension-rule-reuse",
       exitClassification: "failure",
       requestedDimensions: ["fabrication"],
@@ -357,7 +357,7 @@ describe("command results", () => {
 
     for (const diagnostic of [warning, waived]) {
       expect(() => commandResult({
-        command: "pcboo check",
+        command: "fulmetry check",
         runId: `run-hidden-${diagnostic.id}`,
         exitClassification: "success",
         requestedDimensions: ["electrical"],
@@ -366,7 +366,7 @@ describe("command results", () => {
       })).toThrow("cannot hide requested warning or waiver evidence");
     }
     expect(() => commandResult({
-      command: "pcboo check",
+      command: "fulmetry check",
       runId: "run-empty-warning",
       exitClassification: "warning-only",
       requestedDimensions: ["electrical"],
@@ -393,7 +393,7 @@ describe("command results", () => {
     });
 
     expect(() => commandResult({
-      command: "pcboo check",
+      command: "fulmetry check",
       runId: "run-fake-waiver",
       exitClassification: "warning-only",
       requestedDimensions: ["electrical"],
@@ -412,7 +412,7 @@ describe("command results", () => {
     });
 
     const result = commandResult({
-      command: "pcboo inspect R12",
+      command: "fulmetry inspect R12",
       runId: "run-inspect",
       exitClassification: "success",
       requestedDimensions: [],
@@ -443,7 +443,7 @@ describe("command results", () => {
       measurement: { actual: "0.1 mm" },
     };
     const result = commandResult({
-      command: "pcboo check",
+      command: "fulmetry check",
       runId: "run-copy",
       exitClassification: "failure",
       requestedDimensions: ["fabrication"],
@@ -457,7 +457,7 @@ describe("command results", () => {
 
     expect(() =>
       commandResult({
-        command: "pcboo check",
+        command: "fulmetry check",
         runId: "run-invalid",
         exitClassification: "failure",
         requestedDimensions: ["fabrication"],

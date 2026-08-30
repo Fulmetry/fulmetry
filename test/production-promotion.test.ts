@@ -63,7 +63,7 @@ function retainedArtifactKinds(
 }
 
 async function fixture(layerCount: 2 | 4 = 4): Promise<PromoteProductionBundleOptions> {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-promote-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-promote-"));
   roots.push(root);
   const projectRoot = join(root, "agent project ü");
   await mkdir(join(projectRoot, "src"), { recursive: true });
@@ -78,10 +78,10 @@ async function fixture(layerCount: 2 | 4 = 4): Promise<PromoteProductionBundleOp
     `export default ${canonicalCircuitJson(circuitJson).trim()}\n`,
   );
   await Bun.write(
-    join(projectRoot, "pcboo.config.ts"),
+    join(projectRoot, "fulmetry.config.ts"),
     `export default { entry: 'src/board.tsx', profiles: ['${BASELINE_FABRICATION_PROFILE.name}'], boardRevision: 'A' }\n`,
   );
-  await Bun.write(join(projectRoot, "pcboo.lock"), JSON.stringify({
+  await Bun.write(join(projectRoot, "fulmetry.lock"), JSON.stringify({
     schemaVersion: 1,
     tscircuit: {
       version: SUPPORTED_TSCIRCUIT_VERSION,
@@ -105,8 +105,8 @@ async function fixture(layerCount: 2 | 4 = 4): Promise<PromoteProductionBundleOp
     projectRoot,
     inputs: [
       { path: "src/board.tsx", role: "source" },
-      { path: "pcboo.config.ts", role: "config" },
-      { path: "pcboo.lock", role: "lockfile" },
+      { path: "fulmetry.config.ts", role: "config" },
+      { path: "fulmetry.lock", role: "lockfile" },
     ],
   });
 
@@ -149,7 +149,7 @@ async function replaceFixtureConfigRevision(
   boardRevision?: string,
 ): Promise<PromoteProductionBundleOptions> {
   await Bun.write(
-    join(options.projectRoot, "pcboo.config.ts"),
+    join(options.projectRoot, "fulmetry.config.ts"),
     `export default { entry: 'src/board.tsx', profiles: ['${BASELINE_FABRICATION_PROFILE.name}']${
       boardRevision === undefined
         ? ""
@@ -179,7 +179,7 @@ async function fixtureWithRecordedSourcing(): Promise<PromoteProductionBundleOpt
     }
   }
   const policyWithoutDigest = {
-    name: "pcboo-recorded-sourcing",
+    name: "fulmetry-recorded-sourcing",
     version: "1.0.0",
     maxAgeSeconds: 86_400,
     maxFutureSkewSeconds: 300,
@@ -221,7 +221,7 @@ async function fixtureWithRecordedSourcing(): Promise<PromoteProductionBundleOpt
       }),
     };
   }
-  const lockPath = join(options.projectRoot, "pcboo.lock");
+  const lockPath = join(options.projectRoot, "fulmetry.lock");
   const lock = JSON.parse(await Bun.file(lockPath).text());
   lock.sourcing = {
     schemaVersion: 1,
@@ -334,7 +334,7 @@ async function fixtureWithCadAsset(options: {
   const licenseNoticePath = "vendor/model.LICENSE.txt";
   await Bun.write(join(base.projectRoot, licenseNoticePath), licenseNotice);
   const licenseNoticeDigest = `sha256:${new Bun.CryptoHasher("sha256").update(licenseNotice).digest("hex")}`;
-  const lockPath = join(base.projectRoot, "pcboo.lock");
+  const lockPath = join(base.projectRoot, "fulmetry.lock");
   const lock = JSON.parse(await Bun.file(lockPath).text());
   lock.assets.enclosure = {
     source,
@@ -1438,7 +1438,7 @@ describe("production bundle promotion", () => {
     expect(String(boardRevisionSilkscreenDiagnostic([], "A")?.id)).toBe(
       "FAB_BOARD_REVISION_SILKSCREEN_001",
     );
-    for (const text of ["PCBoo control · REV A", "REVISION:A", "REV-A"]) {
+    for (const text of ["Fulmetry control · REV A", "REVISION:A", "REV-A"]) {
       expect(boardRevisionSilkscreenDiagnostic([{
         type: "pcb_silkscreen_text",
         layer: "top",
@@ -1470,7 +1470,7 @@ describe("production bundle promotion", () => {
     expect(missingReadiness.eligible).toBeFalse();
     expect(missingReadiness.findings).toContainEqual({
       code: "BOARD_REVISION_REQUIRED",
-      message: "pcboo.config.ts must declare a source-controlled boardRevision for production promotion",
+      message: "fulmetry.config.ts must declare a source-controlled boardRevision for production promotion",
     });
     await expect(promoteProductionBundle(missing)).rejects.toThrow("BOARD_REVISION_REQUIRED");
 
@@ -1489,7 +1489,7 @@ describe("production bundle promotion", () => {
     expect(mismatchedReadiness.eligible).toBeFalse();
     expect(mismatchedReadiness.findings).toContainEqual({
       code: "BOARD_REVISION_MISMATCH",
-      message: "Draft manifest board revision does not match authenticated pcboo.config.ts design metadata",
+      message: "Draft manifest board revision does not match authenticated fulmetry.config.ts design metadata",
     });
     await expect(promoteProductionBundle(mismatched)).rejects.toThrow("BOARD_REVISION_MISMATCH");
   });
@@ -1508,11 +1508,11 @@ describe("production bundle promotion", () => {
       state: "not-assessed",
       reason: "Promotion binds complete project input bytes; Git revision and dirty-tree state were not invoked",
     });
-    const pcbooPackage = await Bun.file(join(import.meta.dir, "../package.json")).json() as {
+    const fulmetryPackage = await Bun.file(join(import.meta.dir, "../package.json")).json() as {
       version: string;
     };
     expect(manifest.toolVersions).toEqual({
-      pcboo: pcbooPackage.version,
+      fulmetry: fulmetryPackage.version,
       bun: "1.3.14",
     });
     expect(manifest.cryptographicSignature).toBe("absent");
@@ -1752,7 +1752,7 @@ describe("production bundle promotion", () => {
       destinationDirectory,
       beforeCommit: async () => {
         const parent = dirname(destinationDirectory);
-        const prefix = `.${basename(destinationDirectory)}.pcboo-`;
+        const prefix = `.${basename(destinationDirectory)}.fulmetry-`;
         const stagingName = (await readdir(parent)).find((name) =>
           name.startsWith(prefix) && name.endsWith(".tmp")
         );
@@ -1771,7 +1771,7 @@ describe("production bundle promotion", () => {
       destinationDirectory,
       beforeCommit: async () => {
         const parent = dirname(destinationDirectory);
-        const prefix = `.${basename(destinationDirectory)}.pcboo-`;
+        const prefix = `.${basename(destinationDirectory)}.fulmetry-`;
         const stagingName = (await readdir(parent)).find((name) =>
           name.startsWith(prefix) && name.endsWith(".tmp")
         );
@@ -1798,7 +1798,7 @@ describe("production bundle promotion", () => {
       ...options,
       destinationDirectory,
       beforeCommit: async () => {
-        const prefix = `.${basename(destinationDirectory)}.pcboo-`;
+        const prefix = `.${basename(destinationDirectory)}.fulmetry-`;
         const stagingName = (await readdir(publicationParent)).find((name) =>
           name.startsWith(prefix) && name.endsWith(".tmp")
         );
@@ -1828,7 +1828,7 @@ describe("production bundle promotion", () => {
       destinationDirectory,
       beforeCommit: async () => {
         const stagingName = (await readdir(publicationParent)).find((name) =>
-          name.startsWith(".ancestor-attack.pcboo-") && name.endsWith(".tmp")
+          name.startsWith(".ancestor-attack.fulmetry-") && name.endsWith(".tmp")
         );
         if (stagingName === undefined) throw new Error("test could not locate staging directory");
         await rename(publicationParent, movedParent);
@@ -1941,7 +1941,7 @@ describe("production bundle promotion", () => {
       beforeStagingCleanup: async () => {
         const parent = dirname(destinationDirectory);
         const stagingName = (await readdir(parent)).find((name) =>
-          name.startsWith(".cleanup-identity.pcboo-") && name.endsWith(".tmp") &&
+          name.startsWith(".cleanup-identity.fulmetry-") && name.endsWith(".tmp") &&
           !name.includes("manifest")
         );
         if (stagingName === undefined) throw new Error("test could not locate staging directory");
@@ -2063,7 +2063,7 @@ describe("production bundle promotion", () => {
   test("blocks production promotion when no immutable fabrication profile is active", async () => {
     const options = await fixture();
     await Bun.write(
-      join(options.projectRoot, "pcboo.config.ts"),
+      join(options.projectRoot, "fulmetry.config.ts"),
       "export default { entry: 'src/board.tsx', profiles: [] }\n",
     );
     const inputSnapshot = await createBuildInputSnapshot({
@@ -2121,7 +2121,7 @@ describe("production bundle promotion", () => {
       `export const profileName = '${BASELINE_FABRICATION_PROFILE.name}'\n`,
     );
     await Bun.write(
-      join(options.projectRoot, "pcboo.config.ts"),
+      join(options.projectRoot, "fulmetry.config.ts"),
       "import { profileName } from './profile-name.ts'\nexport default { entry: 'src/board.tsx', profiles: [profileName] }\n",
     );
     const incompleteSnapshot = await createBuildInputSnapshot({

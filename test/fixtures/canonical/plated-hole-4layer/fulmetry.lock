@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "tscircuit": {
+    "version": "0.0.2261",
+    "integrity": "sha512-pwJzfkh5UFE7lFRaKQE5tUDdMd7A1bl+NhX2dG+BY2EEfvaMFVQDJJc+BcT/zM6BvkMepxZCNOCAJFzqhxiEUw=="
+  },
+  "adapters": {
+    "gerber": "circuit-json-to-gerber@0.0.90",
+    "bom": "circuit-json-to-bom-csv@0.0.14",
+    "pickAndPlace": "circuit-json-to-pnp-csv@0.0.9",
+    "independentParser": "gerber-parser@4.2.7"
+  },
+  "profiles": {
+    "fulmetry-baseline-2-4layer": {
+      "version": "1.6.0",
+      "digest": "sha256:4f7fdfbfab5d039d337c22e2e53dcf171b462c932016849f00daf36d89b984b4"
+    }
+  },
+  "assets": {}
+}

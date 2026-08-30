@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 const FLOAT64_BYTES = 8;
 const ulpBuffer = new ArrayBuffer(FLOAT64_BYTES);

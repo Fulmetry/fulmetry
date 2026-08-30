@@ -1,4 +1,0 @@
-interface:
-  display_name: "PCBoo Diagnose"
-  short_description: "Diagnose PCBoo artifacts and previews"
-  default_prompt: "Use $pcboo-diagnose to explain and repair this PCBoo artifact or browser mismatch."

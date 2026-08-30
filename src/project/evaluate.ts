@@ -1,10 +1,10 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 import { canonicalCircuitJson, parseCanonicalCircuitJson } from "../circuit-json";
-import { loadProjectConfig, type PcbooConfig } from "./config";
+import { loadProjectConfig, type FulmetryConfig } from "./config";
 import { terminateProcessTree } from "../external-tools";
 import { requireSupportedBunRuntime } from "../runtime";
 import { normalizeCircuitQuantityValues } from "../units";
@@ -20,7 +20,7 @@ export interface ProjectCircuitEvaluation {
 function sanitizedEnvironment(): Record<string, string> {
   const allowed = ["PATH", "TMPDIR", "TEMP", "TMP", "SYSTEMROOT", "WINDIR"];
   const result: Record<string, string> = {
-    PCBOO_VERIFIED_BUILD: "1",
+    FULMETRY_VERIFIED_BUILD: "1",
     BUN_CONFIG_NO_NETWORK: "1",
     NO_PROXY: "*",
     no_proxy: "*",
@@ -66,14 +66,14 @@ async function evaluateOnce(
   const entryUrl = pathToFileURL(resolve(projectRoot, ...entry.split("/"))).href;
   const script = [
     "let verifiedNetworkAttempts=0",
-    "const denyVerifiedNetwork=()=>{verifiedNetworkAttempts+=1;throw new Error('PCBoo verified evaluation forbids runtime network access; use a locked vendored asset')}",
+    "const denyVerifiedNetwork=()=>{verifiedNetworkAttempts+=1;throw new Error('Fulmetry verified evaluation forbids runtime network access; use a locked vendored asset')}",
     "Object.defineProperty(globalThis,'fetch',{value:denyVerifiedNetwork,writable:false,configurable:false})",
     `const m=await import(${JSON.stringify(entryUrl)})`,
     "let value=m.default",
     "if(typeof value==='function')value=await value()",
     "if(value&&typeof value.renderUntilSettled==='function'&&typeof value.getCircuitJson==='function'){await value.renderUntilSettled();value=value.getCircuitJson()}",
-    "if(!Array.isArray(value))throw new TypeError('PCBoo entry must default-export Circuit JSON, a Circuit, or a factory returning one')",
-    "if(verifiedNetworkAttempts!==0)throw new Error('PCBoo verified evaluation rejected a runtime network attempt; use a locked vendored asset')",
+    "if(!Array.isArray(value))throw new TypeError('Fulmetry entry must default-export Circuit JSON, a Circuit, or a factory returning one')",
+    "if(verifiedNetworkAttempts!==0)throw new Error('Fulmetry verified evaluation rejected a runtime network attempt; use a locked vendored asset')",
     "process.stdout.write(JSON.stringify(value))",
   ].join(";");
   const child = Bun.spawn([
@@ -140,7 +140,7 @@ export async function evaluateProjectCircuitTwice(
     readonly timeoutMs?: number;
     readonly outputLimit?: number;
     readonly signal?: AbortSignal;
-    readonly expectedConfig?: Readonly<PcbooConfig>;
+    readonly expectedConfig?: Readonly<FulmetryConfig>;
   } = {},
 ): Promise<Readonly<ProjectCircuitEvaluation>> {
   requireSupportedBunRuntime();

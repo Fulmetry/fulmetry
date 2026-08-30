@@ -22,7 +22,7 @@ function sha256(bytes: Uint8Array | string): string {
 
 describe("exact flat KiCad artifact authority", () => {
   test("captures the exact direct manifest and rejects an unexpected subtree without descending", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-kicad-flat-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-kicad-flat-")); roots.push(root);
     await Bun.write(join(root, "board.kicad_pcb"), "board\n");
     const identity = await directoryIdentity(root);
     const expected = [{ path: "board.kicad_pcb", size: 6, sha256: sha256("board\n") }];
@@ -38,7 +38,7 @@ describe("exact flat KiCad artifact authority", () => {
   });
 
   test("rejects an oversized sparse replacement and aggregate manifest before payload reads", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-kicad-flat-limit-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-kicad-flat-limit-")); roots.push(root);
     const path = join(root, "board.kicad_pcb");
     await Bun.write(path, "board\n");
     const identity = await directoryIdentity(root);
@@ -60,7 +60,7 @@ describe("exact flat KiCad artifact authority", () => {
   });
 
   test("cannot replace authenticated expectations through Map prototype poisoning", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-kicad-flat-map-")); roots.push(root);
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-kicad-flat-map-")); roots.push(root);
     const path = join(root, "board.kicad_pcb");
     await Bun.write(path, "evil");
     const identity = await directoryIdentity(root);

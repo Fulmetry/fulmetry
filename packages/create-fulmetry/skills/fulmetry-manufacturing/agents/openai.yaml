@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fulmetry Manufacturing"
+  short_description: "Prepare and verify PCB manufacturing data"
+  default_prompt: "Use $fulmetry-manufacturing to prepare and independently verify Fulmetry manufacturing artifacts."

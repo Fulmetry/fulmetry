@@ -3,10 +3,10 @@ import type { AnyCircuitElement } from "tscircuit";
 import { canonicalCircuitJson } from "../src/circuit-json";
 import { MANUFACTURING_ADAPTER_VERSIONS } from "../src/manufacturing/export";
 import {
-  parsePcbooLock,
+  parseFulmetryLock,
   SUPPORTED_TSCIRCUIT_INTEGRITY,
   SUPPORTED_TSCIRCUIT_VERSION,
-  type PcbooLock,
+  type FulmetryLock,
 } from "../src/project/lock";
 import {
   assessRecordedSourcing,
@@ -17,8 +17,8 @@ import { manufacturingFixture } from "./fixtures/manufacturing";
 
 const NOW = new Date("2026-08-08T12:00:00.000Z");
 
-function parse(document: unknown): PcbooLock {
-  return parsePcbooLock(`${JSON.stringify(document)}\n`);
+function parse(document: unknown): FulmetryLock {
+  return parseFulmetryLock(`${JSON.stringify(document)}\n`);
 }
 
 function recomputeSelection(document: any, designator: string): void {
@@ -33,7 +33,7 @@ function recomputeSelection(document: any, designator: string): void {
 async function sourcedFixture(): Promise<{
   circuitJson: AnyCircuitElement[];
   document: any;
-  lock: PcbooLock;
+  lock: FulmetryLock;
 }> {
   const circuitJson = await manufacturingFixture(2);
   const manufacturerParts: Record<string, string> = {
@@ -48,7 +48,7 @@ async function sourcedFixture(): Promise<{
     }
   }
   const policyWithoutDigest = {
-    name: "pcboo-recorded-sourcing",
+    name: "fulmetry-recorded-sourcing",
     version: "1.0.0",
     maxAgeSeconds: 86_400,
     maxFutureSkewSeconds: 300,

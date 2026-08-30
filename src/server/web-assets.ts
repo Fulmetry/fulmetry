@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { basename, join } from "node:path";
 import { compile } from "tailwindcss";
@@ -36,7 +36,7 @@ async function compileInspectionWebAssets(): Promise<InspectionWebAssets> {
   const stylesheetCompiler = await compile(stylesheetSource, {
     base: webRoot,
     loadStylesheet: async (id) => {
-      if (id !== "tailwindcss") throw new Error(`PCBoo browser stylesheet requested unsupported import ${id}`);
+      if (id !== "tailwindcss") throw new Error(`Fulmetry browser stylesheet requested unsupported import ${id}`);
       return {
         path: "tailwindcss/index.css",
         base: webRoot,
@@ -46,7 +46,7 @@ async function compileInspectionWebAssets(): Promise<InspectionWebAssets> {
   });
   const stylesheet = stylesheetCompiler.build([...candidates].sort());
   const stylesheetHash = new Bun.CryptoHasher("sha256").update(stylesheet).digest("hex").slice(0, 16);
-  const stylesheetPath = `/assets/pcboo-app-${stylesheetHash}.css`;
+  const stylesheetPath = `/assets/fulmetry-app-${stylesheetHash}.css`;
   const result = await Bun.build({
     entrypoints: [join(webRoot, "main.tsx")],
     target: "browser",
@@ -57,16 +57,16 @@ async function compileInspectionWebAssets(): Promise<InspectionWebAssets> {
     sourcemap: "none",
     publicPath: "/assets/",
     naming: {
-      entry: "pcboo-app-[hash].[ext]",
-      chunk: "pcboo-chunk-[hash].[ext]",
-      asset: "pcboo-asset-[hash].[ext]",
+      entry: "fulmetry-app-[hash].[ext]",
+      chunk: "fulmetry-chunk-[hash].[ext]",
+      asset: "fulmetry-asset-[hash].[ext]",
     },
     define: {
       "process.env.NODE_ENV": JSON.stringify("production"),
     },
   });
   if (!result.success) {
-    throw new AggregateError(result.logs.map((log) => new Error(log.message)), "PCBoo browser application could not be bundled");
+    throw new AggregateError(result.logs.map((log) => new Error(log.message)), "Fulmetry browser application could not be bundled");
   }
   const assets = new Map<string, Readonly<{ body: Blob; contentType: string }>>([
     [stylesheetPath, Object.freeze({ body: new Blob([stylesheet]), contentType: "text/css; charset=utf-8" })],
@@ -74,11 +74,11 @@ async function compileInspectionWebAssets(): Promise<InspectionWebAssets> {
   let entryScript: string | undefined;
   for (const output of result.outputs) {
     const path = `/assets/${basename(output.path)}`;
-    if (assets.has(path)) throw new Error(`PCBoo browser build emitted duplicate asset ${path}`);
+    if (assets.has(path)) throw new Error(`Fulmetry browser build emitted duplicate asset ${path}`);
     assets.set(path, Object.freeze({ body: output, contentType: contentType(output) }));
     if (output.kind === "entry-point" && output.path.endsWith(".js")) entryScript = path;
   }
-  if (entryScript === undefined) throw new Error("PCBoo browser build emitted no JavaScript entry point");
+  if (entryScript === undefined) throw new Error("Fulmetry browser build emitted no JavaScript entry point");
   return Object.freeze({
     entryScript,
     stylesheets: Object.freeze([stylesheetPath]),

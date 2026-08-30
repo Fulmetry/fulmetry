@@ -23,7 +23,7 @@ describe("external executable boundary", () => {
     expect(await probeExternalTool({ tool: "ngspice", executable: null })).toEqual({
       tool: "ngspice",
       state: "unavailable",
-      reason: "ngspice was not found on PATH; PCBoo does not install external tools",
+      reason: "ngspice was not found on PATH; Fulmetry does not install external tools",
     });
   });
 
@@ -77,7 +77,7 @@ describe("external executable boundary", () => {
   });
 
   test("returns unavailable for non-executable files and forged product output", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "pcboo-probe-"));
+    const directory = await mkdtemp(join(tmpdir(), "fulmetry-probe-"));
     const inert = join(directory, "not-an-executable");
     try {
       await writeFile(inert, "ngspice-44\n", { mode: 0o600 });
@@ -99,7 +99,7 @@ describe("external executable boundary", () => {
   });
 
   test("rejects an oversized executable before hashing or spawning it", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "pcboo-probe-size-"));
+    const directory = await mkdtemp(join(tmpdir(), "fulmetry-probe-size-"));
     const executable = join(directory, "oversized-tool");
     try {
       await writeFile(executable, `#!${process.execPath}\nconsole.log('ngspice-44')\n`, { mode: 0o700 });
@@ -118,7 +118,7 @@ describe("external executable boundary", () => {
   });
 
   test("rejects executable path replacement after opening a bounded identity handle", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "pcboo-probe-race-"));
+    const directory = await mkdtemp(join(tmpdir(), "fulmetry-probe-race-"));
     const executable = join(directory, "tool");
     const original = join(directory, "tool-original");
     const replacement = join(directory, "tool-replacement");
@@ -155,7 +155,7 @@ describe("external executable boundary", () => {
   test("kills descendants when a probe times out", async () => {
     const executable = Bun.which("bun");
     if (executable === null) throw new Error("Bun executable is unavailable in its own test process");
-    const directory = await mkdtemp(join(tmpdir(), "pcboo-process-tree-"));
+    const directory = await mkdtemp(join(tmpdir(), "fulmetry-process-tree-"));
     const pidPath = join(directory, "child.pid");
     try {
       const script = [
@@ -198,7 +198,7 @@ describe("external executable boundary", () => {
   test("contains a successful probe's reparented new-session daemon before returning", async () => {
     const executable = Bun.which("bun");
     if (executable === null) throw new Error("Bun executable is unavailable in its own test process");
-    const directory = await mkdtemp(join(tmpdir(), "pcboo-probe-daemon-"));
+    const directory = await mkdtemp(join(tmpdir(), "fulmetry-probe-daemon-"));
     const pidPath = join(directory, "daemon.pid");
     const markerPath = join(directory, "daemon-survived.txt");
     let daemonPid: number | undefined;

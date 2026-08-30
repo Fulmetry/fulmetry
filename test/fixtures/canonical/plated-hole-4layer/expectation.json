@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "fixtureName": "plated-hole-4layer",
   "boardName": "plated-hole-4layer",
-  "manufacturingExpectationSha256": "bba532095a18f462b3f8364af3a826481ef77a5206b01fc34e676940508aa369",
+  "manufacturingExpectationSha256": "fc69eaacf4183f38fecb9a6f92e24009681b046e1836d5ab4361c2a10afa83e5",
   "expectedFiles": [
     "assembly/bom.csv",
     "assembly/positions.csv",

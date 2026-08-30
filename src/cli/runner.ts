@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { link, lstat, mkdir, opendir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
@@ -48,13 +48,13 @@ import {
 import { assessBaselinePreCompliance } from "../standards";
 import { assessRecordedSourcing } from "../sourcing";
 import { loadSimulationDefinition, runQualifiedNgspice } from "../simulation";
-import { loadProjectConfig, type PcbooConfig } from "../project/config";
+import { loadProjectConfig, type FulmetryConfig } from "../project/config";
 import { discoverProject, type DiscoveredProject } from "../project/discovery";
 import { discoverProjectSourceGraph } from "../project/source-graph";
 import { digestProjectInputs, type ProjectInputDigest } from "../project/input-digest";
 import { enrichDiagnosticProvenance } from "../project/provenance";
 import { evaluateProjectCircuitTwice } from "../project/evaluate";
-import { loadPcbooLock, type PcbooLock } from "../project/lock";
+import { loadFulmetryLock, type FulmetryLock } from "../project/lock";
 import {
   canonicalCircuitJson,
   parseCanonicalCircuitJson,
@@ -88,7 +88,7 @@ import {
   type StatusDimension,
   type StatusSet,
 } from "../status";
-import { requirePcbooVersion } from "../version";
+import { requireFulmetryVersion } from "../version";
 import { applyDeclaredWaivers, loadDeclaredWaivers } from "../waivers";
 import {
   requireSupportedBunRuntime,
@@ -102,17 +102,17 @@ import {
 import { completeInspectDiagnosticSelection } from "./inspect-selection";
 import { readBoundedRegularFile } from "../internal/bounded-file";
 import {
-  isPcbooCancellationError,
-  throwIfPcbooCancelled,
+  isFulmetryCancellationError,
+  throwIfFulmetryCancelled,
 } from "../internal/cancellation";
 
-const CUSTOM_OUTPUT_OWNERSHIP_MARKER = ".pcboo-output-root.json";
-const CUSTOM_OUTPUT_PROJECT_AUTHORITY = ".pcboo-output-ownership.json";
+const CUSTOM_OUTPUT_OWNERSHIP_MARKER = ".fulmetry-output-root.json";
+const CUSTOM_OUTPUT_PROJECT_AUTHORITY = ".fulmetry-output-ownership.json";
 const CUSTOM_OUTPUT_OWNERSHIP_MARKER_LIMIT = 4_096;
 
 interface CustomOutputOwnershipRecord {
   readonly schemaVersion: 1;
-  readonly kind: "pcboo-generated-output-root";
+  readonly kind: "fulmetry-generated-output-root";
   readonly outputDirectory: string;
   readonly nonce: string;
 }
@@ -134,25 +134,25 @@ function parseCustomOutputOwnershipRecord(
   try {
     value = JSON.parse(bytes);
   } catch {
-    throw new Error("Configured custom outputDirectory has invalid PCBoo ownership authority JSON");
+    throw new Error("Configured custom outputDirectory has invalid Fulmetry ownership authority JSON");
   }
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("Configured custom outputDirectory has invalid PCBoo ownership authority");
+    throw new Error("Configured custom outputDirectory has invalid Fulmetry ownership authority");
   }
   const record = value as Record<string, unknown>;
   if (
     JSON.stringify(Object.keys(record).sort()) !==
       JSON.stringify(["kind", "nonce", "outputDirectory", "schemaVersion"]) ||
-    record.schemaVersion !== 1 || record.kind !== "pcboo-generated-output-root" ||
+    record.schemaVersion !== 1 || record.kind !== "fulmetry-generated-output-root" ||
     record.outputDirectory !== outputDirectory ||
     typeof record.nonce !== "string" ||
     !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(record.nonce)
   ) {
-    throw new Error("Configured custom outputDirectory has invalid PCBoo ownership authority");
+    throw new Error("Configured custom outputDirectory has invalid Fulmetry ownership authority");
   }
   const parsed = Object.freeze({
     schemaVersion: 1 as const,
-    kind: "pcboo-generated-output-root" as const,
+    kind: "fulmetry-generated-output-root" as const,
     outputDirectory,
     nonce: record.nonce,
   });
@@ -178,7 +178,7 @@ async function ensureCustomOutputProjectAuthority(
   outputDirectory: string,
 ): Promise<void> {
   const normalized = outputDirectory.replaceAll("\\", "/").replace(/\/$/u, "");
-  if (normalized === ".pcboo") return;
+  if (normalized === ".fulmetry") return;
   const authorityPath = join(projectRoot, CUSTOM_OUTPUT_PROJECT_AUTHORITY);
   try {
     await lstat(authorityPath);
@@ -191,14 +191,14 @@ async function ensureCustomOutputProjectAuthority(
   try {
     await lstat(outputRoot);
     throw new Error(
-      `Configured custom outputDirectory is missing project-bound PCBoo ownership authority ${CUSTOM_OUTPUT_PROJECT_AUTHORITY}`,
+      `Configured custom outputDirectory is missing project-bound Fulmetry ownership authority ${CUSTOM_OUTPUT_PROJECT_AUTHORITY}`,
     );
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
   const record = Object.freeze({
     schemaVersion: 1 as const,
-    kind: "pcboo-generated-output-root" as const,
+    kind: "fulmetry-generated-output-root" as const,
     outputDirectory: normalized,
     nonce: crypto.randomUUID(),
   });
@@ -215,21 +215,21 @@ export const CLI_EXIT_CODES = Object.freeze({
   "warning-only": 0,
 } as const satisfies Readonly<Record<ExitClassification, number>>);
 
-export const CLI_HELP = `PCBoo — Bun-first circuit projects
+export const CLI_HELP = `Fulmetry — Bun-first circuit projects
 
 Usage:
-  pcboo help
-  pcboo dev [--host HOST] [--port PORT] [--json]
-  pcboo build [--offline] [--json] [--run-id ID]
-  pcboo check [--offline] [--json] [--run-id ID]
-  pcboo test [--offline] [--json] [--run-id ID]
-  pcboo inspect [TARGET] [--status DIMENSION] [--rule ID] [--offline] [--json] [--run-id ID]
-  pcboo simulate [NAME] [--offline] [--json] [--run-id ID]
-  pcboo route freerouting --jar PATH --jar-sha256 SHA256 [--clearance-mm MM] [--heap-mb MB] [--threads N] [--passes N] [--timeout-ms MS] [--offline] [--json] [--run-id ID]
-  pcboo route promote CANDIDATE --output DIRECTORY --via-hole-mm MM --via-outer-mm MM [--json]
-  pcboo export kicad [--offline] [--json] [--run-id ID]
-  pcboo export gerbers [--offline] [--json] [--run-id ID]
-  pcboo verify manufacturing [--offline] [--json] [--run-id ID]
+  fulmetry help
+  fulmetry dev [--host HOST] [--port PORT] [--json]
+  fulmetry build [--offline] [--json] [--run-id ID]
+  fulmetry check [--offline] [--json] [--run-id ID]
+  fulmetry test [--offline] [--json] [--run-id ID]
+  fulmetry inspect [TARGET] [--status DIMENSION] [--rule ID] [--offline] [--json] [--run-id ID]
+  fulmetry simulate [NAME] [--offline] [--json] [--run-id ID]
+  fulmetry route freerouting --jar PATH --jar-sha256 SHA256 [--clearance-mm MM] [--heap-mb MB] [--threads N] [--passes N] [--timeout-ms MS] [--offline] [--json] [--run-id ID]
+  fulmetry route promote CANDIDATE --output DIRECTORY --via-hole-mm MM --via-outer-mm MM [--json]
+  fulmetry export kicad [--offline] [--json] [--run-id ID]
+  fulmetry export gerbers [--offline] [--json] [--run-id ID]
+  fulmetry verify manufacturing [--offline] [--json] [--run-id ID]
 
 Freerouting output is always a generated candidate. Only \`route promote\` writes a fresh authored route directory, and it refuses to overwrite an existing path.`;
 
@@ -424,8 +424,8 @@ function parseRoutePromotionInvocation(words: readonly string[]): ParsedRoutePro
 
 interface PreparedRun {
   readonly project: DiscoveredProject;
-  readonly config: PcbooConfig;
-  readonly lock: PcbooLock;
+  readonly config: FulmetryConfig;
+  readonly lock: FulmetryLock;
   readonly engineIdentity: TscircuitIdentityReport;
   readonly engineResolutionAuthority: ProjectEngineResolutionAuthority;
   readonly preparedInputDigest: ProjectInputDigest;
@@ -538,7 +538,7 @@ function parseInvocation(
   });
 }
 
-export function argumentFailure(message: string, json: boolean, command = "pcboo"): CliRun {
+export function argumentFailure(message: string, json: boolean, command = "fulmetry"): CliRun {
   const statuses = unassessedStatusSet();
   const diagnostic = defineDiagnostic({
     id: diagnosticId("CLI_ARGUMENT_INVALID_001"),
@@ -549,7 +549,7 @@ export function argumentFailure(message: string, json: boolean, command = "pcboo
     objects: [],
     sourceLocations: [],
     evidence: ["invocation:rejected-before-project-evidence"],
-    nextCommand: "pcboo help",
+    nextCommand: "fulmetry help",
   });
   const result = commandResult({
     command,
@@ -572,7 +572,7 @@ function unsupportedRun(
   json: boolean,
   runId?: string,
 ): CliRun {
-  const command = words.length === 0 ? "pcboo" : `pcboo ${words.join(" ")}`;
+  const command = words.length === 0 ? "fulmetry" : `fulmetry ${words.join(" ")}`;
   const result = commandResult({
     command,
     runId: runId ?? "unsupported-command",
@@ -583,12 +583,12 @@ function unsupportedRun(
       id: diagnosticId("CLI_COMMAND_UNSUPPORTED_001"),
       severity: "error",
       dimension: "functional",
-      message: `${command} is not supported by this PCBoo release`,
+      message: `${command} is not supported by this Fulmetry release`,
       waiverPolicy: "forbidden",
       objects: [],
       sourceLocations: [],
       evidence: ["invocation:recognized-as-unsupported"],
-      nextCommand: "pcboo help",
+      nextCommand: "fulmetry help",
     })],
   });
   return Object.freeze({
@@ -603,14 +603,14 @@ function unsupportedRun(
 
 export function unsupportedBunRuntimeRun(
   json: boolean,
-  command = "pcboo",
+  command = "fulmetry",
   runId = "unsupported-runtime",
 ): CliRun {
   const diagnostic = defineDiagnostic({
     id: diagnosticId(UNSUPPORTED_BUN_DIAGNOSTIC_ID),
     severity: "error",
     dimension: "functional",
-    message: `PCBoo requires Bun ${SUPPORTED_BUN_VERSION}; running Bun is ${Bun.version}`,
+    message: `Fulmetry requires Bun ${SUPPORTED_BUN_VERSION}; running Bun is ${Bun.version}`,
     waiverPolicy: "forbidden",
     objects: [],
     sourceLocations: [],
@@ -639,7 +639,7 @@ export function unsupportedBunRuntimeRun(
 
 export function unsupportedPlatformRuntimeRun(
   json: boolean,
-  command = "pcboo",
+  command = "fulmetry",
   runId = "unsupported-runtime",
 ): CliRun {
   const observed = `${process.platform}-${process.arch}`;
@@ -647,7 +647,7 @@ export function unsupportedPlatformRuntimeRun(
     id: diagnosticId(UNSUPPORTED_PLATFORM_DIAGNOSTIC_ID),
     severity: "error",
     dimension: "functional",
-    message: `PCBoo requires Apple Silicon macOS (${SUPPORTED_RUNTIME_PLATFORM}); running platform is ${observed}`,
+    message: `Fulmetry requires Apple Silicon macOS (${SUPPORTED_RUNTIME_PLATFORM}); running platform is ${observed}`,
     waiverPolicy: "forbidden",
     objects: [],
     sourceLocations: [],
@@ -714,11 +714,11 @@ async function assertExclusiveOutputDirectoryOwnership(
 
   const ownedEntries = new Set([
     "runs",
-    ...(normalized === ".pcboo"
+    ...(normalized === ".fulmetry"
       ? ["cache", "upgrade-reviews"]
       : [CUSTOM_OUTPUT_OWNERSHIP_MARKER]),
   ]);
-  let foundOwnershipMarker = normalized === ".pcboo";
+  let foundOwnershipMarker = normalized === ".fulmetry";
   for await (const entry of directory) {
     const isOwnershipMarker = entry.name === CUSTOM_OUTPUT_OWNERSHIP_MARKER;
     if (entry.isSymbolicLink()) {
@@ -729,24 +729,24 @@ async function assertExclusiveOutputDirectoryOwnership(
       (isOwnershipMarker ? !entry.isFile() : !entry.isDirectory())
     ) {
       throw new Error(
-        `Configured outputDirectory must be exclusively owned by PCBoo generated output; unexpected entry ${entry.name}`,
+        `Configured outputDirectory must be exclusively owned by Fulmetry generated output; unexpected entry ${entry.name}`,
       );
     }
     if (isOwnershipMarker) foundOwnershipMarker = true;
   }
   if (!foundOwnershipMarker) {
     throw new Error(
-      `Configured custom outputDirectory is missing PCBoo ownership marker ${CUSTOM_OUTPUT_OWNERSHIP_MARKER}`,
+      `Configured custom outputDirectory is missing Fulmetry ownership marker ${CUSTOM_OUTPUT_OWNERSHIP_MARKER}`,
     );
   }
-  if (normalized !== ".pcboo") {
+  if (normalized !== ".fulmetry") {
     const authority = await readCustomOutputProjectAuthority(projectRoot, normalized);
     const markerBytes = new TextDecoder().decode(await readBoundedRegularFile(
       join(outputRoot, CUSTOM_OUTPUT_OWNERSHIP_MARKER),
       CUSTOM_OUTPUT_OWNERSHIP_MARKER_LIMIT,
     ));
     if (markerBytes !== customOutputOwnershipMarkerBytes(authority)) {
-      throw new Error("Configured custom outputDirectory has an invalid PCBoo ownership marker");
+      throw new Error("Configured custom outputDirectory has an invalid Fulmetry ownership marker");
     }
   }
 }
@@ -763,7 +763,7 @@ async function ensureOutputDirectoryOwnership(
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     await mkdir(dirname(outputRoot), { recursive: true });
     await mkdir(outputRoot);
-    if (normalized !== ".pcboo") {
+    if (normalized !== ".fulmetry") {
       const authority = await readCustomOutputProjectAuthority(projectRoot, normalized);
       await writeFile(
         join(outputRoot, CUSTOM_OUTPUT_OWNERSHIP_MARKER),
@@ -790,18 +790,18 @@ async function prepareRun(
   const project = await discoverProject(cwd);
   const [config, lock] = await Promise.all([
     loadProjectConfig(project.root),
-    loadPcbooLock(project.root),
+    loadFulmetryLock(project.root),
   ]);
   const [sourcePaths, configPaths, engineIdentity] = await Promise.all([
     discoverProjectSourceGraph(project.root, config.entry),
-    discoverProjectSourceGraph(project.root, "pcboo.config.ts"),
+    discoverProjectSourceGraph(project.root, "fulmetry.config.ts"),
     requireTscircuitIdentity({
       projectRoot: project.root,
       expectedVersion: lock.tscircuit.version,
     }),
   ]);
   const outputPrefix = config.outputDirectory.replaceAll("\\", "/").replace(/\/$/, "");
-  if ([...sourcePaths, ...configPaths, "pcboo.lock"].some((path) =>
+  if ([...sourcePaths, ...configPaths, "fulmetry.lock"].some((path) =>
     path === outputPrefix || path.startsWith(`${outputPrefix}/`)
   )) {
     throw new Error("Configured outputDirectory overlaps project source, configuration, or lock inputs");
@@ -822,7 +822,7 @@ async function prepareRun(
   });
   const [confirmedConfig, confirmedLock] = await Promise.all([
     loadProjectConfig(project.root),
-    loadPcbooLock(project.root),
+    loadFulmetryLock(project.root),
   ]);
   if (!isDeepStrictEqual(confirmedConfig, config) || !isDeepStrictEqual(confirmedLock, lock)) {
     throw new Error("Project configuration or lock changed during run preparation");
@@ -962,8 +962,8 @@ function projectRelative(projectRoot: string, path: string): string {
 }
 
 function activeFabricationProfile(
-  config: PcbooConfig,
-  lock: PcbooLock,
+  config: FulmetryConfig,
+  lock: FulmetryLock,
 ): ActiveFabricationProfile | undefined {
   if (!config.profiles.includes(BASELINE_FABRICATION_PROFILE.name)) return undefined;
   const locked = lock.profiles[BASELINE_FABRICATION_PROFILE.name];
@@ -1029,9 +1029,9 @@ function sourceOnlyAssessment(assessment: Awaited<ReturnType<typeof assessProjec
     message: "Source geometry passed, but emitted manufacturing artifacts were not independently verified",
     waiverPolicy: "forbidden",
     objects: [],
-    sourceLocations: ["pcboo.config.ts:1:1"],
+    sourceLocations: ["fulmetry.config.ts:1:1"],
     evidence: ["manufacturing-artifacts:not-run"],
-    nextCommand: "pcboo verify manufacturing",
+    nextCommand: "fulmetry verify manufacturing",
   });
   return Object.freeze({
     statuses: statusSet({
@@ -1169,7 +1169,7 @@ async function finishRun(
 ): Promise<CliRun> {
   const assertNotCancelled = (): void => {
     if (prepared.signal?.aborted && result.exitClassification !== "cancelled") {
-      throwIfPcbooCancelled(prepared.signal, "Command cancelled before evidence publication");
+      throwIfFulmetryCancelled(prepared.signal, "Command cancelled before evidence publication");
     }
   };
   assertNotCancelled();
@@ -1278,7 +1278,7 @@ async function captureProjectInputAuthority(
   ]);
   const [currentConfig, currentLock, after] = await Promise.all([
     loadProjectConfig(prepared.project.root),
-    loadPcbooLock(prepared.project.root),
+    loadFulmetryLock(prepared.project.root),
     digestProjectInputs(digestOptions),
     assertPreparedEngineIdentity(prepared),
   ]);
@@ -1305,7 +1305,7 @@ async function finishEvidenceRun(
   }>,
 ): Promise<CliRun> {
   if (prepared.signal?.aborted && result.exitClassification !== "cancelled") {
-    throwIfPcbooCancelled(prepared.signal, "Command cancelled before evidence publication");
+    throwIfFulmetryCancelled(prepared.signal, "Command cancelled before evidence publication");
   }
   const unhashed = result.artifacts.filter(({ digest }) => digest === undefined);
   if (unhashed.length > 0) {
@@ -1500,7 +1500,7 @@ async function runBuild(prepared: PreparedRun, json: boolean, signal?: AbortSign
       id: diagnosticId("PROJECT_BOARD_CARDINALITY_UNSUPPORTED_001"),
       severity: "error",
       dimension: "fabrication",
-      message: "PCBoo projects must normalize to exactly one linked source board, PCB board, and root assembly",
+      message: "Fulmetry projects must normalize to exactly one linked source board, PCB board, and root assembly",
       waiverPolicy: "forbidden",
       objects: sourceGroups.length > 0
         ? sourceGroups.map(({ source_group_id }) => source_group_id)
@@ -1514,7 +1514,7 @@ async function runBuild(prepared: PreparedRun, json: boolean, signal?: AbortSign
         required: "1 linked source board, 1 PCB board, 1 root assembly group",
       },
       evidence: ["project-contract:single-board-single-assembly"],
-      nextCommand: "pcboo inspect --status fabrication --rule FAB_BOARD_COUNT_001",
+      nextCommand: "fulmetry inspect --status fabrication --rule FAB_BOARD_COUNT_001",
     });
     const [located] = await enrichDiagnosticProvenance({
       projectRoot: prepared.project.root,
@@ -1534,7 +1534,7 @@ async function runBuild(prepared: PreparedRun, json: boolean, signal?: AbortSign
       }),
     });
     return finishEvidenceRun(prepared, commandResult({
-      command: "pcboo build",
+      command: "fulmetry build",
       runId: prepared.runId,
       exitClassification: "unsupported",
       requestedDimensions: [],
@@ -1545,7 +1545,7 @@ async function runBuild(prepared: PreparedRun, json: boolean, signal?: AbortSign
   }
   const artifact = await writeCircuitArtifact(prepared, evaluated.canonicalJson);
   const result = commandResult({
-    command: "pcboo build",
+    command: "fulmetry build",
     runId: prepared.runId,
     exitClassification: "success",
     requestedDimensions: [],
@@ -1707,7 +1707,7 @@ async function runRouteFreerouting(
       : "Inspect freerouting-evidence.json and correct the qualified tool setup",
   });
   return finishEvidenceRun(prepared, commandResult({
-    command: "pcboo route freerouting",
+    command: "fulmetry route freerouting",
     runId: prepared.runId,
     exitClassification: candidate.state === "candidate"
       ? "incomplete"
@@ -1731,7 +1731,7 @@ async function runRoutePromote(
   const candidatePath = resolve(project.root, invocation.candidatePath);
   const candidateRelative = relative(project.root, candidatePath).replaceAll("\\", "/");
   if (candidateRelative === "" || candidateRelative === ".." || candidateRelative.startsWith("../")) {
-    throw new Error("Route candidate must be a file inside the PCBoo project");
+    throw new Error("Route candidate must be a file inside the Fulmetry project");
   }
   const candidateStat = await lstat(candidatePath);
   if (!candidateStat.isFile() || candidateStat.isSymbolicLink()) {
@@ -1747,11 +1747,11 @@ async function runRoutePromote(
   const outputDirectory = resolve(project.root, invocation.outputDirectory);
   const outputRelative = relative(project.root, outputDirectory).replaceAll("\\", "/");
   if (outputRelative === "" || outputRelative === ".." || outputRelative.startsWith("../")) {
-    throw new Error("Route source output must be a new directory inside the PCBoo project");
+    throw new Error("Route source output must be a new directory inside the Fulmetry project");
   }
   const generatedPrefix = config.outputDirectory.replaceAll("\\", "/").replace(/\/$/u, "");
   if (outputRelative === generatedPrefix || outputRelative.startsWith(`${generatedPrefix}/`)) {
-    throw new Error("Promoted authored routes cannot be written inside generated PCBoo output");
+    throw new Error("Promoted authored routes cannot be written inside generated Fulmetry output");
   }
   await assertNoSymlinkOutputPath(project.root, outputRelative);
   let created = false;
@@ -1776,7 +1776,7 @@ async function runRoutePromote(
       digest: sha256(sourceSet.indexSource),
     });
     const result = commandResult({
-      command: "pcboo route promote",
+      command: "fulmetry route promote",
       runId: "source-promotion",
       exitClassification: "success",
       requestedDimensions: [],
@@ -1809,7 +1809,7 @@ async function runCheck(prepared: PreparedRun, json: boolean, signal?: AbortSign
   const sourcingBytes = `${JSON.stringify(assessment.sourcing.evidence, null, 2)}\n`;
   await atomicWrite(sourcingPath, sourcingBytes);
   const result = commandResult({
-    command: "pcboo check",
+    command: "fulmetry check",
     runId: prepared.runId,
     exitClassification: classify(
       sourceOnly.statuses,
@@ -1857,7 +1857,7 @@ function projectTestDiagnostic(
     },
     "subprocess-forbidden": {
       id: "TEST_SUBPROCESS_CONTAINMENT_UNAVAILABLE_001",
-      message: "Authoritative project tests cannot spawn subprocesses; use PCBoo's bounded build, simulation, and external-tool actions",
+      message: "Authoritative project tests cannot spawn subprocesses; use Fulmetry's bounded build, simulation, and external-tool actions",
     },
     "offline-containment-unavailable": {
       id: "TEST_OFFLINE_CONTAINMENT_UNAVAILABLE_001",
@@ -2018,7 +2018,7 @@ async function runProjectTestCommand(
   );
   const statuses = statusSet({ ...unassessedStatusSet(), functional });
   const result = commandResult({
-    command: "pcboo test",
+    command: "fulmetry test",
     runId: prepared.runId,
     exitClassification: execution.outcome === "cancelled"
       ? "cancelled"
@@ -2192,7 +2192,7 @@ async function runInspect(
     });
   }
   const result = commandResult({
-    command: "pcboo inspect",
+    command: "fulmetry inspect",
     runId: prepared.runId,
     exitClassification: forcedFailure
       ? "failure"
@@ -2226,7 +2226,7 @@ function manufacturingDiagnostics(
       : [`${artifactRoot}/${finding.path}:${/^line (\d+):/u.exec(finding.message)?.[1] ?? "1"}:1`],
     ...(finding.measurement === undefined ? {} : { measurement: finding.measurement }),
     evidence: finding.path === undefined ? [] : [`manufacturing:${finding.path}`],
-    nextCommand: `pcboo inspect --status fabrication --rule MFG_${finding.code}_001`,
+    nextCommand: `fulmetry inspect --status fabrication --rule MFG_${finding.code}_001`,
   }));
 }
 
@@ -2369,7 +2369,7 @@ async function runVerifyManufacturing(
     }),
   ];
   const result = commandResult({
-    command: "pcboo verify manufacturing",
+    command: "fulmetry verify manufacturing",
     runId: prepared.runId,
     exitClassification: classify(statuses, requestedDimensions, diagnostics),
     requestedDimensions,
@@ -2405,11 +2405,11 @@ async function runSimulate(
   ngspicePath: string | null | undefined,
   signal?: AbortSignal,
 ): Promise<CliRun> {
-  const command = `pcboo simulate${name === undefined ? "" : ` ${name}`}`;
+  const command = `fulmetry simulate${name === undefined ? "" : ` ${name}`}`;
   const inputAuthority = await captureProjectInputAuthority(prepared, signal);
   if (name === undefined) {
     const id = diagnosticId("SIM_TESTBENCH_REQUIRED_001");
-    const diagnostic = defineDiagnostic({ id, severity: "error", dimension: "functional", message: "A named simulations/<name>.testbench.ts is required", waiverPolicy: "forbidden", objects: [], sourceLocations: [], nextCommand: "pcboo simulate <name>" });
+    const diagnostic = defineDiagnostic({ id, severity: "error", dimension: "functional", message: "A named simulations/<name>.testbench.ts is required", waiverPolicy: "forbidden", objects: [], sourceLocations: [], nextCommand: "fulmetry simulate <name>" });
     const statuses = statusSet({ ...unassessedStatusSet(), functional: assuranceStatus("functional", "incomplete", { diagnosticIds: [id], summary: "No explicit simulation testbench was selected" }) });
     return finishEvidenceRun(prepared, commandResult({ command, runId: prepared.runId, exitClassification: "incomplete", requestedDimensions: ["functional"], statuses, diagnostics: [diagnostic] }), json, inputAuthority);
   }
@@ -2423,7 +2423,7 @@ async function runSimulate(
       waiverPolicy: "forbidden",
       objects: [name],
       sourceLocations: [`simulations/${name}.testbench.ts:1:1`],
-      nextCommand: `pcboo simulate ${name}`,
+      nextCommand: `fulmetry simulate ${name}`,
     });
     const statuses = statusSet({
       ...unassessedStatusSet(),
@@ -2451,13 +2451,13 @@ async function runSimulate(
     ...(signal === undefined ? {} : { signal }),
   });
   if (probe.state === "unavailable") {
-    const unsupportedVersion = probe.version !== undefined && probe.reason?.includes("outside PCBoo's detected compatibility range");
+    const unsupportedVersion = probe.version !== undefined && probe.reason?.includes("outside Fulmetry's detected compatibility range");
     const id = diagnosticId(unsupportedVersion ? "SIM_NGSPICE_VERSION_UNSUPPORTED_001" : "SIM_NGSPICE_UNAVAILABLE_001");
     const diagnostic = defineDiagnostic({
       id, severity: "error", dimension: "functional", message: probe.reason!,
       waiverPolicy: "forbidden", objects: name === undefined ? [] : [name], sourceLocations: [],
       evidence: probe.executable === undefined ? ["tool:ngspice:unavailable"] : [`tool:ngspice:${probe.executableSha256 ?? "identity-unavailable"}:${probe.executable}`],
-      nextCommand: "pcboo inspect --status functional",
+      nextCommand: "fulmetry inspect --status functional",
     });
     const statuses = statusSet({ ...unassessedStatusSet(), functional: assuranceStatus("functional", "unavailable", { diagnosticIds: [id], summary: "ngspice is unavailable" }) });
     return finishEvidenceRun(prepared, commandResult({ command, runId: prepared.runId, exitClassification: unsupportedVersion ? "unsupported" : "unavailable", requestedDimensions: ["functional"], statuses, diagnostics: [diagnostic] }), json, inputAuthority);
@@ -2468,7 +2468,7 @@ async function runSimulate(
   } catch (error) {
     const id = diagnosticId("SIM_TESTBENCH_INVALID_001");
     const message = error instanceof Error ? error.message : String(error);
-    const diagnostic = defineDiagnostic({ id, severity: "error", dimension: "functional", message, waiverPolicy: "forbidden", objects: [name], sourceLocations: [], nextCommand: `pcboo simulate ${name}` });
+    const diagnostic = defineDiagnostic({ id, severity: "error", dimension: "functional", message, waiverPolicy: "forbidden", objects: [name], sourceLocations: [], nextCommand: `fulmetry simulate ${name}` });
     const statuses = statusSet({ ...unassessedStatusSet(), functional: assuranceStatus("functional", "incomplete", { diagnosticIds: [id], summary: "Simulation testbench is unavailable or invalid" }) });
     return finishEvidenceRun(
       prepared,
@@ -2673,7 +2673,7 @@ async function runExportKicad(
     nextCommand: `Read ${projectRelative(prepared.project.root, handoffReportPath)}`,
   });
   const result = commandResult({
-    command: "pcboo export kicad",
+    command: "fulmetry export kicad",
     runId: prepared.runId,
     exitClassification: qualified ? "success" : "incomplete",
     requestedDimensions: [],
@@ -2693,7 +2693,7 @@ async function runExportKicad(
 }
 
 function throwIfGerberExportCancelled(signal?: AbortSignal): void {
-  throwIfPcbooCancelled(signal, "Draft Gerber export was cancelled");
+  throwIfFulmetryCancelled(signal, "Draft Gerber export was cancelled");
 }
 
 async function captureDraftExportInputSnapshot(
@@ -2702,13 +2702,13 @@ async function captureDraftExportInputSnapshot(
 ): Promise<Readonly<Awaited<ReturnType<typeof createBuildInputSnapshot>>>> {
   const [sourcePaths, configPaths] = await Promise.all([
     discoverProjectSourceGraph(prepared.project.root, prepared.config.entry),
-    discoverProjectSourceGraph(prepared.project.root, "pcboo.config.ts"),
+    discoverProjectSourceGraph(prepared.project.root, "fulmetry.config.ts"),
   ]);
   const sourceSet = new Set(sourcePaths);
   const configSet = new Set(configPaths);
   const inputs: BuildInputDescriptor[] = inputAuthority.inputPaths.map((path) => {
-    if (path === "pcboo.config.ts") return { path, role: "config" as const };
-    if (path === "pcboo.lock") return { path, role: "lockfile" as const };
+    if (path === "fulmetry.config.ts") return { path, role: "config" as const };
+    if (path === "fulmetry.lock") return { path, role: "lockfile" as const };
     if (path.startsWith("waivers/")) return { path, role: "waiver" as const };
     if (
       path === "models" || path.startsWith("models/") ||
@@ -2796,7 +2796,7 @@ async function runExportGerbers(
     }),
   ]));
   const activeProfile = activeFabricationProfile(prepared.config, prepared.lock);
-  const pcbooVersion = await requirePcbooVersion();
+  const fulmetryVersion = await requireFulmetryVersion();
   const draftManifest: Readonly<ArtifactManifest> = await createDraftArtifactManifest({
     root: prepared.runDirectory,
     ...(prepared.config.boardRevision === undefined
@@ -2817,7 +2817,7 @@ async function runExportGerbers(
         lockfile: inputAuthority.lockDigest,
       },
       tools: {
-        pcboo: { package: "pcboo", version: pcbooVersion },
+        fulmetry: { package: "fulmetry", version: fulmetryVersion },
         bun: { package: "bun", version: Bun.version },
         tscircuit: {
           package: "tscircuit",
@@ -2884,7 +2884,7 @@ async function runExportGerbers(
       ),
       "manufacturing-verification:not-run",
     ],
-    nextCommand: "pcboo verify manufacturing",
+    nextCommand: "fulmetry verify manufacturing",
   });
   const statuses = statusSet({
     ...unassessedStatusSet(),
@@ -2916,7 +2916,7 @@ async function runExportGerbers(
     },
   ];
   const result = commandResult({
-    command: "pcboo export gerbers",
+    command: "fulmetry export gerbers",
     runId: prepared.runId,
     exitClassification: "incomplete",
     requestedDimensions: ["fabrication"],
@@ -2968,7 +2968,7 @@ export async function runCli(options: RunCliOptions): Promise<CliRun> {
     if (words.length > 1) return argumentFailure("help accepts no arguments", invocation.json);
     if (invocation.json) {
       const result = commandResult({
-        command: "pcboo help",
+        command: "fulmetry help",
         runId: "help",
         exitClassification: "success",
         requestedDimensions: [],
@@ -3039,14 +3039,14 @@ export async function runCli(options: RunCliOptions): Promise<CliRun> {
     if (error instanceof UnsupportedBunRuntimeError) {
       return unsupportedBunRuntimeRun(
         invocation.json,
-        `pcboo ${words.join(" ")}`,
+        `fulmetry ${words.join(" ")}`,
         invocation.runId,
       );
     }
     if (error instanceof UnsupportedPlatformRuntimeError) {
       return unsupportedPlatformRuntimeRun(
         invocation.json,
-        `pcboo ${words.join(" ")}`,
+        `fulmetry ${words.join(" ")}`,
         invocation.runId,
       );
     }
@@ -3135,7 +3135,7 @@ export async function runCli(options: RunCliOptions): Promise<CliRun> {
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const cancelled = options.signal?.aborted === true || isPcbooCancellationError(error);
+    const cancelled = options.signal?.aborted === true || isFulmetryCancellationError(error);
     if (command === "export" && words[1] === "gerbers") {
       // This file is the draft tree's validity marker. Preserve partial files for
       // diagnosis, but never leave a manifest that authenticates a cancelled or
@@ -3167,7 +3167,7 @@ export async function runCli(options: RunCliOptions): Promise<CliRun> {
       await verifyRunEvidenceAuthority(prepared.runRootAuthority, prepared.project.root);
     } catch {
       const result = contextualizeResult(prepared, commandResult({
-        command: `pcboo ${words.join(" ")}`,
+        command: `fulmetry ${words.join(" ")}`,
         runId: prepared.runId,
         exitClassification: cancelled ? "cancelled" : "failure",
         requestedDimensions: [],
@@ -3177,7 +3177,7 @@ export async function runCli(options: RunCliOptions): Promise<CliRun> {
       return Object.freeze({
         exitCode: CLI_EXIT_CODES[result.exitClassification],
         stdout: invocation.json ? `${JSON.stringify(result, null, 2)}\n` : "",
-        stderr: `pcboo: ${message}\n`,
+        stderr: `fulmetry: ${message}\n`,
         result,
         projectRoot: prepared.project.root,
       });
@@ -3187,7 +3187,7 @@ export async function runCli(options: RunCliOptions): Promise<CliRun> {
     await rm(errorPath, { recursive: true, force: true });
     await atomicWrite(errorPath, `${message}\n`);
     const result = commandResult({
-      command: `pcboo ${words.join(" ")}`,
+      command: `fulmetry ${words.join(" ")}`,
       runId: prepared.runId,
       exitClassification: cancelled ? "cancelled" : "failure",
       requestedDimensions: [],
@@ -3201,7 +3201,7 @@ export async function runCli(options: RunCliOptions): Promise<CliRun> {
     return Object.freeze({
       ...finished,
       stdout: invocation.json ? finished.stdout : "",
-      stderr: `pcboo: ${message}\n`,
+      stderr: `fulmetry: ${message}\n`,
     });
   }
 }

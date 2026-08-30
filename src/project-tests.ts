@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { constants } from "node:fs";
 import { lstat, mkdir, open, opendir, realpath, rm, stat, writeFile } from "node:fs/promises";
@@ -13,7 +13,7 @@ import {
 } from "./internal/contained-process";
 import { PROJECT_INPUT_DEPTH_LIMIT, PROJECT_INPUT_ENTRY_LIMIT } from "./project/input-limits";
 import { requireSupportedBunRuntime } from "./runtime";
-import { PCBOO_PACKAGE_NAME } from "./version";
+import { FULMETRY_PACKAGE_NAME } from "./version";
 
 export const PROJECT_TEST_TIMEOUT_MS = 120_000;
 export const PROJECT_TEST_OUTPUT_LIMIT = 1024 * 1024;
@@ -33,7 +33,7 @@ const SUBPROCESS_MODULES = new Set([
   "cluster",
   "node:cluster",
 ]);
-const runtimePcbooRoot = realpath(join(import.meta.dir, ".."));
+const runtimeFulmetryRoot = realpath(join(import.meta.dir, ".."));
 
 async function owningPackageRoot(path: string, packageName: string): Promise<string> {
   let directory = dirname(path);
@@ -58,8 +58,8 @@ const fixed = (target, key, value) => Object.defineProperty(target, key, {
   value, configurable: false, enumerable: false, writable: false,
 });
 const get = (target, key) => { try { return target[key]; } catch { return undefined; } };
-const rejectFocused = () => { throw new Error("PCBOO_FOCUSED_TEST_FORBIDDEN"); };
-const rejectFailing = () => { throw new Error("PCBOO_EXPECTED_FAILURE_TEST_FORBIDDEN"); };
+const rejectFocused = () => { throw new Error("FULMETRY_FOCUSED_TEST_FORBIDDEN"); };
+const rejectFailing = () => { throw new Error("FULMETRY_EXPECTED_FAILURE_TEST_FORBIDDEN"); };
 const guard = (api, depth = 0) => {
   if (typeof api !== "function" || seen.has(api)) return api;
   seen.add(api);
@@ -558,9 +558,9 @@ async function discoverTestSourceGraph(
       const packageName = imported.path.startsWith("@")
         ? imported.path.split("/").slice(0, 2).join("/")
         : imported.path.split("/")[0]!;
-      if (bare && packageName === "pcboo") {
-        if (await owningPackageRoot(canonical, PCBOO_PACKAGE_NAME) !== await runtimePcbooRoot) {
-          throw new Error("Project test resolved pcboo to a different physical package");
+      if (bare && packageName === "fulmetry") {
+        if (await owningPackageRoot(canonical, FULMETRY_PACKAGE_NAME) !== await runtimeFulmetryRoot) {
+          throw new Error("Project test resolved fulmetry to a different physical package");
         }
         if (isInside(root, canonical)) {
           authenticatedPackageEntryLeaves.add(canonical);
@@ -847,7 +847,7 @@ async function probeRuntimeFocus(options: {
   if (options.timeoutMs < 10) return Object.freeze({ focused: 0, reason: "timeout" as const });
   const junitPath = join(options.runDirectory, "focus-probe.xml");
   const bunfigPath = join(options.runDirectory, "focus-probe-bunfig.toml");
-  await writeFile(bunfigPath, "# PCBoo-controlled Bun focus-probe configuration\n", { flag: "wx" });
+  await writeFile(bunfigPath, "# Fulmetry-controlled Bun focus-probe configuration\n", { flag: "wx" });
   let child: Readonly<ContainedProcess>;
   try {
     child = await spawnContainedProcess({
@@ -910,7 +910,7 @@ async function probeRuntimeFocus(options: {
 }
 
 function sanitizedTestEnvironment(offline: boolean): Record<string, string> {
-  const environment: Record<string, string> = { PCBOO_PROJECT_TEST: "1" };
+  const environment: Record<string, string> = { FULMETRY_PROJECT_TEST: "1" };
   for (const name of ["PATH", "TMPDIR", "TEMP", "TMP", "SYSTEMROOT", "WINDIR"] as const) {
     const value = process.env[name];
     if (value !== undefined) environment[name] = value;
@@ -1010,12 +1010,12 @@ export async function runBunProjectTests(options: {
   const junitPath = join(options.runDirectory, "junit.xml");
   const wrapperDirectory = join(options.runDirectory, "test-wrappers");
   await mkdir(wrapperDirectory);
-  const guardPath = join(wrapperDirectory, "pcboo-test-policy-guard.mjs");
-  const bunfigPath = join(wrapperDirectory, "pcboo-controlled-bunfig.toml");
+  const guardPath = join(wrapperDirectory, "fulmetry-test-policy-guard.mjs");
+  const bunfigPath = join(wrapperDirectory, "fulmetry-controlled-bunfig.toml");
   await writeFile(guardPath, PROJECT_TEST_POLICY_GUARD_SOURCE, { flag: "wx" });
-  await writeFile(bunfigPath, "# PCBoo-controlled Bun test configuration\n", { flag: "wx" });
+  await writeFile(bunfigPath, "# Fulmetry-controlled Bun test configuration\n", { flag: "wx" });
   const sentinels = authority.testFiles.map((_, index) =>
-    `PCBOO_SUITE_SENTINEL_${index}_${crypto.randomUUID().replaceAll("-", "")}`
+    `FULMETRY_SUITE_SENTINEL_${index}_${crypto.randomUUID().replaceAll("-", "")}`
   );
   const wrapperPaths = await Promise.all(authority.testFiles.map(async (path, index) => {
     const wrapperPath = join(wrapperDirectory, `${String(index).padStart(4, "0")}.test.ts`);
@@ -1138,10 +1138,10 @@ export async function runBunProjectTests(options: {
     return executionResult({ ...common, outcome: "failed", reason: "output-limit" });
   }
   const stderrText = new TextDecoder().decode(stderr.bytes);
-  if (/^error: PCBOO_FOCUSED_TEST_FORBIDDEN$/mu.test(stderrText)) {
+  if (/^error: FULMETRY_FOCUSED_TEST_FORBIDDEN$/mu.test(stderrText)) {
     return executionResult({ ...common, outcome: "incomplete", reason: "focused-tests" });
   }
-  if (/^error: PCBOO_EXPECTED_FAILURE_TEST_FORBIDDEN$/mu.test(stderrText)) {
+  if (/^error: FULMETRY_EXPECTED_FAILURE_TEST_FORBIDDEN$/mu.test(stderrText)) {
     return executionResult({ ...common, outcome: "incomplete", reason: "expected-failing-tests" });
   }
 

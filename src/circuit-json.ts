@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import type { AnyCircuitElement } from "tscircuit";
 import { any_circuit_element } from "circuit-json";
@@ -127,7 +127,7 @@ export function parseCanonicalCircuitJson(text: string): AnyCircuitElement[] {
   }
   const parsed = value as AnyCircuitElement[];
   if (canonicalCircuitJson(parsed) !== text) {
-    throw new TypeError("Circuit JSON evidence is not in PCBoo canonical form");
+    throw new TypeError("Circuit JSON evidence is not in Fulmetry canonical form");
   }
   return parsed;
 }
@@ -164,7 +164,7 @@ export function parseCanonicalRouteCandidateCircuitJson(text: string): AnyCircui
     ) throw new TypeError(`Route candidate Circuit JSON element ${index} must have a non-empty type`);
   }
   if (canonicalCircuitJson(value as AnyCircuitElement[]) !== text) {
-    throw new TypeError("Route candidate Circuit JSON is not in PCBoo canonical form");
+    throw new TypeError("Route candidate Circuit JSON is not in Fulmetry canonical form");
   }
   const routeElements = (value as AnyCircuitElement[]).filter((element) =>
     ROUTE_PROMOTION_ELEMENT_TYPES.has(element.type)

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { Box, CircuitBoard, Layers3, Zap } from "lucide-react";
 import { lazy, Suspense } from "react";

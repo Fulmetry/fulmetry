@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import {
   Board,
@@ -7,7 +7,7 @@ import {
   Resistor,
   Trace,
   type AnyCircuitElement,
-} from "@pcboo/pcboo/authoring";
+} from "fulmetry/authoring";
 
 /** A small, manufactured voltage divider shared by live simulation and release evidence. */
 export async function liveFunctionalFixture(): Promise<AnyCircuitElement[]> {
@@ -18,6 +18,7 @@ export async function liveFunctionalFixture(): Promise<AnyCircuitElement[]> {
     name: "J1",
     pinCount: 2,
     footprint: "pinrow2_nosquareplating",
+    manufacturerPartNumber: "M20-9990245",
     supplierPartNumbers: { jlcpcb: ["C124375"] },
     pcbX: -10,
     pcbY: 0,
@@ -26,6 +27,7 @@ export async function liveFunctionalFixture(): Promise<AnyCircuitElement[]> {
     name: "R1",
     resistance: "10k",
     footprint: "0603",
+    manufacturerPartNumber: "RC0603FR-0710KL",
     supplierPartNumbers: { jlcpcb: ["C25804"] },
     pcbX: -3,
     pcbY: 2,
@@ -34,6 +36,7 @@ export async function liveFunctionalFixture(): Promise<AnyCircuitElement[]> {
     name: "R2",
     resistance: "10k",
     footprint: "0603",
+    manufacturerPartNumber: "RC0603FR-0710KL",
     supplierPartNumbers: { jlcpcb: ["C25804"] },
     pcbX: 4,
     pcbY: 2,

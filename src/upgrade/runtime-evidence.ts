@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import {
   TSCIRCUIT_RUNTIME_PLATFORM_NAMES,
@@ -24,11 +24,11 @@ export interface TscircuitRuntimeEvidence {
       closureSha256: string;
       lockSha256: string;
       manifestSha256: string;
-      packedPcbooContentSha256: string;
-      projectPcbooLockSha256: string;
+      packedFulmetryContentSha256: string;
+      projectFulmetryLockSha256: string;
       singleEngineResolutionSha256: string;
-      pcbooTarballSha256: string;
-      pcbooTarballIntegrity: string;
+      fulmetryTarballSha256: string;
+      fulmetryTarballIntegrity: string;
       contractVersion: 2;
     }>;
   }>;
@@ -108,9 +108,9 @@ export function parseTscircuitRuntimeEvidence(value: unknown): Readonly<Tscircui
   assertKeys(value.profiles.repository, ["closureSha256", "lockSha256"], "Runtime evidence repository profile");
   assertRecord(value.profiles.packedConsumer, "Runtime evidence packed profile");
   assertKeys(value.profiles.packedConsumer, [
-    "closureSha256", "lockSha256", "manifestSha256", "packedPcbooContentSha256",
-    "contractVersion", "pcbooTarballIntegrity", "pcbooTarballSha256",
-    "projectPcbooLockSha256", "singleEngineResolutionSha256",
+    "closureSha256", "lockSha256", "manifestSha256", "packedFulmetryContentSha256",
+    "contractVersion", "fulmetryTarballIntegrity", "fulmetryTarballSha256",
+    "projectFulmetryLockSha256", "singleEngineResolutionSha256",
   ], "Runtime evidence packed profile");
   const parsedCandidate = candidate(value.candidate as TscircuitRuntimeEvidence["candidate"]);
   for (const [label, hash] of [
@@ -119,21 +119,21 @@ export function parseTscircuitRuntimeEvidence(value: unknown): Readonly<Tscircui
     ["packed closure", value.profiles.packedConsumer.closureSha256],
     ["packed lock", value.profiles.packedConsumer.lockSha256],
     ["packed manifest", value.profiles.packedConsumer.manifestSha256],
-    ["packed PCBoo content", value.profiles.packedConsumer.packedPcbooContentSha256],
-    ["packed project pcboo.lock", value.profiles.packedConsumer.projectPcbooLockSha256],
+    ["packed Fulmetry content", value.profiles.packedConsumer.packedFulmetryContentSha256],
+    ["packed project fulmetry.lock", value.profiles.packedConsumer.projectFulmetryLockSha256],
     ["packed single-engine resolution", value.profiles.packedConsumer.singleEngineResolutionSha256],
-    ["packed PCBoo tarball", value.profiles.packedConsumer.pcbooTarballSha256],
+    ["packed Fulmetry tarball", value.profiles.packedConsumer.fulmetryTarballSha256],
   ] as const) assertDigest(hash, label);
   if (value.profiles.packedConsumer.contractVersion !== 2) throw new TypeError("Unsupported packed-consumer contract version");
-  const packedIntegrity = value.profiles.packedConsumer.pcbooTarballIntegrity;
-  if (typeof packedIntegrity !== "string") throw new TypeError("Packed PCBoo tarball integrity must be canonical sha512 SRI");
+  const packedIntegrity = value.profiles.packedConsumer.fulmetryTarballIntegrity;
+  if (typeof packedIntegrity !== "string") throw new TypeError("Packed Fulmetry tarball integrity must be canonical sha512 SRI");
   const packedSri = SRI.exec(packedIntegrity);
   if (
     packedSri === null || packedSri[1]!.length % 4 !== 0 ||
     Buffer.from(packedSri[1]!, "base64").byteLength !== 64 ||
     Buffer.from(packedSri[1]!, "base64").toString("base64") !== packedSri[1]
   ) {
-    throw new TypeError("Packed PCBoo tarball integrity must be canonical sha512 SRI");
+    throw new TypeError("Packed Fulmetry tarball integrity must be canonical sha512 SRI");
   }
   const parsed = value as unknown as TscircuitRuntimeEvidence;
   const { evidenceSha256, ...body } = parsed;
@@ -164,21 +164,21 @@ export function createTscircuitRuntimeEvidence(
     ["packed closure", value.profiles.packedConsumer.closureSha256],
     ["packed lock", value.profiles.packedConsumer.lockSha256],
     ["packed manifest", value.profiles.packedConsumer.manifestSha256],
-    ["packed PCBoo content", value.profiles.packedConsumer.packedPcbooContentSha256],
-    ["packed project pcboo.lock", value.profiles.packedConsumer.projectPcbooLockSha256],
+    ["packed Fulmetry content", value.profiles.packedConsumer.packedFulmetryContentSha256],
+    ["packed project fulmetry.lock", value.profiles.packedConsumer.projectFulmetryLockSha256],
     ["packed single-engine resolution", value.profiles.packedConsumer.singleEngineResolutionSha256],
-    ["packed PCBoo tarball", value.profiles.packedConsumer.pcbooTarballSha256],
+    ["packed Fulmetry tarball", value.profiles.packedConsumer.fulmetryTarballSha256],
   ] as const) assertDigest(hash, label);
   if (value.semanticReportSha256 !== null) {
     assertDigest(value.semanticReportSha256, "semanticReportSha256");
   }
   if (value.profiles.packedConsumer.contractVersion !== 2) throw new TypeError("Unsupported packed-consumer contract version");
-  const packedSri = SRI.exec(value.profiles.packedConsumer.pcbooTarballIntegrity);
+  const packedSri = SRI.exec(value.profiles.packedConsumer.fulmetryTarballIntegrity);
   if (
     packedSri === null || packedSri[1]!.length % 4 !== 0 ||
     Buffer.from(packedSri[1]!, "base64").byteLength !== 64 ||
     Buffer.from(packedSri[1]!, "base64").toString("base64") !== packedSri[1]
-  ) throw new TypeError("Packed PCBoo tarball integrity must be canonical sha512 SRI");
+  ) throw new TypeError("Packed Fulmetry tarball integrity must be canonical sha512 SRI");
   const body = Object.freeze({ schemaVersion: 1 as const, ...value, candidate: candidate(value.candidate) });
   return Object.freeze({ ...body, evidenceSha256: digest(body) });
 }

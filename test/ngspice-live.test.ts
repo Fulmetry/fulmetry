@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { afterAll, describe, expect, test } from "bun:test";
 import { cp, lstat, mkdir, mkdtemp, opendir, readFile, realpath, rm, symlink } from "node:fs/promises";
@@ -72,14 +72,14 @@ async function regularFileInventory(root: string, prefix = ""): Promise<readonly
 
 describe("required live ngspice compatibility", () => {
   test("qualifies real ngspice and verifies a required-functional production bundle", async () => {
-    expect(process.env.PCBOO_LIVE_NGSPICE_REQUIRED).toBe("1");
-    const executable = process.env.PCBOO_NGSPICE_PATH ?? Bun.which("ngspice");
+    expect(process.env.FULMETRY_LIVE_NGSPICE_REQUIRED).toBe("1");
+    const executable = process.env.FULMETRY_NGSPICE_PATH ?? Bun.which("ngspice");
     expect(executable, "Required live ngspice executable is absent").not.toBeNull();
     if (executable === null) throw new Error("Required live ngspice executable is absent");
     const tool = await probeNgspice({ executable });
     expect(tool.state, tool.reason).toBe("detected");
 
-    const createdQualificationRoot = await mkdtemp(join(tmpdir(), "pcboo-live-ngspice-"));
+    const createdQualificationRoot = await mkdtemp(join(tmpdir(), "fulmetry-live-ngspice-"));
     roots.push(createdQualificationRoot);
     const qualificationRoot = await realpath(createdQualificationRoot);
     const qualificationDirectory = join(qualificationRoot, "qualification");
@@ -105,14 +105,14 @@ describe("required live ngspice compatibility", () => {
     );
     const circuitJson = await liveFunctionalFixture();
     const circuitBytes = canonicalCircuitJson(circuitJson);
-    const model = "* PCBoo-authored live-ngspice resistor fixture\n";
+    const model = "* Fulmetry-authored live-ngspice resistor fixture\n";
     const modelPath = "simulations/resistors.model";
     await Bun.write(join(projectRoot, "src/board.ts"), `export default ${circuitBytes.trim()}\n`);
     await Bun.write(
-      join(projectRoot, "pcboo.config.ts"),
+      join(projectRoot, "fulmetry.config.ts"),
       `export default { entry: "src/board.ts", profiles: [${JSON.stringify(BASELINE_FABRICATION_PROFILE.name)}], boardRevision: "live-A" }\n`,
     );
-    await Bun.write(join(projectRoot, "pcboo.lock"), `${JSON.stringify({
+    await Bun.write(join(projectRoot, "fulmetry.lock"), `${JSON.stringify({
       schemaVersion: 1,
       tscircuit: { version: SUPPORTED_TSCIRCUIT_VERSION, integrity: SUPPORTED_TSCIRCUIT_INTEGRITY },
       adapters: {
@@ -143,7 +143,7 @@ describe("required live ngspice compatibility", () => {
           { componentId: "source_component_1", pinMap: { "1": "1", "2": "2" }, parameters: { resistance: "10k" } },
           { componentId: "source_component_2", pinMap: { "1": "1", "2": "2" }, parameters: { resistance: "10k" } },
         ],
-        path: modelPath, source: "PCBoo live analytical fixture",
+        path: modelPath, source: "Fulmetry live analytical fixture",
         digest: digest(model), license: "CC0-1.0", redistribution: "allowed",
       }],
       stimuli: [{
@@ -165,15 +165,15 @@ describe("required live ngspice compatibility", () => {
       projectRoot,
       inputs: [
         { path: "src/board.ts", role: "source" },
-        { path: "pcboo.config.ts", role: "config" },
-        { path: "pcboo.lock", role: "lockfile" },
+        { path: "fulmetry.config.ts", role: "config" },
+        { path: "fulmetry.lock", role: "lockfile" },
         { path: modelPath, role: "test" },
         { path: testbenchPath, role: "test" },
       ],
     });
-    // Generated solver evidence belongs under PCBoo's project-contained output
+    // Generated solver evidence belongs under Fulmetry's project-contained output
     // authority, which the immutable project-input inventory excludes.
-    const outputRoot = join(projectRoot, ".pcboo");
+    const outputRoot = join(projectRoot, ".fulmetry");
     const runDirectory = join(outputRoot, "runs", "live-ngspice");
     await mkdir(runDirectory, { recursive: true });
     const run = await runQualifiedNgspice({
@@ -237,7 +237,7 @@ describe("required live ngspice compatibility", () => {
     const reportDirectory = join(
       import.meta.dir,
       "..",
-      ".pcboo-ci",
+      ".fulmetry-ci",
       `ngspice-live-${process.platform}-${process.arch}`,
     );
     await rm(reportDirectory, { recursive: true, force: true });

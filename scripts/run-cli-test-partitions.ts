@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { constants } from "node:fs";
 import { mkdtemp, open, readFile, rm } from "node:fs/promises";
@@ -16,7 +16,7 @@ export const CLI_PARTITION_TIMEOUT_MS = 150_000;
 export const CLI_OVERALL_TIMEOUT_MS = 45 * 60_000;
 const CLI_TEST_PATH = join(import.meta.dir, "..", "test", "cli.test.ts");
 const CLI_TEST_EVIDENCE_PATH = "test/cli.test.ts";
-const CLI_SUITE_NAME = "PCBoo CLI";
+const CLI_SUITE_NAME = "Fulmetry CLI";
 const policyPreload = join(import.meta.dir, "repository-test-policy-preload.ts");
 
 async function readStableJunit(path: string): Promise<Uint8Array> {
@@ -144,7 +144,7 @@ async function runCliPartition(
   index: number,
   remainingOverallMilliseconds: number,
 ): Promise<void> {
-  const directory = await mkdtemp(join(tmpdir(), "pcboo-cli-partition-"));
+  const directory = await mkdtemp(join(tmpdir(), "fulmetry-cli-partition-"));
   const junitPath = join(directory, "junit.xml");
   const child = Bun.spawn([
     process.execPath,
@@ -161,7 +161,7 @@ async function runCliPartition(
     CLI_TEST_PATH,
   ], {
     cwd: join(import.meta.dir, ".."),
-    env: { ...process.env, PCBOO_REPOSITORY_TEST_POLICY_REQUIRED: "1" },
+    env: { ...process.env, FULMETRY_REPOSITORY_TEST_POLICY_REQUIRED: "1" },
     stdin: "ignore",
     stdout: "inherit",
     stderr: "inherit",

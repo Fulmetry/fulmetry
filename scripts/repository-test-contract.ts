@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 
 export const REPOSITORY_TEST_JUNIT_BYTES_LIMIT = 4 * 1024 * 1024;
@@ -9,7 +9,7 @@ const MACOS_INTENTIONAL_SKIPS: ReadonlyMap<string, ReadonlySet<string>> = new Ma
   ])],
   ["test/accept-tscircuit-upgrade.test.ts", new Set([
     "rejects a self-consistent but stale reviewed report after fresh requalification",
-    "rejects a runtime-compatible candidate whose public type surface breaks PCBoo",
+    "rejects a runtime-compatible candidate whose public type surface breaks Fulmetry",
     "rolls back every accepted authority when publication fails part-way",
   ])],
   ["test/review-tscircuit-upgrade.test.ts", new Set([
@@ -17,7 +17,7 @@ const MACOS_INTENTIONAL_SKIPS: ReadonlyMap<string, ReadonlySet<string>> = new Ma
     "reviews the installed candidate offline with zero semantic/manufacturing deltas and no other repo mutation",
     "reports candidate version, integrity, and content changes separately from unchanged board artifacts",
     "does not publish when the candidate is missing required authoring exports",
-    "does not publish when pcboo and direct imports resolve duplicate physical engines",
+    "does not publish when fulmetry and direct imports resolve duplicate physical engines",
     "does not publish if staged regular inputs mutate after authentication",
   ])],
 ]);

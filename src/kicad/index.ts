@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import type { AnyCircuitElement } from "circuit-json";
 import {
@@ -54,7 +54,7 @@ export type KicadLiveValidationState = "unavailable" | "unsupported" | "unqualif
 
 export interface KicadLiveValidationEvidence {
   readonly schemaVersion: 1;
-  readonly adapter: { readonly name: "pcboo-kicad-cli"; readonly version: string };
+  readonly adapter: { readonly name: "fulmetry-kicad-cli"; readonly version: string };
   readonly source: {
     readonly circuitDigest: string;
     readonly semanticReconciliationSha256: string;
@@ -269,7 +269,7 @@ function mappingReport(
         circuitJsonType: type,
         count,
         disposition: "exact" as const,
-        reason: "PCBoo independently parsed the emitted KiCad files and reconciled every baseline object of this type against source identity, connectivity, dimensions, layers, and coordinates as applicable.",
+        reason: "Fulmetry independently parsed the emitted KiCad files and reconciled every baseline object of this type against source identity, connectivity, dimensions, layers, and coordinates as applicable.",
       });
     }
     if (APPROXIMATED_TYPES.has(type)) {
@@ -277,7 +277,7 @@ function mappingReport(
         circuitJsonType: type,
         count,
         disposition: "approximated" as const,
-        reason: "The pinned upstream converter emitted this construct and the result parsed offline, but PCBoo has not independently reconciled every object and supported KiCad major.",
+        reason: "The pinned upstream converter emitted this construct and the result parsed offline, but Fulmetry has not independently reconciled every object and supported KiCad major.",
       });
     }
     if (OMITTED_TYPES.has(type) || type.startsWith("simulation_") || type.includes("_error") || type.includes("_warning")) {
@@ -292,7 +292,7 @@ function mappingReport(
       circuitJsonType: type,
       count,
       disposition: "unsupported" as const,
-      reason: "PCBoo has no qualified mapping contract for this Circuit JSON type.",
+      reason: "Fulmetry has no qualified mapping contract for this Circuit JSON type.",
     });
   }));
 }
@@ -389,7 +389,7 @@ export async function createKicadHandoff(
     mapping,
     files: Object.freeze(files.map(({ content: _content, ...file }) => Object.freeze(file))),
     limitations: Object.freeze([
-      "PCBoo independently reconciles the baseline component, symbol, footprint, net, trace, via, hole, outline, copper-layer, dimension, and coordinate contract; constructs outside that contract remain approximated or omitted as reported.",
+      "Fulmetry independently reconciles the baseline component, symbol, footprint, net, trace, via, hole, outline, copper-layer, dimension, and coordinate contract; constructs outside that contract remain approximated or omitted as reported.",
       "The handoff is detached: later KiCad edits are an independent downstream design and are never synchronized back to TypeScript.",
       "Ordinary regeneration creates a new handoff and must never overwrite a human-modified KiCad project.",
       "No KiCad ERC or DRC result is implied by offline syntax parsing; live results are explicit current-run evidence when available.",

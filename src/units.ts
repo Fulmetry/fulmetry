@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import type { AnyCircuitElement } from "tscircuit";
 
@@ -52,7 +52,7 @@ function finite(value: number, label: string): number {
   return Object.is(value, -0) ? 0 : value;
 }
 
-/** Parse a strict PCBoo quantity string into its documented base unit. */
+/** Parse a strict Fulmetry quantity string into its documented base unit. */
 export function parseQuantity<Q extends UnitQuantity>(
   quantity: Q,
   input: number | string,
@@ -70,7 +70,7 @@ export function parseQuantity<Q extends UnitQuantity>(
   return finite(Number(numericToken) * scaleFor(quantity, unit), `${quantity} value`);
 }
 
-/** Format a base-unit value in another exact, parseable PCBoo representation. */
+/** Format a base-unit value in another exact, parseable Fulmetry representation. */
 export function formatQuantity<Q extends UnitQuantity>(
   quantity: Q,
   baseValue: number,

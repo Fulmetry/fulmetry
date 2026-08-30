@@ -1,16 +1,16 @@
 ---
 title: Author circuits
-description: Compose a PCBoo board from small TypeScript modules using the PCBoo or tscircuit authoring facade.
+description: Compose a Fulmetry board from small TypeScript modules using the Fulmetry or tscircuit authoring facade.
 ---
 
 # Author circuits
 
-PCBoo uses TypeScript as the circuit authoring language. Keep the root board small and move subsystems into named modules so an agent can load and edit only the relevant context.
+Fulmetry uses TypeScript as the circuit authoring language. Keep the root board small and move subsystems into named modules so an agent can load and edit only the relevant context.
 
 ## Root board
 
 ```ts title="circuit/board.ts"
-import { Board, Circuit } from "pcboo";
+import { Board, Circuit } from "fulmetry";
 import { addPowerIndicator } from "./components/power-indicator";
 
 export default function createCircuit(): Circuit {
@@ -30,7 +30,7 @@ export default function createCircuit(): Circuit {
 ## Composable component module
 
 ```ts title="circuit/components/power-indicator.ts"
-import { Led, PinHeader, Resistor, Trace, type Board } from "pcboo";
+import { Led, PinHeader, Resistor, Trace, type Board } from "fulmetry";
 
 export function addPowerIndicator(board: Board): void {
   board.add(new Resistor({
@@ -67,7 +67,7 @@ export function addPowerIndicator(board: Board): void {
 
 ## Import compatibility
 
-Curated authoring symbols imported from `pcboo` and the identical supported tscircuit authoring set mean the same thing. Prefer `pcboo` in a PCBoo project so application code stays behind PCBoo's facade and can tolerate future internal replacement.
+Curated authoring symbols imported from `fulmetry` and the identical supported tscircuit authoring set mean the same thing. Prefer `fulmetry` in a Fulmetry project so application code stays behind Fulmetry's facade and can tolerate future internal replacement.
 
 ## Design guidance for agents
 
@@ -79,5 +79,5 @@ Curated authoring symbols imported from `pcboo` and the identical supported tsci
 6. Use the inspection server for visual review, not as a second source of circuit state.
 
 <Info>
-Fine manual adjustment can happen after a detached KiCad export. PCBoo does not claim automatic synchronization or a round trip from later KiCad edits.
+Fine manual adjustment can happen after a detached KiCad export. Fulmetry does not claim automatic synchronization or a round trip from later KiCad edits.
 </Info>

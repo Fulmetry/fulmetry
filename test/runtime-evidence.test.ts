@@ -21,9 +21,9 @@ function evidence() {
       repository: { closureSha256: hash("d"), lockSha256: hash("e") },
       packedConsumer: {
         closureSha256: hash("f"), lockSha256: hash("1"), manifestSha256: hash("2"),
-        packedPcbooContentSha256: hash("3"), projectPcbooLockSha256: hash("4"),
-        singleEngineResolutionSha256: hash("5"), pcbooTarballSha256: hash("6"),
-        pcbooTarballIntegrity: `sha512-${Buffer.alloc(64, 6).toString("base64")}`,
+        packedFulmetryContentSha256: hash("3"), projectFulmetryLockSha256: hash("4"),
+        singleEngineResolutionSha256: hash("5"), fulmetryTarballSha256: hash("6"),
+        fulmetryTarballIntegrity: `sha512-${Buffer.alloc(64, 6).toString("base64")}`,
         contractVersion: 2,
       },
     },

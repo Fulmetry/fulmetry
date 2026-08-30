@@ -21,7 +21,7 @@ import { manufacturingFixture } from "./fixtures/manufacturing";
 const roots: string[] = [];
 
 async function emittedVerification(circuitJson: Awaited<ReturnType<typeof manufacturingFixture>>) {
-  const parent = await mkdtemp(join(tmpdir(), "pcboo-standards-"));
+  const parent = await mkdtemp(join(tmpdir(), "fulmetry-standards-"));
   roots.push(parent);
   const root = join(parent, "manufacturing");
   await emitDraftManufacturingDirectory({
@@ -106,7 +106,7 @@ describe("bounded built-in pre-compliance evidence", () => {
 
     expect(assessment.status.state).toBe("failed");
     expect(assessment.evidence.evidence).toMatchObject({
-      verificationAuthority: "pcboo-verifier-issued",
+      verificationAuthority: "fulmetry-verifier-issued",
       expectationBinding: "mismatched",
       independentlyParsedManufacturingArtifacts: "failed",
     });
@@ -118,7 +118,7 @@ describe("bounded built-in pre-compliance evidence", () => {
   test("snapshots expectation identity before caller mutation during verification", async () => {
     const twoLayer = await manufacturingFixture(2);
     const fourLayer = await manufacturingFixture(4);
-    const parent = await mkdtemp(join(tmpdir(), "pcboo-standards-snapshot-"));
+    const parent = await mkdtemp(join(tmpdir(), "fulmetry-standards-snapshot-"));
     roots.push(parent);
     const root = join(parent, "manufacturing");
     await emitDraftManufacturingDirectory({
@@ -207,7 +207,7 @@ describe("bounded built-in pre-compliance evidence", () => {
         source: BASELINE_FABRICATION_PROFILE.source,
       },
       evidence: {
-        verificationAuthority: "pcboo-verifier-issued",
+        verificationAuthority: "fulmetry-verifier-issued",
         expectationBinding: "matched",
         independentParser: "gerber-parser@4.2.7",
         sourceProfileRules: "passed",
@@ -249,7 +249,7 @@ describe("bounded built-in pre-compliance evidence", () => {
     if (minimum === undefined || minimum.objects.length === 0) {
       throw new Error("Fixture minimum-width diagnostic missing");
     }
-    const waiverRoot = await mkdtemp(join(tmpdir(), "pcboo-standards-waiver-"));
+    const waiverRoot = await mkdtemp(join(tmpdir(), "fulmetry-standards-waiver-"));
     roots.push(waiverRoot);
     const waiverPath = "waivers/fabrication.json";
     const waiverBytes = Buffer.from(`${JSON.stringify({
@@ -304,7 +304,7 @@ describe("bounded built-in pre-compliance evidence", () => {
         declarations: structuredClone(declarations),
         evaluationDate: "2026-08-13",
       },
-    })).toThrow("must come from PCBoo's source-controlled waiver loader");
+    })).toThrow("must come from Fulmetry's source-controlled waiver loader");
   });
 
   test("fails when an independently parsed artifact is corrupted after export", async () => {

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { constants } from "node:fs";
 import { access, lstat, realpath } from "node:fs/promises";
@@ -139,7 +139,7 @@ export async function probeExternalTool(options: {
     return Object.freeze({
       tool: options.tool,
       state: "unavailable" as const,
-      reason: `${options.tool} was not found on PATH; PCBoo does not install external tools`,
+      reason: `${options.tool} was not found on PATH; Fulmetry does not install external tools`,
     });
   }
   if (executable.includes("\0")) throw new TypeError("Executable path cannot contain NUL");
@@ -301,7 +301,7 @@ export async function probeNgspice(options: {
       ...probe,
       state: "unavailable" as const,
       version,
-      reason: `ngspice ${version} is outside PCBoo's detected compatibility range ${NGSPICE_MIN_MAJOR}-${NGSPICE_MAX_MAJOR}`,
+      reason: `ngspice ${version} is outside Fulmetry's detected compatibility range ${NGSPICE_MIN_MAJOR}-${NGSPICE_MAX_MAJOR}`,
     });
   }
   return Object.freeze({ ...probe, version });

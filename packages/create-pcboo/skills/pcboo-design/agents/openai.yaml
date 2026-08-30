@@ -1,4 +1,0 @@
-interface:
-  display_name: "PCBoo Design"
-  short_description: "Complete and verify physical PCBoo boards"
-  default_prompt: "Use $pcboo-design to create a complete routed PCBoo board and launch its verified browser preview."

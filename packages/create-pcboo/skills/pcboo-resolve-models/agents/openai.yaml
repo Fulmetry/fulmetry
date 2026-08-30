@@ -1,4 +1,0 @@
-interface:
-  display_name: "PCBoo Resolve Models"
-  short_description: "Resolve and verify exact component 3D models"
-  default_prompt: "Use $pcboo-resolve-models to resolve, vendor, license-check, and verify every component model before browser preview."

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { realpath } from "node:fs/promises";
 import { join } from "node:path";
@@ -7,7 +7,7 @@ export const FRESH_PACKAGE_ENTRY_TIMEOUT_MS = 15_000 as const;
 
 /** Resolves a qualified package entry in a short-lived process, avoiding resolver-cache trust. */
 export async function resolvePackageEntryFresh(
-  specifier: "pcboo" | "tscircuit",
+  specifier: "fulmetry" | "tscircuit",
   origin: string,
 ): Promise<string> {
   const child = Bun.spawn({

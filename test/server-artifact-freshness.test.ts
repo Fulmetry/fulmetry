@@ -21,9 +21,9 @@ async function fixture(): Promise<{
   runDirectory: string;
   references: readonly ArtifactReference[];
 }> {
-  const projectRoot = await mkdtemp(join(tmpdir(), "pcboo-server-artifacts-"));
+  const projectRoot = await mkdtemp(join(tmpdir(), "fulmetry-server-artifacts-"));
   roots.push(projectRoot);
-  const runDirectory = join(projectRoot, ".pcboo/runs/action");
+  const runDirectory = join(projectRoot, ".fulmetry/runs/action");
   await mkdir(join(runDirectory, "nested"), { recursive: true });
   await Bun.write(join(runDirectory, "circuit.json"), "[]\n");
   await Bun.write(join(runDirectory, "nested/command-error.txt"), "failure\n");
@@ -31,8 +31,8 @@ async function fixture(): Promise<{
     projectRoot,
     runDirectory,
     references: Object.freeze([
-      Object.freeze({ kind: "circuit-json", path: ".pcboo/runs/action/circuit.json", digest: digest("[]\n") }),
-      Object.freeze({ kind: "command-error", path: ".pcboo/runs/action/nested/command-error.txt", digest: digest("failure\n", true) }),
+      Object.freeze({ kind: "circuit-json", path: ".fulmetry/runs/action/circuit.json", digest: digest("[]\n") }),
+      Object.freeze({ kind: "command-error", path: ".fulmetry/runs/action/nested/command-error.txt", digest: digest("failure\n", true) }),
     ]),
   };
 }
@@ -67,19 +67,19 @@ describe("server artifact freshness authority", () => {
       await symlink("circuit.json", join(value.runDirectory, "linked.json"));
       await expect(captureServerArtifactAuthority({
         ...value,
-        artifacts: [{ kind: "linked", path: ".pcboo/runs/action/linked.json", digest: digest("[]\n") }],
+        artifacts: [{ kind: "linked", path: ".fulmetry/runs/action/linked.json", digest: digest("[]\n") }],
       })).rejects.toThrow(/non-symlink|opened/);
     }
 
     await mkdir(join(value.runDirectory, "directory-artifact"));
     await expect(captureServerArtifactAuthority({
       ...value,
-      artifacts: [{ kind: "directory", path: ".pcboo/runs/action/directory-artifact", digest: digest("") }],
+      artifacts: [{ kind: "directory", path: ".fulmetry/runs/action/directory-artifact", digest: digest("") }],
     })).rejects.toThrow(/regular|opened/);
 
     const authority = await captureServerArtifactAuthority({ ...value, artifacts: value.references });
     await Bun.write(join(value.runDirectory, "extra.txt"), "extra\n");
-    const extra = { kind: "extra", path: ".pcboo/runs/action/extra.txt", digest: digest("extra\n") };
+    const extra = { kind: "extra", path: ".fulmetry/runs/action/extra.txt", digest: digest("extra\n") };
     await expect(verifyServerArtifactAuthority(authority, [...value.references, extra]))
       .rejects.toThrow("reference set changed");
   });

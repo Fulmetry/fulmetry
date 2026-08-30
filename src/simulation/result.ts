@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { defineDiagnostic, diagnosticId, type Diagnostic } from "../diagnostics";
 import { assuranceStatus, type AssuranceStatus } from "../status";
@@ -32,7 +32,7 @@ export interface SimulationResultEvidence {
   readonly qualificationSha256: string;
   readonly modelDigests: Readonly<Record<string, string>>;
   readonly adapter: {
-    readonly name: "pcboo-ngspice";
+    readonly name: "fulmetry-ngspice";
     readonly version: string;
     readonly primitiveSemantics: "ngspice-built-in-rcl";
     readonly modelFileUse: "provenance-only-not-included-for-built-in-rcl";
@@ -111,7 +111,7 @@ export function parseSimulationResultEvidence(value: unknown): Readonly<Simulati
   const modelDigests = Object.freeze(Object.fromEntries(Object.entries(rawModelDigests).map(([id, value]) => [text(id, "model id"), digest(value, `result.modelDigests.${id}`)])));
   const adapter = record(root.adapter, "result.adapter");
   exact(adapter, ["name", "version", "primitiveSemantics", "modelFileUse"], "result.adapter");
-  if (adapter.name !== "pcboo-ngspice") throw new TypeError("result.adapter.name must be pcboo-ngspice");
+  if (adapter.name !== "fulmetry-ngspice") throw new TypeError("result.adapter.name must be fulmetry-ngspice");
   if (adapter.primitiveSemantics !== "ngspice-built-in-rcl" || adapter.modelFileUse !== "provenance-only-not-included-for-built-in-rcl") throw new TypeError("result.adapter must declare exact built-in R/C/L model semantics");
   const tool = record(root.tool, "result.tool");
   exact(tool, ["name", "version", "executableSha256"], "result.tool");
@@ -155,7 +155,7 @@ export function parseSimulationResultEvidence(value: unknown): Readonly<Simulati
     netlistDigest: digest(root.netlistDigest, "result.netlistDigest"),
     qualificationSha256: digest(root.qualificationSha256, "result.qualificationSha256"),
     modelDigests,
-    adapter: Object.freeze({ name: "pcboo-ngspice" as const, version: text(adapter.version, "result.adapter.version"), primitiveSemantics: "ngspice-built-in-rcl" as const, modelFileUse: "provenance-only-not-included-for-built-in-rcl" as const }),
+    adapter: Object.freeze({ name: "fulmetry-ngspice" as const, version: text(adapter.version, "result.adapter.version"), primitiveSemantics: "ngspice-built-in-rcl" as const, modelFileUse: "provenance-only-not-included-for-built-in-rcl" as const }),
     tool: Object.freeze({ name: "ngspice" as const, version: text(tool.version, "result.tool.version"), executableSha256 }),
     execution: Object.freeze({ exitCode: execution.exitCode as number, timedOut: execution.timedOut, stdoutSha256: digest(execution.stdoutSha256, "result.execution.stdoutSha256"), stderrSha256: digest(execution.stderrSha256, "result.execution.stderrSha256"), rawOutputSha256: digest(execution.rawOutputSha256, "result.execution.rawOutputSha256") }),
     solverStatus: "converged" as const,
@@ -436,7 +436,7 @@ function assessSimulationResultInternal(
       id: diagnosticId("SIM_EXECUTION_ADAPTER_UNAVAILABLE_001"),
       severity: "error",
       dimension: "functional",
-      message: "Recorded evidence is internally consistent, but PCBoo does not yet own a qualified ngspice execution adapter",
+      message: "Recorded evidence is internally consistent, but Fulmetry does not yet own a qualified ngspice execution adapter",
       waiverPolicy: "forbidden",
       objects: [definition.name],
       sourceLocations: [],

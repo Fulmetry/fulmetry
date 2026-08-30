@@ -8,7 +8,7 @@ const temporaryRoots: string[] = [];
 const VALID_INTEGRITY = `sha512-${Buffer.alloc(64, 7).toString("base64")}`;
 
 async function temporaryRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-candidate-engine-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-candidate-engine-"));
   temporaryRoots.push(root);
   return root;
 }

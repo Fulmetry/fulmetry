@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -180,7 +180,7 @@ async function exportAndVerify(
   circuitJson: AnyCircuitElement[],
   label: string,
 ) {
-  const parent = await mkdtemp(join(tmpdir(), `pcboo-property-${label}-`));
+  const parent = await mkdtemp(join(tmpdir(), `fulmetry-property-${label}-`));
   roots.push(parent);
   try {
     const root = join(parent, "manufacturing");
@@ -255,7 +255,7 @@ describe("seeded manufacturing geometry properties", () => {
   });
 
   test("generated 2- and 4-layer transforms preserve independently parsed manufacturing meaning", async () => {
-    const seed = propertySeed(process.env.PCBOO_PROPERTY_SEED, DEFAULT_PROPERTY_SEED);
+    const seed = propertySeed(process.env.FULMETRY_PROPERTY_SEED, DEFAULT_PROPERTY_SEED);
     await runSeededProperty({
       name: "manufacturing-transform-invariance",
       seed,
@@ -348,6 +348,6 @@ describe("seeded manufacturing geometry properties", () => {
     expect(Math.abs(propertyFailure.counterexample.dyTenths)).toBeLessThanOrEqual(1);
     expect(propertyFailure.message).toContain(`seed=${seed}`);
     expect(propertyFailure.message).toContain("minimal-counterexample=");
-    expect(propertyFailure.message).toContain(`PCBOO_PROPERTY_SEED to ${seed}`);
+    expect(propertyFailure.message).toContain(`FULMETRY_PROPERTY_SEED to ${seed}`);
   }, 30_000);
 });

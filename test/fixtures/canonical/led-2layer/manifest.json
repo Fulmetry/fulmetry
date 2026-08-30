@@ -14,7 +14,7 @@
   },
   "inputs": {
     "fileCount": 7,
-    "setSha256": "0ad20a8477e99d91b37af4c9e6d12c8596fe63a5350084faa5c67edfcf82018f",
+    "setSha256": "560b2338e88125b139004e651f5b67116f44c083057859b77a6fca7cdfea344d",
     "files": [
       {
         "path": "circuit/board.ts",
@@ -23,8 +23,8 @@
       },
       {
         "path": "circuit/components.ts",
-        "size": 897,
-        "sha256": "40ba8d88a82ec36360c50853c6ed3d27961354684f73b354462ceb0fb4b4f0a8"
+        "size": 1084,
+        "sha256": "4fac1fa78544913f618f47245716519669a8818e0117f5fbf1214dc5864a7d14"
       },
       {
         "path": "circuit/routing.ts",
@@ -39,35 +39,35 @@
       {
         "path": "expectation.json",
         "size": 2987,
-        "sha256": "1044f2fe4b8720f94245117a956d911cc925d0f7dc2bc78b0784fe3073bb05c8"
+        "sha256": "6efedaa47240640fd9bc083ddcf1c46d08baeda40dd31ea205240adea9db910a"
       },
       {
-        "path": "pcboo.config.ts",
-        "size": 90,
-        "sha256": "3cae5972fedebad0b21aea5a59bc03dda2e914c189ffba3ec1584d147a846b1a"
+        "path": "fulmetry.config.ts",
+        "size": 93,
+        "sha256": "5e077c39387c6de7f123c233a990299970e589e306e6112e805216c14b729595"
       },
       {
-        "path": "pcboo.lock",
-        "size": 594,
-        "sha256": "fd7bb474c503d18bd4bacd0ea2c0922ebf393da0e568e74ae55f89c60d95e4bd"
+        "path": "fulmetry.lock",
+        "size": 597,
+        "sha256": "b6d1f375248aa463dae7edc22bf5e0e4c52c12a01b3c4004277b2f69d7325b8d"
       }
     ]
   },
   "circuit": {
     "path": "circuit.json",
-    "size": 29391,
-    "sha256": "9a06c041b5c09ecc2091464c140dc589e0492e5c820bebddf53612c42f5479da",
+    "size": 29581,
+    "sha256": "9eebbe54b06348309bdce60800e65f18aebfa005b31556ca21cf1dcaf5b57bfb",
     "semanticSha256": "3115ae80ff331151e8b4c57b5d9edd1ec993a33330aa9c6b369b294346e5e1b5"
   },
   "manufacturing": {
     "directory": "manufacturing",
     "fileCount": 14,
-    "setSha256": "d22d2665efa411858dce43093b44bb4485d839a130fcb65ae8660c4fc1eacf8b",
+    "setSha256": "298e8ceea545b586c1e1c366380326a3fb546e355b6f9e3e6aa302b0e9b92615",
     "files": [
       {
         "path": "assembly/bom.csv",
-        "size": 415,
-        "sha256": "3b72391ecab13ee7b9c86c7177c2683450e2ac6032a6747dfc44af3bb3dbb939"
+        "size": 474,
+        "sha256": "86b6aedcafbe08131e346b869229f0682c796b124b0bea4557e0aec8ac92059a"
       },
       {
         "path": "assembly/positions.csv",

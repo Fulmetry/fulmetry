@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 export const MAX_SIMULATION_REGION_COMPONENTS = 4_096;
 export const MAX_SIMULATION_REGION_NETS = 4_096;

@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { lstat, readFile, realpath, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -116,13 +116,13 @@ if (reviewReport === undefined) {
   repository.integrity !== reviewReport.candidate.engine.integrity ||
   repository.contentSha256 !== reviewReport.candidate.engine.contentSha256
 ) throw new TypeError("Candidate runtime qualification repository differs from the reviewed candidate identity");
-const pcbooVersion = (JSON.parse(await readFile(packageManifestPath, "utf8")) as { version: string }).version;
+const fulmetryVersion = (JSON.parse(await readFile(packageManifestPath, "utf8")) as { version: string }).version;
 const packed = await inspectPackedConsumer({
   root: packedRoot,
   repositoryRoot,
   expectedVersion: repository.version,
   expectedIntegrity: repository.integrity,
-  expectedPcbooVersion: pcbooVersion,
+  expectedFulmetryVersion: fulmetryVersion,
 });
 if (reviewReport === undefined) {
   const acceptedClosures = anchor.runtimeClosures[platform];
@@ -169,11 +169,11 @@ const evidence = createTscircuitRuntimeEvidence({
       closureSha256: packed.runtimeClosureSha256,
       lockSha256: packed.lockSha256,
       manifestSha256: packed.manifestSha256,
-      packedPcbooContentSha256: packed.packedPcbooContentSha256,
-      projectPcbooLockSha256: packed.projectPcbooLockSha256,
+      packedFulmetryContentSha256: packed.packedFulmetryContentSha256,
+      projectFulmetryLockSha256: packed.projectFulmetryLockSha256,
       singleEngineResolutionSha256: packed.singleEngineResolutionSha256,
-      pcbooTarballSha256: packed.pcbooTarballSha256,
-      pcbooTarballIntegrity: packed.pcbooTarballIntegrity,
+      fulmetryTarballSha256: packed.fulmetryTarballSha256,
+      fulmetryTarballIntegrity: packed.fulmetryTarballIntegrity,
       contractVersion: PACKED_CONSUMER_CONTRACT_VERSION,
     },
   },
@@ -190,7 +190,7 @@ const [repositoryFinal, packedFinal, repositoryLockFinal] = await Promise.all([
     repositoryRoot,
     expectedVersion: repository.version,
     expectedIntegrity: repository.integrity,
-    expectedPcbooVersion: pcbooVersion,
+    expectedFulmetryVersion: fulmetryVersion,
   }),
   inspectTscircuitDependencyLock({
     lockPath: repositoryLockPath,

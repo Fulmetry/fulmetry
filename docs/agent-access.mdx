@@ -1,31 +1,31 @@
 ---
 title: Agent access
-description: Give coding agents efficient access to PCBoo project files, command results, and public documentation.
+description: Give coding agents efficient access to Fulmetry project files, command results, and public documentation.
 ---
 
 # Agent access
 
-PCBoo separates project operations from documentation discovery.
+Fulmetry separates project operations from documentation discovery.
 
 ## Project operations use the filesystem
 
-An agent authors a PCBoo project by reading and editing its normal TypeScript, configuration, tests, simulations, and waiver files. It runs the CLI for derived work and reads text or versioned JSON results.
+An agent authors a Fulmetry project by reading and editing its normal TypeScript, configuration, tests, simulations, and waiver files. It runs the CLI for derived work and reads text or versioned JSON results.
 
-PCBoo does not require an MCP server for these operations. This keeps the local project model close to frameworks such as Next.js: source files are the interface, and commands provide build and inspection tools.
+Fulmetry does not require an MCP server for these operations. This keeps the local project model close to frameworks such as Next.js: source files are the interface, and commands provide build and inspection tools.
 
 ## Project-local Agent Skills
 
-`bun create pcboo` installs a version-matched portable skill catalog by default. Codex, Cursor, and compatible agents read `.agents/skills/`; Claude Code receives deterministic copies under `.claude/skills/`. Start with `pcboo-best-practices`, which routes design, model resolution, diagnosis, verification, and manufacturing work to focused skills. A create, build, or design request defaults to a complete logical and physical board unless the user explicitly asks for a limited draft. Before a final browser preview, agents must load `pcboo-resolve-models`, resolve and vendor permitted exact models, and pass its fresh Circuit JSON audit; unresolved bounding boxes keep the preview gate incomplete.
+`bun create fulmetry` installs a version-matched portable skill catalog by default. Codex, Cursor, and compatible agents read `.agents/skills/`; Claude Code receives deterministic copies under `.claude/skills/`. Start with `fulmetry-best-practices`, which routes design, model resolution, diagnosis, verification, and manufacturing work to focused skills. A create, build, or design request defaults to a complete logical and physical board unless the user explicitly asks for a limited draft. Before a final browser preview, agents must load `fulmetry-resolve-models`, resolve and vendor permitted exact models, and pass its fresh Circuit JSON audit; unresolved bounding boxes keep the preview gate incomplete.
 
-The creator copies skills from its own package instead of running a second network installer, so the skill instructions match the generated PCBoo version. Pass `--no-skills` to omit them. To add the latest catalog to an existing project, run:
+The creator copies skills from its own package instead of running a second network installer, so the skill instructions match the generated Fulmetry version. Pass `--no-skills` to omit them. To add the latest catalog to an existing project, run:
 
 ```sh
-bunx --bun skills@latest add pcboo-dev/pcboo --copy
+bunx --bun skills@latest add Fulmetry/fulmetry --copy
 ```
 
-The Node package-runner equivalent is `npx skills@latest add pcboo-dev/pcboo --copy`.
+The Node package-runner equivalent is `npx skills@latest add Fulmetry/fulmetry --copy`.
 
-Use copy mode because PCBoo's authoritative input boundary deliberately rejects project symlinks. Skills guide an agent but do not grant filesystem, network, or tool permissions; the agent host remains responsible for enforcing those controls.
+Use copy mode because Fulmetry's authoritative input boundary deliberately rejects project symlinks. Skills guide an agent but do not grant filesystem, network, or tool permissions; the agent host remains responsible for enforcing those controls.
 
 ## Public docs use docs.page
 
@@ -33,33 +33,33 @@ docs.page exposes these public documentation files through three useful surfaces
 
 | Surface | URL |
 | --- | --- |
-| Human documentation | `https://docs.page/pcboo-dev/pcboo` |
-| LLM catalog | `https://docs.page/pcboo-dev/pcboo/llms.txt` |
-| Read-only MCP | `https://docs.page/pcboo-dev/pcboo/mcp` |
+| Human documentation | `https://docs.page/Fulmetry/fulmetry` |
+| LLM catalog | `https://docs.page/Fulmetry/fulmetry/llms.txt` |
+| Read-only MCP | `https://docs.page/Fulmetry/fulmetry/mcp` |
 
-The MCP endpoint can list documentation files and return their raw MDX. It has no write access to the PCBoo repository.
+The MCP endpoint can list documentation files and return their raw MDX. It has no write access to the Fulmetry repository.
 
 ## Example MCP configuration
 
 ```json title=".cursor/mcp.json"
 {
   "mcpServers": {
-    "pcboo-docs": {
-      "url": "https://docs.page/pcboo-dev/pcboo/mcp"
+    "fulmetry-docs": {
+      "url": "https://docs.page/Fulmetry/fulmetry/mcp"
     }
   }
 }
 ```
 
-Use the docs MCP when an agent needs a focused piece of PCBoo guidance without loading the entire documentation set. Use `llms.txt` when one fetch of the documentation catalog is more convenient.
+Use the docs MCP when an agent needs a focused piece of Fulmetry guidance without loading the entire documentation set. Use `llms.txt` when one fetch of the documentation catalog is more convenient.
 
 ## Browser inspection is not circuit authority
 
-The local PCBoo browser presents an overview plus schematic, PCB, layer, 3D assembly, selection, measurement, check, simulation, manufacturing, and searchable Circuit JSON views. The 3D scene is reconstructed locally from available Circuit JSON geometry and is an inspection aid, not mechanical or manufacturing authority. Browser actions can request bounded derived work on loopback, but browser state never changes the authored circuit. An agent that wants to modify the board edits the files and rebuilds.
+The local Fulmetry browser presents an overview plus schematic, PCB, layer, 3D assembly, selection, measurement, check, simulation, manufacturing, and searchable Circuit JSON views. The 3D scene is reconstructed locally from available Circuit JSON geometry and is an inspection aid, not mechanical or manufacturing authority. Browser actions can request bounded derived work on loopback, but browser state never changes the authored circuit. An agent that wants to modify the board edits the files and rebuilds.
 
 ## Recommended agent sequence
 
-1. Read `pcboo.config.ts`, `pcboo.lock`, and the relevant circuit modules.
+1. Read `fulmetry.config.ts`, `fulmetry.lock`, and the relevant circuit modules.
 2. Load only the documentation pages needed for the requested change.
 3. Resolve component pins, packages, footprints, requested realistic models, and provenance from authoritative sources.
 4. Implement logical topology, intentional placement, routing, vias, and physical model bindings in source.

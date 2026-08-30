@@ -1,12 +1,12 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 
 /**
- * PCBoo canonical JSON v1 follows RFC 8785's JSON-domain requirements and
+ * Fulmetry canonical JSON v1 follows RFC 8785's JSON-domain requirements and
  * property ordering. Array order is intentionally preserved because compiled
  * Circuit JSON order is part of the deterministic compiler evidence.
  */
-export const PCBOO_CANONICAL_JSON_VERSION = 1 as const;
+export const FULMETRY_CANONICAL_JSON_VERSION = 1 as const;
 
 /** Locale-independent lexicographic comparison of JavaScript UTF-16 strings. */
 export function compareUtf16(left: string, right: string): number {

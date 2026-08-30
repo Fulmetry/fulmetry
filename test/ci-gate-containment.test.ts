@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -22,7 +22,7 @@ function isAlive(pid: number): boolean {
 }
 
 test("fails closed and terminates a detached child with an exact fixture identity", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "pcboo-ci-containment-"));
+  const directory = await mkdtemp(join(tmpdir(), "fulmetry-ci-containment-"));
   const recordPath = join(directory, "identity.json");
   const nonce = crypto.randomUUID();
   let identity: OrphanIdentity | undefined;
@@ -62,7 +62,7 @@ test("fails closed and terminates a detached child with an exact fixture identit
 
 test("Bun no-orphans kills a zero-delay new-session child before any ancestry sample", async () => {
   if (process.platform === "win32") return;
-  const directory = await mkdtemp(join(tmpdir(), "pcboo-ci-no-orphans-"));
+  const directory = await mkdtemp(join(tmpdir(), "fulmetry-ci-no-orphans-"));
   const recordPath = join(directory, "identity");
   const nonce = crypto.randomUUID();
   let identity: OrphanIdentity | undefined;
@@ -105,7 +105,7 @@ test("Bun no-orphans kills a zero-delay new-session child before any ancestry sa
 
 test("rejects a double-fork daemon that escapes ancestry and process-group sampling", async () => {
   if (process.platform === "win32") return;
-  const directory = await mkdtemp(join(tmpdir(), "pcboo-ci-double-fork-"));
+  const directory = await mkdtemp(join(tmpdir(), "fulmetry-ci-double-fork-"));
   const recordPath = join(directory, "identity");
   const nonce = crypto.randomUUID();
   let identity: OrphanIdentity | undefined;
@@ -138,7 +138,7 @@ test("rejects a double-fork daemon that escapes ancestry and process-group sampl
 
 test("labels the unobserved token-stripping POSIX escape outside its best-effort coverage", async () => {
   if (process.platform === "win32") return;
-  const directory = await mkdtemp(join(tmpdir(), "pcboo-ci-tokenless-double-fork-"));
+  const directory = await mkdtemp(join(tmpdir(), "fulmetry-ci-tokenless-double-fork-"));
   const recordPath = join(directory, "identity");
   const nonce = crypto.randomUUID();
   let identity: OrphanIdentity | undefined;

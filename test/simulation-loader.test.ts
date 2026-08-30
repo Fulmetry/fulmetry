@@ -39,56 +39,56 @@ describe("simulation filesystem authority", () => {
     await mkdir(join(project, "src"));
     await Bun.write(join(project, "src", "board.ts"), "export default []\n");
     await Bun.write(
-      join(project, "pcboo.config.ts"),
+      join(project, "fulmetry.config.ts"),
       "export default { entry: 'src/board.ts' }\n",
     );
-    await Bun.write(join(project, "pcboo.lock"), "{}\n");
+    await Bun.write(join(project, "fulmetry.lock"), "{}\n");
     return project;
   }
 
   test("excludes only the exact nested output directory and authenticates its siblings", async () => {
-    const project = await temporaryRoot("pcboo-nested-output-project-");
+    const project = await temporaryRoot("fulmetry-nested-output-project-");
     await mkdir(join(project, "src"));
     await mkdir(join(project, "simulations"));
     await mkdir(join(project, "models"));
-    await mkdir(join(project, "generated", "pcboo"), { recursive: true });
+    await mkdir(join(project, "generated", "fulmetry"), { recursive: true });
     await Bun.write(join(project, "src", "board.ts"), "export default []\n");
-    await Bun.write(join(project, "pcboo.config.ts"), "export default { entry: 'src/board.ts', outputDirectory: 'generated/pcboo' }\n");
-    await Bun.write(join(project, "pcboo.lock"), "{}\n");
+    await Bun.write(join(project, "fulmetry.config.ts"), "export default { entry: 'src/board.ts', outputDirectory: 'generated/fulmetry' }\n");
+    await Bun.write(join(project, "fulmetry.lock"), "{}\n");
     await Bun.write(join(project, "generated", "authority.json"), "{\"revision\":1}\n");
-    await Bun.write(join(project, "generated", "pcboo", "derived.json"), "{\"ignored\":1}\n");
+    await Bun.write(join(project, "generated", "fulmetry", "derived.json"), "{\"ignored\":1}\n");
 
     const before = await digestProjectInputs({
       projectRoot: project,
       entry: "src/board.ts",
-      outputDirectory: "generated/pcboo",
+      outputDirectory: "generated/fulmetry",
       profiles: [],
     });
     expect(before.inputPaths).toContain("generated/authority.json");
-    expect(before.inputPaths).not.toContain("generated/pcboo/derived.json");
+    expect(before.inputPaths).not.toContain("generated/fulmetry/derived.json");
 
     await Bun.write(join(project, "generated", "authority.json"), "{\"revision\":2}\n");
     const afterSiblingChange = await digestProjectInputs({
       projectRoot: project,
       entry: "src/board.ts",
-      outputDirectory: "generated/pcboo",
+      outputDirectory: "generated/fulmetry",
       profiles: [],
     });
     expect(afterSiblingChange.projectDigest).not.toBe(before.projectDigest);
 
-    await Bun.write(join(project, "generated", "pcboo", "derived.json"), "{\"ignored\":2}\n");
+    await Bun.write(join(project, "generated", "fulmetry", "derived.json"), "{\"ignored\":2}\n");
     const afterOutputChange = await digestProjectInputs({
       projectRoot: project,
       entry: "src/board.ts",
-      outputDirectory: "generated/pcboo",
+      outputDirectory: "generated/fulmetry",
       profiles: [],
     });
     expect(afterOutputChange.projectDigest).toBe(afterSiblingChange.projectDigest);
   });
 
   test("rejects a top-level simulations directory symlink for discovery and loading", async () => {
-    const project = await temporaryRoot("pcboo-simulation-project-");
-    const external = await temporaryRoot("pcboo-simulation-external-");
+    const project = await temporaryRoot("fulmetry-simulation-project-");
+    const external = await temporaryRoot("fulmetry-simulation-external-");
     await Bun.write(join(external, "external.testbench.ts"), "export default {}\n");
     await symlink(external, join(project, "simulations"), process.platform === "win32" ? "junction" : "dir");
 
@@ -98,13 +98,13 @@ describe("simulation filesystem authority", () => {
   });
 
   test("rejects a top-level models directory symlink before digest traversal", async () => {
-    const project = await temporaryRoot("pcboo-model-project-");
-    const external = await temporaryRoot("pcboo-model-external-");
+    const project = await temporaryRoot("fulmetry-model-project-");
+    const external = await temporaryRoot("fulmetry-model-external-");
     await mkdir(join(project, "src"));
     await mkdir(join(project, "simulations"));
     await Bun.write(join(project, "src", "board.ts"), "export default []\n");
-    await Bun.write(join(project, "pcboo.config.ts"), "export default { entry: 'src/board.ts' }\n");
-    await Bun.write(join(project, "pcboo.lock"), "{}\n");
+    await Bun.write(join(project, "fulmetry.config.ts"), "export default { entry: 'src/board.ts' }\n");
+    await Bun.write(join(project, "fulmetry.lock"), "{}\n");
     await Bun.write(join(external, "outside.model"), ".model outside R\n");
     await symlink(external, join(project, "models"), process.platform === "win32" ? "junction" : "dir");
 
@@ -113,7 +113,7 @@ describe("simulation filesystem authority", () => {
   });
 
   test("binds loader authority to exact testbench semantics and snapshot bytes", async () => {
-    const project = await createDigestProject("pcboo-simulation-definition-authority-");
+    const project = await createDigestProject("fulmetry-simulation-definition-authority-");
     await mkdir(join(project, "simulations"));
     const raw = {
       schemaVersion: 1,
@@ -157,8 +157,8 @@ describe("simulation filesystem authority", () => {
       projectRoot: project,
       inputs: [
         { path: "src/board.ts", role: "source" },
-        { path: "pcboo.config.ts", role: "config" },
-        { path: "pcboo.lock", role: "lockfile" },
+        { path: "fulmetry.config.ts", role: "config" },
+        { path: "fulmetry.lock", role: "lockfile" },
         { path: "simulations/bound-definition.ts", role: "test" },
         { path: "simulations/bound.testbench.ts", role: "test" },
       ],
@@ -226,14 +226,14 @@ describe("simulation filesystem authority", () => {
   });
 
   test("rejects a nested directory swapped to a symlink during recursive digest traversal", async () => {
-    const project = await temporaryRoot("pcboo-nested-model-project-");
-    const external = await temporaryRoot("pcboo-nested-model-external-");
+    const project = await temporaryRoot("fulmetry-nested-model-project-");
+    const external = await temporaryRoot("fulmetry-nested-model-external-");
     await mkdir(join(project, "src"));
     await mkdir(join(project, "simulations"));
     await mkdir(join(project, "models"));
     await Bun.write(join(project, "src", "board.ts"), "export default []\n");
-    await Bun.write(join(project, "pcboo.config.ts"), "export default { entry: 'src/board.ts' }\n");
-    await Bun.write(join(project, "pcboo.lock"), "{}\n");
+    await Bun.write(join(project, "fulmetry.config.ts"), "export default { entry: 'src/board.ts' }\n");
+    await Bun.write(join(project, "fulmetry.lock"), "{}\n");
     await Bun.write(join(external, "outside.model"), ".model outside R\n");
     await symlink(external, join(project, "models", "nested"), process.platform === "win32" ? "junction" : "dir");
 
@@ -242,7 +242,7 @@ describe("simulation filesystem authority", () => {
   });
 
   test("rejects a sparse authoritative file above the per-file input limit before reading it", async () => {
-    const project = await createDigestProject("pcboo-oversized-project-input-");
+    const project = await createDigestProject("fulmetry-oversized-project-input-");
     const oversized = join(project, "oversized.bin");
     await Bun.write(oversized, "");
     await truncate(oversized, PROJECT_INPUT_FILE_BYTES_LIMIT + 1);
@@ -252,7 +252,7 @@ describe("simulation filesystem authority", () => {
   });
 
   test("rejects aggregate sparse authoritative inputs above the project byte limit", async () => {
-    const project = await createDigestProject("pcboo-aggregate-project-input-");
+    const project = await createDigestProject("fulmetry-aggregate-project-input-");
     const chunkSize = Math.floor(PROJECT_INPUT_TOTAL_BYTES_LIMIT / 9) + 1;
     for (let index = 0; index < 9; index += 1) {
       const path = join(project, `aggregate-${index}.bin`);
@@ -265,7 +265,7 @@ describe("simulation filesystem authority", () => {
   });
 
   test("rejects project input inventories above the explicit file-count limit", async () => {
-    const project = await createDigestProject("pcboo-file-count-project-input-");
+    const project = await createDigestProject("fulmetry-file-count-project-input-");
     const fixtureRoot = join(project, "fixtures");
     await mkdir(fixtureRoot);
     const requiredProjectFiles = 3;
@@ -282,7 +282,7 @@ describe("simulation filesystem authority", () => {
   }, 30_000);
 
   test("rejects project input traversal above the explicit directory-depth limit", async () => {
-    const project = await createDigestProject("pcboo-depth-project-input-");
+    const project = await createDigestProject("fulmetry-depth-project-input-");
     let directory = project;
     for (let depth = 0; depth <= PROJECT_INPUT_DEPTH_LIMIT; depth += 1) {
       directory = join(directory, "d");
@@ -295,7 +295,7 @@ describe("simulation filesystem authority", () => {
   });
 
   test("rejects a broad tree of empty directories at the shared traversal-entry limit", async () => {
-    const project = await createDigestProject("pcboo-entry-count-project-input-");
+    const project = await createDigestProject("fulmetry-entry-count-project-input-");
     const fixtureRoot = join(project, "empty-directories");
     await mkdir(fixtureRoot);
     const directoryCount = PROJECT_INPUT_ENTRY_LIMIT + 1;
@@ -310,12 +310,12 @@ describe("simulation filesystem authority", () => {
       .rejects.toThrow(`traversal exceeds ${PROJECT_INPUT_ENTRY_LIMIT} entries`);
     await expect(captureProjectTestInputAuthority({
       projectRoot: project,
-      outputDirectory: ".pcboo",
+      outputDirectory: ".fulmetry",
     })).rejects.toThrow(`Project test traversal exceeds ${PROJECT_INPUT_ENTRY_LIMIT} entries`);
   }, 30_000);
 
   test("caps the number of named simulation definitions before evaluating them", async () => {
-    const project = await createDigestProject("pcboo-simulation-count-project-input-");
+    const project = await createDigestProject("fulmetry-simulation-count-project-input-");
     await mkdir(join(project, "simulations"));
     for (let index = 0; index <= SIMULATION_DEFINITION_LIMIT; index += 1) {
       await Bun.write(
@@ -329,7 +329,7 @@ describe("simulation filesystem authority", () => {
   });
 
   test("rejects subprocess-capable simulation definitions before executing them", async () => {
-    const project = await createDigestProject("pcboo-simulation-subprocess-");
+    const project = await createDigestProject("fulmetry-simulation-subprocess-");
     await mkdir(join(project, "simulations"));
     const marker = join(project, "definition-executed");
     await Bun.write(
@@ -343,7 +343,7 @@ describe("simulation filesystem authority", () => {
   });
 
   test("applies one aggregate deadline to simulation evaluation during input capture", async () => {
-    const project = await createDigestProject("pcboo-simulation-budget-project-input-");
+    const project = await createDigestProject("fulmetry-simulation-budget-project-input-");
     await mkdir(join(project, "simulations"));
     await Bun.write(
       join(project, "simulations", "hang.testbench.ts"),

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { AlertTriangle, LoaderCircle, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -90,7 +90,7 @@ export default function App() {
     }
   }, [refresh]);
 
-  if (!data) return <div className="grid min-h-screen place-items-center bg-[#1b1b1b] text-[#d0cac2]"><div className="text-center"><LoaderCircle className="mx-auto animate-spin text-orange-400" size={28} /><p className="mt-4 font-serif text-sm">Loading PCBoo workspace…</p>{error && <p className="mt-2 max-w-md text-xs text-rose-300">{error}</p>}</div></div>;
+  if (!data) return <div className="grid min-h-screen place-items-center bg-[#1b1b1b] text-[#d0cac2]"><div className="text-center"><LoaderCircle className="mx-auto animate-spin text-orange-400" size={28} /><p className="mt-4 font-serif text-sm">Loading Fulmetry workspace…</p>{error && <p className="mt-2 max-w-md text-xs text-rose-300">{error}</p>}</div></div>;
 
   const layerMatch = /^\/pcb\/layers\/([^/]+)$/u.exec(pathname);
   const simulationMatch = /^\/simulations\/([^/]+)$/u.exec(pathname);
@@ -105,7 +105,7 @@ export default function App() {
   else if (simulationMatch) page = <SimulationsPage data={data} selectedName={decodeSegment(simulationMatch[1])} running={running} onRun={onRun} />;
   else if (pathname === "/manufacturing") page = <ManufacturingPage data={data} running={running} onRun={onRun} />;
   else if (pathname === "/explorer") page = <ExplorerPage data={data} />;
-  else page = <Card className="mx-auto max-w-xl"><CardBody className="flex flex-col items-center py-14 text-center"><AlertTriangle size={28} className="text-amber-300" /><h1 className="mt-4 text-xl font-semibold text-white">Workspace page not found</h1><p className="mt-2 text-sm text-slate-500">The requested browser route is not part of the fixed PCBoo inspection surface.</p><Button className="mt-5" onClick={() => { history.pushState({}, "", "/"); window.dispatchEvent(new PopStateEvent("popstate")); }}><RefreshCw size={15} /> Return to overview</Button></CardBody></Card>;
+  else page = <Card className="mx-auto max-w-xl"><CardBody className="flex flex-col items-center py-14 text-center"><AlertTriangle size={28} className="text-amber-300" /><h1 className="mt-4 text-xl font-semibold text-white">Workspace page not found</h1><p className="mt-2 text-sm text-slate-500">The requested browser route is not part of the fixed Fulmetry inspection surface.</p><Button className="mt-5" onClick={() => { history.pushState({}, "", "/"); window.dispatchEvent(new PopStateEvent("popstate")); }}><RefreshCw size={15} /> Return to overview</Button></CardBody></Card>;
 
   return <Shell pathname={pathname} project={data.project}>
     {error && <div role="alert" className="mb-5 rounded-lg border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">Live refresh failed: {error}. Showing the last usable snapshot.</div>}

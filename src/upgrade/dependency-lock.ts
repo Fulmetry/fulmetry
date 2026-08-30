@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { lstat, readFile, realpath } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join } from "node:path";
@@ -81,7 +81,7 @@ export async function inspectTscircuitDependencyLock(
   }
   assertRecord(parsed.workspaces, "Candidate bun.lock workspaces");
   if (JSON.stringify(Object.keys(parsed.workspaces).sort()) !== JSON.stringify([""])) {
-    throw new TypeError("Candidate bun.lock must contain only the single PCBoo root workspace");
+    throw new TypeError("Candidate bun.lock must contain only the single Fulmetry root workspace");
   }
   assertRecord(parsed.workspaces[""], "Candidate bun.lock root workspace");
   const rootWorkspace = parsed.workspaces[""];

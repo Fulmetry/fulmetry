@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { lstat, realpath } from "node:fs/promises";
 import { isAbsolute, resolve, sep } from "node:path";
@@ -7,7 +7,7 @@ import { terminateProcessTree } from "../external-tools";
 import { discoverProjectSourceGraph } from "./source-graph";
 import { requireSupportedBunRuntime } from "../runtime";
 
-export const PCBOO_CONFIG_SCHEMA_VERSION = 1 as const;
+export const FULMETRY_CONFIG_SCHEMA_VERSION = 1 as const;
 export const CONFIG_EVALUATION_TIMEOUT_MS = 10_000;
 export const CONFIG_EVALUATION_OUTPUT_LIMIT = 1024 * 1024;
 
@@ -17,8 +17,8 @@ export interface ConfigEvaluationOptions {
   readonly signal?: AbortSignal;
 }
 
-export interface PcbooConfig {
-  readonly schemaVersion: typeof PCBOO_CONFIG_SCHEMA_VERSION;
+export interface FulmetryConfig {
+  readonly schemaVersion: typeof FULMETRY_CONFIG_SCHEMA_VERSION;
   readonly entry: string;
   readonly outputDirectory: string;
   readonly profiles: readonly string[];
@@ -26,12 +26,12 @@ export interface PcbooConfig {
   readonly boardRevision?: string;
 }
 
-export type PcbooConfigInput = Partial<Omit<PcbooConfig, "schemaVersion">> & {
-  readonly schemaVersion?: typeof PCBOO_CONFIG_SCHEMA_VERSION;
+export type FulmetryConfigInput = Partial<Omit<FulmetryConfig, "schemaVersion">> & {
+  readonly schemaVersion?: typeof FULMETRY_CONFIG_SCHEMA_VERSION;
   readonly entry: string;
 };
 
-export function defineConfig(config: PcbooConfigInput): PcbooConfigInput {
+export function defineConfig(config: FulmetryConfigInput): FulmetryConfigInput {
   return config;
 }
 
@@ -77,19 +77,19 @@ function safeRelativePath(value: unknown, field: string): string {
   return normalized;
 }
 
-function normalizeConfig(value: unknown): Readonly<PcbooConfig> {
+function normalizeConfig(value: unknown): Readonly<FulmetryConfig> {
   assertPlainSerializable(value);
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    throw new TypeError("pcboo.config.ts must default-export a plain object");
+    throw new TypeError("fulmetry.config.ts must default-export a plain object");
   }
   const record = value as Record<string, unknown>;
   const allowed = new Set([
     "schemaVersion", "entry", "outputDirectory", "profiles", "boardRevision",
   ]);
   const unknown = Object.keys(record).filter((key) => !allowed.has(key));
-  if (unknown.length > 0) throw new TypeError(`PCBoo config contains ${unknown.length} unknown field(s)`);
-  if (record.schemaVersion !== undefined && record.schemaVersion !== PCBOO_CONFIG_SCHEMA_VERSION) {
-    throw new TypeError("PCBoo config schemaVersion is unsupported");
+  if (unknown.length > 0) throw new TypeError(`Fulmetry config contains ${unknown.length} unknown field(s)`);
+  if (record.schemaVersion !== undefined && record.schemaVersion !== FULMETRY_CONFIG_SCHEMA_VERSION) {
+    throw new TypeError("Fulmetry config schemaVersion is unsupported");
   }
   const profiles = record.profiles ?? [];
   if (!Array.isArray(profiles) || profiles.some((item) => typeof item !== "string" || !item.trim())) {
@@ -110,12 +110,12 @@ function normalizeConfig(value: unknown): Readonly<PcbooConfig> {
     );
   }
   const entry = safeRelativePath(record.entry, "entry");
-  const outputDirectory = safeRelativePath(record.outputDirectory ?? ".pcboo", "outputDirectory");
+  const outputDirectory = safeRelativePath(record.outputDirectory ?? ".fulmetry", "outputDirectory");
   if (entry === outputDirectory || entry.startsWith(`${outputDirectory}/`)) {
     throw new TypeError("outputDirectory cannot contain the circuit entry");
   }
   return Object.freeze({
-    schemaVersion: PCBOO_CONFIG_SCHEMA_VERSION,
+    schemaVersion: FULMETRY_CONFIG_SCHEMA_VERSION,
     entry,
     outputDirectory,
     profiles: Object.freeze([...profiles].sort()),
@@ -125,7 +125,7 @@ function normalizeConfig(value: unknown): Readonly<PcbooConfig> {
   });
 }
 
-function stableConfigJson(config: PcbooConfig): string {
+function stableConfigJson(config: FulmetryConfig): string {
   return JSON.stringify(config);
 }
 
@@ -159,7 +159,7 @@ async function importConfigInFreshProcess(
   configPath: string,
   environment: Readonly<Record<string, string | undefined>>,
   options: Readonly<{ timeoutMs: number; outputLimit: number; signal?: AbortSignal }>,
-): Promise<Readonly<PcbooConfig>> {
+): Promise<Readonly<FulmetryConfig>> {
   const url = pathToFileURL(configPath).href;
   const script = [
     "class ConfigSerializationError extends Error{}",
@@ -236,7 +236,7 @@ function sanitizedConfigEnvironment(): Readonly<Record<string, string | undefine
     TMP: process.env.TMP,
     SYSTEMROOT: process.env.SYSTEMROOT,
     WINDIR: process.env.WINDIR,
-    PCBOO_VERIFIED_CONFIG: "1",
+    FULMETRY_VERIFIED_CONFIG: "1",
     BUN_CONFIG_NO_NETWORK: "1",
     NO_PROXY: "*",
     no_proxy: "*",
@@ -246,7 +246,7 @@ function sanitizedConfigEnvironment(): Readonly<Record<string, string | undefine
 export async function loadProjectConfig(
   projectRoot: string,
   options: ConfigEvaluationOptions = {},
-): Promise<Readonly<PcbooConfig>> {
+): Promise<Readonly<FulmetryConfig>> {
   requireSupportedBunRuntime();
   const timeoutMs = options.timeoutMs ?? CONFIG_EVALUATION_TIMEOUT_MS;
   const outputLimit = options.outputLimit ?? CONFIG_EVALUATION_OUTPUT_LIMIT;
@@ -262,19 +262,19 @@ export async function loadProjectConfig(
     ...(options.signal === undefined ? {} : { signal: options.signal }),
   });
   const root = await realpath(projectRoot);
-  const configPath = resolve(root, "pcboo.config.ts");
+  const configPath = resolve(root, "fulmetry.config.ts");
   const stat = await lstat(configPath);
   if (stat.isSymbolicLink() || !stat.isFile()) {
-    throw new Error("pcboo.config.ts must be a regular file, not a symlink");
+    throw new Error("fulmetry.config.ts must be a regular file, not a symlink");
   }
-  await discoverProjectSourceGraph(root, "pcboo.config.ts", {
+  await discoverProjectSourceGraph(root, "fulmetry.config.ts", {
     enforceVerifiedSemantics: true,
     forbidAmbientNondeterminism: true,
   });
   const first = await importConfigInFreshProcess(configPath, process.env, evaluationOptions);
   const second = await importConfigInFreshProcess(configPath, sanitizedConfigEnvironment(), evaluationOptions);
   if (stableConfigJson(first) !== stableConfigJson(second)) {
-    throw new Error("pcboo.config.ts resolved nondeterministically across isolated evaluations");
+    throw new Error("fulmetry.config.ts resolved nondeterministically across isolated evaluations");
   }
   for (const [field, relative] of [
     ["entry", first.entry],

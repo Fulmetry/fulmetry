@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { constants } from "node:fs";
 import { lstat, open, opendir, realpath } from "node:fs/promises";
@@ -26,7 +26,7 @@ export interface SimulationDefinitionSourceEntry {
 }
 
 export interface IssuedSimulationDefinitionAuthority {
-  readonly kind: "pcboo-loaded-simulation-definition";
+  readonly kind: "fulmetry-loaded-simulation-definition";
 }
 
 export interface AuthenticatedSimulationDefinitionIdentity {
@@ -241,7 +241,7 @@ async function evaluateDefinition(
   ], {
     cwd: projectRoot,
     env: {
-      PCBOO_VERIFIED_SIMULATION: "1",
+      FULMETRY_VERIFIED_SIMULATION: "1",
       BUN_CONFIG_NO_NETWORK: "1",
       NO_PROXY: "*",
       no_proxy: "*",
@@ -342,7 +342,7 @@ export async function loadSimulationDefinition(options: {
     definitionDigest: simulationDefinitionDigest(first),
     sourceEntries: sourcesAfter,
   });
-  const authority = Object.freeze({ kind: "pcboo-loaded-simulation-definition" as const });
+  const authority = Object.freeze({ kind: "fulmetry-loaded-simulation-definition" as const });
   PRISTINE_SIMULATION_DEFINITION_WEAK_MAP_SET(ISSUED_SIMULATION_DEFINITIONS, authority, identity);
   return Object.freeze({ definition: first, path: definitionPath, authority });
 }

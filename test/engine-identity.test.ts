@@ -13,7 +13,7 @@ import { fingerprintInstalledPackageClosure } from "../src/engine-package-finger
 const temporaryRoots: string[] = [];
 
 async function temporaryRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "pcboo-engine-"));
+  const root = await mkdtemp(join(tmpdir(), "fulmetry-engine-"));
   temporaryRoots.push(root);
   return root;
 }
@@ -47,7 +47,7 @@ describe("tscircuit engine identity", () => {
     const root = await temporaryRoot();
     const engine = await fakeEngine(root, EXPECTED_TSCIRCUIT_VERSION);
     const projectRoot = await consumer(root, engine);
-    const pcbooRoot = await consumer(root, engine);
+    const fulmetryRoot = await consumer(root, engine);
     const expectedContentSha256 = await fingerprintTscircuitPackage(engine);
 
     const expectedRuntimeClosureSha256 = await fingerprintInstalledPackageClosure(engine, {
@@ -56,13 +56,13 @@ describe("tscircuit engine identity", () => {
     });
     const report = await inspectTscircuitIdentity({
       projectRoot,
-      pcbooRoot,
+      fulmetryRoot,
       expectedContentSha256,
       expectedRuntimeClosureSha256: [expectedRuntimeClosureSha256],
     });
 
     expect(report.compatible).toBeTrue();
-    expect(report.project?.packageRoot).toBe(report.pcboo?.packageRoot);
+    expect(report.project?.packageRoot).toBe(report.fulmetry?.packageRoot);
     expect(report.project?.version).toBe(EXPECTED_TSCIRCUIT_VERSION);
     expect(report.issues).toEqual([]);
   });
@@ -86,7 +86,7 @@ describe("tscircuit engine identity", () => {
     await Bun.write(join(dependency, "index.js"), 'export default "accepted";\n');
     const expectedContentSha256 = await fingerprintTscircuitPackage(engine);
     const projectRoot = await consumer(root, engine);
-    const pcbooRoot = await consumer(root, engine);
+    const fulmetryRoot = await consumer(root, engine);
     const expectedRuntimeClosureSha256 = await fingerprintInstalledPackageClosure(engine, {
       entryPath: Bun.resolveSync("tscircuit", projectRoot),
       resolutionOrigin: projectRoot,
@@ -96,7 +96,7 @@ describe("tscircuit engine identity", () => {
     expect(await fingerprintTscircuitPackage(engine)).toBe(expectedContentSha256);
     const report = await inspectTscircuitIdentity({
       projectRoot,
-      pcbooRoot,
+      fulmetryRoot,
       expectedContentSha256,
       expectedRuntimeClosureSha256: [expectedRuntimeClosureSha256],
     });
@@ -108,13 +108,13 @@ describe("tscircuit engine identity", () => {
   test("fails closed when versions match but physical engines differ", async () => {
     const root = await temporaryRoot();
     const projectEngine = await fakeEngine(join(root, "project-engine"), EXPECTED_TSCIRCUIT_VERSION);
-    const pcbooEngine = await fakeEngine(join(root, "pcboo-engine"), EXPECTED_TSCIRCUIT_VERSION);
+    const fulmetryEngine = await fakeEngine(join(root, "fulmetry-engine"), EXPECTED_TSCIRCUIT_VERSION);
     const projectRoot = await consumer(root, projectEngine);
-    const pcbooRoot = await consumer(root, pcbooEngine);
+    const fulmetryRoot = await consumer(root, fulmetryEngine);
 
     const report = await inspectTscircuitIdentity({
       projectRoot,
-      pcbooRoot,
+      fulmetryRoot,
       expectedContentSha256: await fingerprintTscircuitPackage(projectEngine),
     });
 
@@ -128,15 +128,15 @@ describe("tscircuit engine identity", () => {
     const root = await temporaryRoot();
     const engine = await fakeEngine(root, "0.0.2260");
     const projectRoot = await consumer(root, engine);
-    const pcbooRoot = await consumer(root, engine);
+    const fulmetryRoot = await consumer(root, engine);
     const expectedContentSha256 = await fingerprintTscircuitPackage(engine);
 
-    const report = await inspectTscircuitIdentity({ projectRoot, pcbooRoot, expectedContentSha256 });
+    const report = await inspectTscircuitIdentity({ projectRoot, fulmetryRoot, expectedContentSha256 });
 
     expect(report.compatible).toBeFalse();
     expect(report.issues.filter((issue) => issue.code === "TSCIRCUIT_VERSION_MISMATCH"))
       .toHaveLength(2);
-    expect(requireTscircuitIdentity({ projectRoot, pcbooRoot, expectedContentSha256 })).rejects.toThrow(
+    expect(requireTscircuitIdentity({ projectRoot, fulmetryRoot, expectedContentSha256 })).rejects.toThrow(
       "TSCIRCUIT_VERSION_MISMATCH",
     );
   });
@@ -146,11 +146,11 @@ describe("tscircuit engine identity", () => {
     const projectRoot = join(root, "empty-project");
     await mkdir(projectRoot);
     const engine = await fakeEngine(root, EXPECTED_TSCIRCUIT_VERSION);
-    const pcbooRoot = await consumer(root, engine);
+    const fulmetryRoot = await consumer(root, engine);
 
     const report = await inspectTscircuitIdentity({
       projectRoot,
-      pcbooRoot,
+      fulmetryRoot,
       expectedContentSha256: await fingerprintTscircuitPackage(engine),
     });
 
@@ -168,8 +168,8 @@ describe("tscircuit engine identity", () => {
     const engine = await fakeEngine(root, EXPECTED_TSCIRCUIT_VERSION);
     await Bun.write(join(engine, "index.js"), "throw new Error('tampered engine')\n");
     const projectRoot = await consumer(root, engine);
-    const pcbooRoot = await consumer(root, engine);
-    const report = await inspectTscircuitIdentity({ projectRoot, pcbooRoot });
+    const fulmetryRoot = await consumer(root, engine);
+    const report = await inspectTscircuitIdentity({ projectRoot, fulmetryRoot });
     expect(report.compatible).toBeFalse();
     expect(report.issues.map(({ code }) => code)).toContain("TSCIRCUIT_CONTENT_MISMATCH");
   });

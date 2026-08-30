@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { watch, type FSWatcher } from "node:fs";
 import { lstat, realpath, readdir } from "node:fs/promises";
@@ -7,12 +7,12 @@ import { basename, dirname, extname, join, relative } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { runCli, type CliRun, type RunCliOptions } from "../cli/runner";
 import { discoverProject, type DiscoveredProject } from "../project/discovery";
-import { loadProjectConfig, type PcbooConfig } from "../project/config";
+import { loadProjectConfig, type FulmetryConfig } from "../project/config";
 import {
   evaluateProjectCircuitTwice,
   type ProjectCircuitEvaluation,
 } from "../project/evaluate";
-import { loadPcbooLock, type PcbooLock } from "../project/lock";
+import { loadFulmetryLock, type FulmetryLock } from "../project/lock";
 import { STATUS_DIMENSIONS, statusSet, unassessedStatusSet, type StatusDimension, type StatusSet } from "../status";
 import {
   requireTscircuitIdentity,
@@ -68,7 +68,7 @@ const MAX_RETAINED_REPORT_BYTES = 2 * 1024 * 1024;
 
 export const INSPECTION_SERVER_INITIAL_LIMITS = Object.freeze([
   "The server watches project source and atomically retains the last good snapshot when rebuilding fails.",
-  "Fixed build, check, simulation, and detached KiCad export actions may write derived .pcboo artifacts but never authored source.",
+  "Fixed build, check, simulation, and detached KiCad export actions may write derived .fulmetry artifacts but never authored source.",
   "Schematic and PCB pages use pinned tscircuit-backed SVG rendering; the local 3D assembly is derived from Circuit JSON geometry; structured inspection remains authoritative.",
   "Artifact metadata is reported without serving arbitrary project or output files.",
 ] as const);
@@ -79,7 +79,7 @@ export interface InspectionServerWarning {
 }
 
 export interface StartInspectionServerOptions {
-  /** A PCBoo project root or any descendant directory. */
+  /** A Fulmetry project root or any descendant directory. */
   readonly projectDirectory: string;
   /** Defaults to the IPv4 loopback address. */
   readonly hostname?: string;
@@ -146,8 +146,8 @@ interface RetainedEvidenceAction {
 
 interface ServerSnapshot {
   readonly project: Readonly<DiscoveredProject>;
-  readonly config: Readonly<PcbooConfig>;
-  readonly lock: Readonly<PcbooLock>;
+  readonly config: Readonly<FulmetryConfig>;
+  readonly lock: Readonly<FulmetryLock>;
   readonly evaluation: Readonly<ProjectCircuitEvaluation>;
   readonly engineIdentity: Readonly<TscircuitIdentityReport>;
   readonly statuses: Readonly<StatusSet>;
@@ -293,7 +293,7 @@ function networkWarnings(hostname: string): readonly InspectionServerWarning[] {
     Object.freeze({
       code: "SERVER_NETWORK_EXPOSURE" as const,
       message:
-        `PCBoo is explicitly listening on non-loopback host ${hostname}. ` +
+        `Fulmetry is explicitly listening on non-loopback host ${hostname}. ` +
         "Project inspection data may be reachable over the network.",
     }),
   ]);
@@ -355,7 +355,7 @@ function errorResponse(
     return jsonResponse({ error: { code, message } }, { status });
   }
   return htmlResponse(
-    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PCBoo error</title></head><body><main><h1>${status}</h1><p>${escapeHtml(message)}</p></main></body></html>`,
+    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fulmetry error</title></head><body><main><h1>${status}</h1><p>${escapeHtml(message)}</p></main></body></html>`,
     { status },
   );
 }
@@ -395,7 +395,7 @@ async function projectModelResponse(pathname: string, snapshot: ServerSnapshot):
     const bytes = await file.arrayBuffer();
     const digest = `sha256:${new Bun.CryptoHasher("sha256").update(bytes).digest("hex")}`;
     if (!Object.values(snapshot.lock.assets).some((asset) => asset.digest === digest && asset.redistribution === "allowed")) {
-      return errorResponse(pathname, 409, "MODEL_ASSET_UNLOCKED", "Model bytes are not approved by pcboo.lock.assets");
+      return errorResponse(pathname, 409, "MODEL_ASSET_UNLOCKED", "Model bytes are not approved by fulmetry.lock.assets");
     }
     return new Response(bytes, {
       headers: {
@@ -431,8 +431,8 @@ function applicationPage(
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#020617">
-  <meta name="pcboo-snapshot-state" content="${escapeHtml(snapshot.state)}">
-  ${routeState === undefined ? "" : `<meta name="pcboo-route-state" content="${escapeHtml(routeState)}">`}
+  <meta name="fulmetry-snapshot-state" content="${escapeHtml(snapshot.state)}">
+  ${routeState === undefined ? "" : `<meta name="fulmetry-route-state" content="${escapeHtml(routeState)}">`}
   <title>${escapeHtml(title)}</title>
   ${assets.stylesheets.map((path) => `<link rel="stylesheet" href="${escapeHtml(path)}">`).join("\n  ")}
 </head>
@@ -450,7 +450,7 @@ function safeRenderedSvg(svg: string): string {
     /\son[a-z]+\s*=/iu.test(svg) ||
     /\b(?:href|src)\s*=\s*["'](?!#|data:image\/)/iu.test(svg)
   ) {
-    throw new Error("Renderer produced SVG outside PCBoo's static safety profile");
+    throw new Error("Renderer produced SVG outside Fulmetry's static safety profile");
   }
   return svg;
 }
@@ -942,28 +942,28 @@ function fixedRouteResponse(
     return svgResponse(renderCircuitSvg("pcb", circuitJson, layer));
   }
   if (url.pathname === "/") {
-    return htmlResponse(applicationPage(`PCBoo — ${basename(snapshot.project.root)}`, webAssets, snapshot.rebuild));
+    return htmlResponse(applicationPage(`Fulmetry — ${basename(snapshot.project.root)}`, webAssets, snapshot.rebuild));
   }
   if (url.pathname === "/schematic") {
-    return htmlResponse(applicationPage("PCBoo schematic", webAssets, snapshot.rebuild));
+    return htmlResponse(applicationPage("Fulmetry schematic", webAssets, snapshot.rebuild));
   }
   if (url.pathname === "/pcb") {
-    return htmlResponse(applicationPage("PCBoo PCB", webAssets, snapshot.rebuild));
+    return htmlResponse(applicationPage("Fulmetry PCB", webAssets, snapshot.rebuild));
   }
   if (url.pathname === "/3d") {
-    return htmlResponse(applicationPage("PCBoo 3D board", webAssets, snapshot.rebuild));
+    return htmlResponse(applicationPage("Fulmetry 3D board", webAssets, snapshot.rebuild));
   }
   if (url.pathname === "/checks") {
-    return htmlResponse(applicationPage("PCBoo checks", webAssets, snapshot.rebuild, evidence.state));
+    return htmlResponse(applicationPage("Fulmetry checks", webAssets, snapshot.rebuild, evidence.state));
   }
   if (url.pathname === "/manufacturing") {
-    return htmlResponse(applicationPage("PCBoo manufacturing", webAssets, snapshot.rebuild, evidence.state));
+    return htmlResponse(applicationPage("Fulmetry manufacturing", webAssets, snapshot.rebuild, evidence.state));
   }
   if (url.pathname === "/simulations") {
-    return htmlResponse(applicationPage("PCBoo simulations", webAssets, snapshot.rebuild));
+    return htmlResponse(applicationPage("Fulmetry simulations", webAssets, snapshot.rebuild));
   }
   if (url.pathname === "/explorer") {
-    return htmlResponse(applicationPage("PCBoo circuit data", webAssets, snapshot.rebuild));
+    return htmlResponse(applicationPage("Fulmetry circuit data", webAssets, snapshot.rebuild));
   }
 
   const layerMatch = /^\/pcb\/layers\/([^/]+)$/u.exec(url.pathname);
@@ -973,7 +973,7 @@ function fixedRouteResponse(
     if (!layers.includes(layer)) {
       return errorResponse(url.pathname, 404, "LAYER_NOT_FOUND", `Unknown PCB layer: ${layer}`);
     }
-    return htmlResponse(applicationPage(`PCBoo layer ${layer}`, webAssets, snapshot.rebuild));
+    return htmlResponse(applicationPage(`Fulmetry layer ${layer}`, webAssets, snapshot.rebuild));
   }
 
   const simulationMatch = /^\/simulations\/([^/]+)$/u.exec(url.pathname);
@@ -985,10 +985,10 @@ function fixedRouteResponse(
       return errorResponse(url.pathname, 404, "SIMULATION_NOT_FOUND", `Unknown simulation: ${name}`);
     }
     const simulationView = simulationActionView(snapshot, name);
-    return htmlResponse(applicationPage(`PCBoo simulation ${name}`, webAssets, snapshot.rebuild, simulationView.freshness));
+    return htmlResponse(applicationPage(`Fulmetry simulation ${name}`, webAssets, snapshot.rebuild, simulationView.freshness));
   }
 
-  return errorResponse(url.pathname, 404, "ROUTE_NOT_FOUND", "Unknown PCBoo inspection route");
+  return errorResponse(url.pathname, 404, "ROUTE_NOT_FOUND", "Unknown Fulmetry inspection route");
 }
 
 function decodePathSegment(raw: string): string | Response {
@@ -1036,7 +1036,7 @@ async function loadSnapshot(
   const project = await discoverProject(projectDirectory);
   const [config, lock] = await Promise.all([
     loadProjectConfig(project.root, signal === undefined ? {} : { signal }),
-    loadPcbooLock(project.root),
+    loadFulmetryLock(project.root),
   ]);
   const beforeInputs = await digestProjectInputs({ projectRoot: project.root, entry: config.entry, outputDirectory: config.outputDirectory, profiles: config.profiles, ...(config.boardRevision === undefined ? {} : { boardRevision: config.boardRevision }), ...(signal === undefined ? {} : { signal }) });
   const [evaluation, engineIdentity] = await Promise.all([
@@ -1193,7 +1193,7 @@ async function readActionPayload(
             );
           },
         ).catch(async (error) => {
-          await reader.cancel("PCBoo action body read ended").catch(() => undefined);
+          await reader.cancel("Fulmetry action body read ended").catch(() => undefined);
           throw error;
         });
         if (done) break;
@@ -1202,7 +1202,7 @@ async function readActionPayload(
         }
         byteLength += value.byteLength;
         if (byteLength > limit) {
-          await reader.cancel("PCBoo action body limit exceeded");
+          await reader.cancel("Fulmetry action body limit exceeded");
           return errorResponse(requestPath, 413, "ACTION_BODY_TOO_LARGE", `Action body exceeds ${limit} bytes`);
         }
         chunks.push(value);
@@ -1210,7 +1210,7 @@ async function readActionPayload(
     } catch (error) {
       const code = error instanceof Error ? error.message : "ACTION_BODY_ABORTED";
       if (code === "SERVER_STOPPING") {
-        return errorResponse(requestPath, 503, code, "PCBoo server is stopping");
+        return errorResponse(requestPath, 503, code, "Fulmetry server is stopping");
       }
       if (code === "ACTION_BODY_TIMEOUT") {
         return errorResponse(requestPath, 408, code, `Action body was not completed within ${options.timeoutMs} ms`);
@@ -1245,7 +1245,7 @@ async function readActionPayload(
   return record;
 }
 
-/** Starts the fixed PCBoo inspection and derived-action server. */
+/** Starts the fixed Fulmetry inspection and derived-action server. */
 export async function startInspectionServer(
   options: StartInspectionServerOptions,
 ): Promise<Readonly<InspectionServer>> {
@@ -1544,8 +1544,8 @@ export async function startInspectionServer(
         stopped ? 503 : 409,
         stopped ? "SERVER_STOPPING" : "ACTION_CANCELLED",
         stopped
-          ? "PCBoo server stopped before the action could publish evidence"
-          : "PCBoo action was cancelled before evidence publication",
+          ? "Fulmetry server stopped before the action could publish evidence"
+          : "Fulmetry action was cancelled before evidence publication",
       );
     };
     if (actionSnapshot.rebuild.state !== "ready") {
@@ -1569,7 +1569,7 @@ export async function startInspectionServer(
     });
     if (signal.aborted) return cancelledResponse();
     if (run.result === undefined) {
-      return errorResponse(`/api/actions/${kind}`, 500, "ACTION_RESULT_MISSING", "PCBoo action returned no structured result");
+      return errorResponse(`/api/actions/${kind}`, 500, "ACTION_RESULT_MISSING", "Fulmetry action returned no structured result");
     }
     if (
       run.result.project === undefined ||
@@ -1599,7 +1599,7 @@ export async function startInspectionServer(
           `/api/actions/${kind}`,
           409,
           "ACTION_ARTIFACTS_STALE",
-          "PCBoo action artifacts did not include their originating run authority",
+          "Fulmetry action artifacts did not include their originating run authority",
         );
       }
       try {
@@ -1636,7 +1636,7 @@ export async function startInspectionServer(
           "ACTION_ARTIFACTS_STALE",
           error instanceof ServerArtifactFreshnessError
             ? error.message
-            : "PCBoo action artifact authority could not be established",
+            : "Fulmetry action artifact authority could not be established",
         );
       }
     }
@@ -1646,7 +1646,7 @@ export async function startInspectionServer(
           `/api/actions/${kind}`,
           409,
           "ACTION_ARTIFACTS_STALE",
-          "PCBoo action report did not include its originating run authority",
+          "Fulmetry action report did not include its originating run authority",
         );
       }
       try {
@@ -1665,7 +1665,7 @@ export async function startInspectionServer(
           "ACTION_ARTIFACTS_STALE",
           error instanceof ServerArtifactFreshnessError
             ? error.message
-            : "PCBoo action report authority could not be established",
+            : "Fulmetry action report authority could not be established",
         );
       }
     }
@@ -1701,7 +1701,7 @@ export async function startInspectionServer(
           "ACTION_ARTIFACTS_STALE",
           error instanceof ServerArtifactFreshnessError
             ? error.message
-            : "PCBoo action artifacts changed before publication",
+            : "Fulmetry action artifacts changed before publication",
         );
       }
       if (
@@ -1741,7 +1741,7 @@ export async function startInspectionServer(
           "ACTION_ARTIFACTS_STALE",
           error instanceof ServerArtifactFreshnessError
             ? error.message
-            : "PCBoo action report changed before publication",
+            : "Fulmetry action report changed before publication",
         );
       }
     }
@@ -1772,7 +1772,7 @@ export async function startInspectionServer(
           "/api/actions/check",
           500,
           "SOURCING_EVIDENCE_MISSING",
-          "PCBoo check returned sourcing status without its same-instant typed evidence",
+          "Fulmetry check returned sourcing status without its same-instant typed evidence",
         );
       }
       nextSnapshot = Object.freeze({
@@ -1996,7 +1996,7 @@ export async function startInspectionServer(
     async fetch(request) {
       const url = new URL(request.url);
       if (canonicalHost.length === 0 || request.headers.get("Host") !== canonicalHost) {
-        return errorResponse(url.pathname, 421, "HOST_NOT_ALLOWED", "Request Host does not match the bound PCBoo server authority");
+        return errorResponse(url.pathname, 421, "HOST_NOT_ALLOWED", "Request Host does not match the bound Fulmetry server authority");
       }
       const requestOrigin = request.headers.get("Origin");
       if (requestOrigin !== null && requestOrigin !== canonicalOrigin) {
@@ -2014,7 +2014,7 @@ export async function startInspectionServer(
           status: 204,
           headers: {
             "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, X-PCBoo-Action-Token",
+            "Access-Control-Allow-Headers": "Content-Type, X-Fulmetry-Action-Token",
             "Access-Control-Max-Age": "600",
           },
         }), canonicalOrigin);
@@ -2024,11 +2024,11 @@ export async function startInspectionServer(
         if (!actionsEnabled) {
           return withCors(request, errorResponse(url.pathname, 403, "ACTIONS_NETWORK_DISABLED", "Browser actions are disabled on non-loopback bindings"), canonicalOrigin);
         }
-        if (request.headers.get("Origin") !== canonicalOrigin || request.headers.get("X-PCBoo-Action-Token") !== actionToken) {
+        if (request.headers.get("Origin") !== canonicalOrigin || request.headers.get("X-Fulmetry-Action-Token") !== actionToken) {
           return withCors(request, errorResponse(url.pathname, 403, "ACTION_AUTHORIZATION_REQUIRED", "Actions require same-origin authorization"), canonicalOrigin);
         }
         if (actionRunning) {
-          return withCors(request, errorResponse(url.pathname, 409, "ACTION_ALREADY_RUNNING", "Another PCBoo action is already running"), canonicalOrigin);
+          return withCors(request, errorResponse(url.pathname, 409, "ACTION_ALREADY_RUNNING", "Another Fulmetry action is already running"), canonicalOrigin);
         }
         const kind = actionMatch[1] as "build" | "check" | "simulate" | "export-kicad";
         const payload = await readActionPayload(
@@ -2039,7 +2039,7 @@ export async function startInspectionServer(
         );
         if (payload instanceof Response) return withCors(request, payload, canonicalOrigin);
         if (actionRunning) {
-          return withCors(request, errorResponse(url.pathname, 409, "ACTION_ALREADY_RUNNING", "Another PCBoo action is already running"), canonicalOrigin);
+          return withCors(request, errorResponse(url.pathname, 409, "ACTION_ALREADY_RUNNING", "Another Fulmetry action is already running"), canonicalOrigin);
         }
         actionRunning = true;
         syncingEvidence = false;
@@ -2068,7 +2068,7 @@ export async function startInspectionServer(
                 url.pathname,
                 stopped ? 503 : 409,
                 stopped ? "SERVER_STOPPING" : "ACTION_CANCELLED",
-                "PCBoo action ended before evidence publication",
+                "Fulmetry action ended before evidence publication",
               );
             }
             const publicationOutcome = publishAction === undefined
@@ -2098,9 +2098,9 @@ export async function startInspectionServer(
               url.pathname,
               stopped ? 503 : 409,
               stopped ? "SERVER_STOPPING" : "ACTION_CANCELLED",
-              "PCBoo action ended before evidence publication",
+              "Fulmetry action ended before evidence publication",
             )
-            : errorResponse(url.pathname, 500, "ACTION_EXECUTION_FAILED", "PCBoo action failed before producing a structured result")
+            : errorResponse(url.pathname, 500, "ACTION_EXECUTION_FAILED", "Fulmetry action failed before producing a structured result")
         );
         try {
           return withCors(request, await activeAction, canonicalOrigin);
@@ -2114,7 +2114,7 @@ export async function startInspectionServer(
         }
       }
       if (request.method !== "GET" && request.method !== "HEAD") {
-        return withCors(request, errorResponse(url.pathname, 405, "METHOD_NOT_ALLOWED", "Only fixed PCBoo inspection and action routes are allowed"), canonicalOrigin);
+        return withCors(request, errorResponse(url.pathname, 405, "METHOD_NOT_ALLOWED", "Only fixed Fulmetry inspection and action routes are allowed"), canonicalOrigin);
       }
       const modelResponse = await projectModelResponse(url.pathname, snapshot);
       if (modelResponse !== undefined) {
@@ -2153,7 +2153,7 @@ export async function startInspectionServer(
       } catch {
         const response = withCors(
           request,
-          errorResponse(url.pathname, 500, "SERVER_INTERNAL_ERROR", "PCBoo could not render this fixed inspection route"),
+          errorResponse(url.pathname, 500, "SERVER_INTERNAL_ERROR", "Fulmetry could not render this fixed inspection route"),
           canonicalOrigin,
         );
         return request.method === "HEAD" ? asHeadResponse(response) : response;

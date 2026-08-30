@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 PCBoo contributors
+// SPDX-FileCopyrightText: 2026 Fulmetry contributors
 // SPDX-License-Identifier: MIT
 import { afterEach, expect, test } from "bun:test";
 import { access, mkdir, mkdtemp, realpath, rm, symlink, writeFile } from "node:fs/promises";
@@ -17,7 +17,7 @@ afterEach(async () => {
 test.skipIf(process.platform === "win32")(
   "fresh resolver ignores consumer bunfig preloads",
   async () => {
-    const root = await mkdtemp(join(tmpdir(), "pcboo-safe-resolver-"));
+    const root = await mkdtemp(join(tmpdir(), "fulmetry-safe-resolver-"));
     roots.push(root);
     const packageRoot = join(root, "package");
     const marker = join(root, "preload-ran");
