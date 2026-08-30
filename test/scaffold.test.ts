@@ -85,7 +85,7 @@ describe("create-fulmetry scaffold", () => {
       scripts: { "export:gerbers": "fulmetry export gerbers" },
       dependencies: { fulmetry: "npm:fulmetry@0.2.0", tscircuit: SUPPORTED_TSCIRCUIT_VERSION },
       devDependencies: { "@types/bun": "1.3.14", "@types/node": "24.13.3" },
-      overrides: { "@tscircuit/cli": "0.1.1858", "bun-match-svg": "0.0.15" },
+      overrides: { "@tscircuit/cli": "0.1.1858", "bun-match-svg": "0.0.15", "bun-types": "1.3.14" },
       trustedDependencies: [],
     });
     await expect(scaffoldFulmetryProject({ cwd: parent, directory: "agent-board", install: false })).rejects.toThrow("Refusing to overwrite");

@@ -724,7 +724,7 @@ describe("independent manufacturing verification", () => {
     expect(partialResult.findings).toEqual([
       expect.objectContaining({
         code: "MANUFACTURING_INPUT_LIMIT",
-        message: "full-stack copper flashes must be one aligned circular feature per layer and source",
+        message: "full-stack copper flashes must be one aligned circular or rectangular feature per layer and source",
       }),
     ]);
     expect(partialResult.artifacts).toEqual([]);
@@ -2541,7 +2541,9 @@ describe("independent manufacturing verification", () => {
     const row = (await Bun.file(join(root, "assembly/bom.csv")).text())
       .split("\n")
       .find((line) => line.startsWith('"R1",'));
-    expect(row).toBe('"R1","1","10k","10k","res0603","","","digikey","DKEY-123",""');
+    expect(row).toBe(
+      '"R1","1","10k","10k","res0603","","RC0603FR-0710KL","digikey","DKEY-123",""',
+    );
   });
 
   test("fails closed when populated supplier identity is unsafe or ambiguous", async () => {
@@ -2578,7 +2580,9 @@ describe("independent manufacturing verification", () => {
       const row = (await Bun.file(join(root, "assembly/bom.csv")).text())
         .split("\n")
         .find((line) => line.startsWith('"R1",'));
-      expect(row).toBe('"R1","1","10k","10k","res0603","","","","",""');
+      expect(row).toBe(
+        '"R1","1","10k","10k","res0603","","RC0603FR-0710KL","","",""',
+      );
     }
   });
 

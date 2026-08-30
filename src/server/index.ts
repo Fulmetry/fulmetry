@@ -1293,6 +1293,7 @@ export async function startInspectionServer(
   let evidenceRefreshTimer: ReturnType<typeof setTimeout> | undefined;
   let rebuildChain = Promise.resolve();
   let evidenceRefreshChain = Promise.resolve();
+  let evidenceGeneration = 0;
   let stopped = false;
   const shutdownController = new AbortController();
   let inputGeneration = 0;
@@ -1385,6 +1386,8 @@ export async function startInspectionServer(
   scheduleEvidenceRefresh = () => {
     if (stopped) return;
     if (actionRunning || snapshot.rebuild.state !== "ready") return;
+    evidenceGeneration += 1;
+    const generation = evidenceGeneration;
     if (!syncingEvidence) {
       syncingEvidence = true;
       markActivity();
@@ -1393,49 +1396,92 @@ export async function startInspectionServer(
     evidenceRefreshTimer = setTimeout(() => {
       evidenceRefreshTimer = undefined;
       evidenceRefreshChain = evidenceRefreshChain.then(async () => {
-        if (stopped) return;
-        // The in-process action publisher and source rebuild loader already attach
-        // their own evidence atomically. Output events observed while either is
-        // active belong to that transaction and must not race it or clear its
-        // richer artifact authority after publication.
-        if (actionRunning || snapshot.rebuild.state !== "ready") {
-          if (syncingEvidence) {
+        const finish = () => {
+          if (generation === evidenceGeneration && syncingEvidence) {
             syncingEvidence = false;
             markActivity();
           }
-          return;
+        };
+        try {
+          if (stopped || generation !== evidenceGeneration) return;
+          // The in-process action publisher and source rebuild loader already attach
+          // their own evidence atomically. Output events observed while either is
+          // active belong to that transaction and must not race it or clear its
+          // richer artifact authority after publication.
+          if (actionRunning || snapshot.rebuild.state !== "ready") return;
+          const observed = snapshot;
+          const staleBeforeLoad = await Promise.all([
+            verifyStoredRouteArtifacts("/api/actions", observed),
+            verifyStoredRouteArtifacts("/api/simulations", observed),
+          ]);
+          if (
+            stopped || actionRunning || generation !== evidenceGeneration || snapshot !== observed ||
+            observed.rebuild.state !== "ready" ||
+            staleBeforeLoad.some((message) => message !== undefined)
+          ) return;
+          const retained = await loadRetainedEvidence({
+            projectRoot: observed.project.root,
+            outputDirectory: observed.config.outputDirectory,
+            projectDigest: observed.rebuild.projectDigest,
+            circuitDigest: observed.rebuild.circuitDigest,
+          });
+          if (
+            stopped || actionRunning || generation !== evidenceGeneration || snapshot !== observed ||
+            observed.rebuild.state !== "ready"
+          ) return;
+          const staleBeforeCommit = await Promise.all([
+            verifyStoredRouteArtifacts("/api/actions", observed),
+            verifyStoredRouteArtifacts("/api/simulations", observed),
+          ]);
+          if (
+            stopped || actionRunning || generation !== evidenceGeneration || snapshot !== observed ||
+            observed.rebuild.state !== "ready" ||
+            staleBeforeCommit.some((message) => message !== undefined)
+          ) return;
+          const sourcing = assessRecordedSourcing({
+            circuitJson: observed.evaluation.circuitJson,
+            lock: observed.lock,
+          });
+          const hasRetainedSourcing = retained.actions.some(({ requestedDimensions }) =>
+            requestedDimensions.includes("sourcing")
+          );
+          const retainedLastActionWasKnown = retained.lastAction !== undefined &&
+            observed.retainedEvidence.some(
+              ({ action }) => action.runId === retained.lastAction!.runId,
+            );
+          const retainedSupersedesObserved = retained.lastAction !== undefined &&
+            retained.lastAction.runId !== observed.lastAction?.runId &&
+            !retainedLastActionWasKnown;
+          const preserveCurrentAuthority = (
+            observed.artifactAuthority !== undefined ||
+            (observed.lastAction !== undefined && reportAuthorities.has(observed.lastAction))
+          ) && !retainedSupersedesObserved;
+          const { lastAction: _lastAction, artifactAuthority: _artifactAuthority, ...base } = observed;
+          snapshot = Object.freeze({
+            ...base,
+            statuses: statusSet({
+              ...retained.statuses,
+              sourcing: hasRetainedSourcing ? retained.statuses.sourcing : sourcing.status,
+            }),
+            diagnostics: Object.freeze([...retained.diagnostics, ...sourcing.diagnostics]),
+            retainedEvidence: retained.actions,
+            artifacts: preserveCurrentAuthority ? observed.artifacts : Object.freeze([]),
+            ...(preserveCurrentAuthority
+              ? {
+                  ...(observed.lastAction === undefined ? {} : { lastAction: observed.lastAction }),
+                  ...(observed.artifactAuthority === undefined
+                    ? {}
+                    : { artifactAuthority: observed.artifactAuthority }),
+                }
+              : retained.lastAction === undefined ? {} : { lastAction: retained.lastAction }),
+          });
+          syncingEvidence = false;
+          markActivity();
+        } finally {
+          finish();
         }
-        const observed = snapshot;
-        const retained = await loadRetainedEvidence({
-          projectRoot: observed.project.root,
-          outputDirectory: observed.config.outputDirectory,
-          projectDigest: observed.rebuild.projectDigest,
-          circuitDigest: observed.rebuild.circuitDigest,
-        });
-        if (stopped || snapshot !== observed || observed.rebuild.state !== "ready") return;
-        const sourcing = assessRecordedSourcing({
-          circuitJson: observed.evaluation.circuitJson,
-          lock: observed.lock,
-        });
-        const hasRetainedSourcing = retained.actions.some(({ requestedDimensions }) =>
-          requestedDimensions.includes("sourcing")
-        );
-        const { lastAction: _lastAction, artifactAuthority: _artifactAuthority, ...base } = observed;
-        snapshot = Object.freeze({
-          ...base,
-          statuses: statusSet({
-            ...retained.statuses,
-            sourcing: hasRetainedSourcing ? retained.statuses.sourcing : sourcing.status,
-          }),
-          diagnostics: Object.freeze([...retained.diagnostics, ...sourcing.diagnostics]),
-          retainedEvidence: retained.actions,
-          artifacts: Object.freeze([]),
-          ...(retained.lastAction === undefined ? {} : { lastAction: retained.lastAction }),
-        });
-        syncingEvidence = false;
-        markActivity();
       }, async () => {
-        if (syncingEvidence) {
+        if (generation === evidenceGeneration && syncingEvidence) {
           syncingEvidence = false;
           markActivity();
         }
@@ -1866,34 +1912,37 @@ export async function startInspectionServer(
     });
   };
 
-  const verifyStoredRouteArtifacts = async (pathname: string): Promise<string | undefined> => {
+  async function verifyStoredRouteArtifacts(
+    pathname: string,
+    target: ServerSnapshot = snapshot,
+  ): Promise<string | undefined> {
     const exposesCurrentArtifacts = pathname === "/api/artifacts" || pathname === "/manufacturing" ||
       pathname === "/api/checks" || pathname === "/checks" || pathname === "/api/actions";
     const exposesCurrentReport = pathname === "/api/checks" || pathname === "/checks" ||
       pathname === "/api/actions";
     const exposesSimulationAction = pathname === "/api/simulations" || pathname === "/simulations" || /^\/simulations\/[^/]+$/u.test(pathname);
-    const currentActionIsFresh = snapshot.rebuild.state === "ready" && snapshot.lastAction !== undefined &&
-      snapshot.lastAction.projectDigest === snapshot.rebuild.projectDigest &&
-      snapshot.lastAction.circuitDigest === snapshot.rebuild.circuitDigest;
+    const currentActionIsFresh = target.rebuild.state === "ready" && target.lastAction !== undefined &&
+      target.lastAction.projectDigest === target.rebuild.projectDigest &&
+      target.lastAction.circuitDigest === target.rebuild.circuitDigest;
     if (
-      exposesCurrentArtifacts && (snapshot.lastAction !== undefined || snapshot.artifacts.length > 0) &&
+      exposesCurrentArtifacts && (target.lastAction !== undefined || target.artifacts.length > 0) &&
       !currentActionIsFresh
     ) return "Stored action evidence belongs to an older project or circuit epoch";
-    if (exposesCurrentArtifacts && snapshot.artifacts.length > 0) {
-      if (snapshot.artifactAuthority === undefined) {
+    if (exposesCurrentArtifacts && target.artifacts.length > 0) {
+      if (target.artifactAuthority === undefined) {
         return "Stored artifact references have no authenticated run authority";
       }
       try {
-        await verifyServerArtifactAuthority(snapshot.artifactAuthority, snapshot.artifacts);
+        await verifyServerArtifactAuthority(target.artifactAuthority, target.artifacts);
       } catch (error) {
         return error instanceof ServerArtifactFreshnessError
           ? error.message
           : "Stored artifact authority could not be revalidated";
       }
     }
-    if (exposesCurrentReport && snapshot.lastAction?.reportPath !== undefined) {
-      const retained = snapshot.retainedEvidence.find(({ action }) => action === snapshot.lastAction);
-      const report = retained?.authority ?? reportAuthorities.get(snapshot.lastAction);
+    if (exposesCurrentReport && target.lastAction?.reportPath !== undefined) {
+      const retained = target.retainedEvidence.find(({ action }) => action === target.lastAction);
+      const report = retained?.authority ?? reportAuthorities.get(target.lastAction);
       if (report === undefined) return "Stored action report has no authenticated run authority";
       try {
         await verifyServerArtifactAuthority(report.authority, [report.reference]);
@@ -1904,7 +1953,7 @@ export async function startInspectionServer(
       }
     }
     if (exposesCurrentReport) {
-      for (const retained of snapshot.retainedEvidence) {
+      for (const retained of target.retainedEvidence) {
         try {
           await verifyServerArtifactAuthority(retained.authority.authority, [retained.authority.reference]);
         } catch (error) {
@@ -1914,14 +1963,14 @@ export async function startInspectionServer(
         }
       }
     }
-    const simulationActions = snapshot.simulationActions === undefined
-      ? snapshot.lastSimulationAction === undefined ? [] : [snapshot.lastSimulationAction]
-      : [...snapshot.simulationActions.values()];
+    const simulationActions = target.simulationActions === undefined
+      ? target.lastSimulationAction === undefined ? [] : [target.lastSimulationAction]
+      : [...target.simulationActions.values()];
     if (exposesSimulationAction) {
       for (const action of simulationActions) {
-        const current = snapshot.rebuild.state === "ready" &&
-          action.projectDigest === snapshot.rebuild.projectDigest &&
-          action.circuitDigest === snapshot.rebuild.circuitDigest;
+        const current = target.rebuild.state === "ready" &&
+          action.projectDigest === target.rebuild.projectDigest &&
+          action.circuitDigest === target.rebuild.circuitDigest;
         if (!current) return "Retained simulation evidence belongs to an older project or circuit epoch";
         if (action.artifacts.length > 0) {
           const authority = simulationArtifactAuthorities.get(action);
@@ -1950,7 +1999,7 @@ export async function startInspectionServer(
       }
     }
     return undefined;
-  };
+  }
 
   const refreshCurrentProjectAuthority = async (pathname: string): Promise<void> => {
     if (pathname.startsWith("/assets/") || pathname.startsWith("/models/") || snapshot.rebuild.state !== "ready") return;
@@ -2042,6 +2091,11 @@ export async function startInspectionServer(
           return withCors(request, errorResponse(url.pathname, 409, "ACTION_ALREADY_RUNNING", "Another Fulmetry action is already running"), canonicalOrigin);
         }
         actionRunning = true;
+        evidenceGeneration += 1;
+        if (evidenceRefreshTimer !== undefined) {
+          clearTimeout(evidenceRefreshTimer);
+          evidenceRefreshTimer = undefined;
+        }
         syncingEvidence = false;
         markActivity();
         const actionController = new AbortController();
@@ -2122,7 +2176,8 @@ export async function startInspectionServer(
         return request.method === "HEAD" ? asHeadResponse(response) : response;
       }
       await refreshCurrentProjectAuthority(url.pathname);
-      const staleArtifactMessage = await verifyStoredRouteArtifacts(url.pathname);
+      const routeSnapshot = snapshot;
+      const staleArtifactMessage = await verifyStoredRouteArtifacts(url.pathname, routeSnapshot);
       if (staleArtifactMessage !== undefined) {
         const response = withCors(
           request,
@@ -2139,7 +2194,7 @@ export async function startInspectionServer(
       try {
         const response = withCors(
           request,
-          fixedRouteResponse(url, snapshot, {
+          fixedRouteResponse(url, routeSnapshot, {
             actionToken,
             actionRunning,
             actionsEnabled,

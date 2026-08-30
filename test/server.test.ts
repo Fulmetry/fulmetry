@@ -1189,7 +1189,10 @@ describe("fixed Fulmetry inspection and action server", () => {
   test("authorizes fixed derived actions without changing source or triggering output rebuild loops", async () => {
     const { root, entry } = await project();
     const before = await readFile(entry);
-    const server = await start(root, { watchDebounceMs: 20 });
+    const server = await start(root, {
+      watchDebounceMs: 20,
+      externalToolPaths: { ngspice: null },
+    });
     const projectUrl = new URL("/api/project", server.url);
     const initial = await (await fetch(projectUrl)).json() as { snapshot: { revision: number }; server: { actionToken: string } };
     const action = new URL("/api/actions/build", server.url);
@@ -1249,6 +1252,17 @@ describe("fixed Fulmetry inspection and action server", () => {
     const { root } = await project();
     const server = await start(root, { watchDebounceMs: 20 });
     const projectUrl = new URL("/api/project", server.url);
+    const built = await fetch(new URL("/api/actions/build", server.url), {
+      method: "POST",
+      headers: {
+        Origin: server.url.origin,
+        "X-Fulmetry-Action-Token": server.actionToken,
+        "Content-Type": "application/json",
+      },
+      body: "{}",
+    });
+    expect(built.status).toBe(200);
+    await Bun.sleep(250);
     const initial = await (await fetch(projectUrl)).json() as {
       snapshot: { revision: number };
       server: { activityRevision: number; activityUpdatedAt: string };
@@ -1261,18 +1275,22 @@ describe("fixed Fulmetry inspection and action server", () => {
     });
     expect(checked.result?.requestedDimensions).toEqual(["electrical", "fabrication"]);
 
-    const synchronized = await waitFor(
-      async () => await (await fetch(projectUrl)).json() as {
-        snapshot: { revision: number };
-        server: { activityRevision: number; activityUpdatedAt: string };
+    const checks = await waitFor(
+      async () => await (await fetch(new URL("/api/checks", server.url))).json() as {
+        lastAction: null | { command: string; runId: string };
+        evidenceActions: readonly { runId: string }[];
       },
-      ({ server: live }) => live.activityRevision > initial.server.activityRevision,
+      ({ lastAction }) => lastAction?.runId === "external-live-sync",
     );
+    const synchronized = await (await fetch(projectUrl)).json() as {
+      snapshot: { revision: number };
+      server: { activityRevision: number; activityUpdatedAt: string };
+    };
     expect(synchronized.snapshot.revision).toBe(initial.snapshot.revision);
+    expect(synchronized.server.activityRevision).toBeGreaterThan(initial.server.activityRevision);
     expect(Date.parse(synchronized.server.activityUpdatedAt))
       .toBeGreaterThanOrEqual(Date.parse(initial.server.activityUpdatedAt));
 
-    const checks = await (await fetch(new URL("/api/checks", server.url))).json() as any;
     expect(checks.lastAction).toMatchObject({
       command: "fulmetry check",
       runId: "external-live-sync",
@@ -1764,7 +1782,10 @@ describe("fixed Fulmetry inspection and action server", () => {
 
   test("binds simulation routes and freshness to definition and model input authority", async () => {
     const { root } = await project();
-    const server = await start(root, { watchDebounceMs: 20 });
+    const server = await start(root, {
+      watchDebounceMs: 20,
+      externalToolPaths: { ngspice: null },
+    });
     const initial = await (await fetch(new URL("/api/project", server.url))).json() as {
       snapshot: { revision: number; projectDigest: string };
       server: { actionToken: string };

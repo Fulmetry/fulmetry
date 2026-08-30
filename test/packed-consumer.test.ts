@@ -59,7 +59,7 @@ async function fixture(): Promise<Readonly<{ root: string; lock: Record<string, 
     },
     dependencies: { fulmetry: "file:../../packages/fulmetry-0.0.0.tgz", tscircuit: "0.0.2261" },
     devDependencies: { "@types/bun": "1.3.14", "@types/node": "24.13.3" },
-    overrides: { "@tscircuit/cli": "0.1.1858", "bun-match-svg": "0.0.15" },
+    overrides: { "@tscircuit/cli": "0.1.1858", "bun-match-svg": "0.0.15", "bun-types": "1.3.14" },
     trustedDependencies: [],
   };
   await writeFile(join(root, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
@@ -67,7 +67,7 @@ async function fixture(): Promise<Readonly<{ root: string; lock: Record<string, 
   const lock: Record<string, unknown> = {
     lockfileVersion: 1,
     configVersion: 1,
-    overrides: { "@tscircuit/cli": "0.1.1858", "bun-match-svg": "0.0.15" },
+    overrides: { "@tscircuit/cli": "0.1.1858", "bun-match-svg": "0.0.15", "bun-types": "1.3.14" },
     workspaces: { "": { name: "board", dependencies: manifest.dependencies, devDependencies: manifest.devDependencies } },
     packages: {
       fulmetry: ["fulmetry@../../packages/fulmetry-0.0.0.tgz", { peerDependencies: { tscircuit: "0.0.2261" } }, sri(tarballBytes)],
@@ -129,17 +129,26 @@ test("rejects a missing, wrong-version, or wrong-integrity qualified CLI tuple",
   }
 });
 
-test("rejects changed scaffold dependency overrides in the manifest or lock", async () => {
-  const manifestChanged = await fixture();
-  const manifest = await Bun.file(join(manifestChanged.root, "package.json")).json();
-  manifest.overrides["bun-match-svg"] = "0.0.16";
-  await writeFile(join(manifestChanged.root, "package.json"), `${JSON.stringify(manifest)}\n`);
-  await expect(inspect(manifestChanged.root)).rejects.toThrow("dependency overrides are not qualified");
+test("rejects changed or missing scaffold dependency overrides in the manifest or lock", async () => {
+  for (const mutate of [
+    (overrides: Record<string, string>) => { overrides["bun-types"] = "1.4.0"; },
+    (overrides: Record<string, string>) => { delete overrides["bun-types"]; },
+  ]) {
+    const manifestChanged = await fixture();
+    const manifest = await Bun.file(join(manifestChanged.root, "package.json")).json();
+    mutate(manifest.overrides);
+    await writeFile(join(manifestChanged.root, "package.json"), `${JSON.stringify(manifest)}\n`);
+    await expect(inspect(manifestChanged.root)).rejects.toThrow(
+      /unexpected fields|dependency overrides are not qualified/u,
+    );
 
-  const lockChanged = await fixture();
-  (lockChanged.lock.overrides as Record<string, string>)["bun-match-svg"] = "0.0.16";
-  await writeFile(join(lockChanged.root, "bun.lock"), `${JSON.stringify(lockChanged.lock)}\n`);
-  await expect(inspect(lockChanged.root)).rejects.toThrow("lock overrides are not qualified");
+    const lockChanged = await fixture();
+    mutate(lockChanged.lock.overrides as Record<string, string>);
+    await writeFile(join(lockChanged.root, "bun.lock"), `${JSON.stringify(lockChanged.lock)}\n`);
+    await expect(inspect(lockChanged.root)).rejects.toThrow(
+      /unexpected fields|lock overrides are not qualified/u,
+    );
+  }
 });
 
 test("rejects any trusted dependency install script in the packed consumer", async () => {

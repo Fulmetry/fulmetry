@@ -162,6 +162,7 @@ async function authoredFixture(options: {
       name: resistorName,
       resistance: options.resistorValue ?? "10kohm",
       footprint: "0603",
+      manufacturerPartNumber: "RC0603FR-0710KL",
       supplierPartNumbers: { jlcpcb: ["C25804"] },
       pcbX: -3,
       pcbY: 2,
@@ -169,6 +170,7 @@ async function authoredFixture(options: {
     led: new Led({
       name: "D1",
       footprint: "0603",
+      manufacturerPartNumber: "LTST-C190KGKT",
       supplierPartNumbers: { jlcpcb: ["C2286"] },
       layer: "bottom",
       pcbX: 3,
@@ -179,6 +181,7 @@ async function authoredFixture(options: {
       name: "J1",
       pinCount: 2,
       footprint: "pinrow2_nosquareplating",
+      manufacturerPartNumber: "M20-9990245",
       supplierPartNumbers: { jlcpcb: ["C124375"] },
       pcbX: 0,
       pcbY: -2,

@@ -12,6 +12,7 @@ const SRI = /^sha512-([A-Za-z0-9+/]+={0,2})$/u;
 const QUALIFIED_TSCIRCUIT_CLI_VERSION = "0.1.1858";
 const QUALIFIED_TSCIRCUIT_CLI_INTEGRITY = "sha512-FPrP/p1BqGHTOKXiKHv1CCe95jE2fuOKLBjA52GdrlWy9QB9VMY8rgjr8JHj8OjU2R3WzX7rWQ//+NO2qsisoA==";
 const QUALIFIED_BUN_MATCH_SVG_VERSION = "0.0.15";
+const QUALIFIED_BUN_TYPES_VERSION = "1.3.14";
 
 export interface InspectPackedConsumerOptions {
   readonly root: string;
@@ -338,10 +339,11 @@ export async function inspectPackedConsumer(
     manifest.dependencies.tscircuit !== options.expectedVersion
   ) throw new TypeError("Packed consumer dependencies are not the exact qualified inputs");
   record(manifest.overrides, "Packed consumer overrides");
-  keys(manifest.overrides, ["@tscircuit/cli", "bun-match-svg"], "Packed consumer overrides");
+  keys(manifest.overrides, ["@tscircuit/cli", "bun-match-svg", "bun-types"], "Packed consumer overrides");
   if (
     manifest.overrides["@tscircuit/cli"] !== QUALIFIED_TSCIRCUIT_CLI_VERSION ||
-    manifest.overrides["bun-match-svg"] !== QUALIFIED_BUN_MATCH_SVG_VERSION
+    manifest.overrides["bun-match-svg"] !== QUALIFIED_BUN_MATCH_SVG_VERSION ||
+    manifest.overrides["bun-types"] !== QUALIFIED_BUN_TYPES_VERSION
   ) {
     throw new TypeError("Packed consumer dependency overrides are not qualified");
   }
@@ -365,10 +367,11 @@ export async function inspectPackedConsumer(
   record(lock, "Packed consumer bun.lock");
   keys(lock, ["configVersion", "lockfileVersion", "overrides", "packages", "workspaces"], "Packed consumer bun.lock");
   record(lock.overrides, "Packed consumer lock overrides");
-  keys(lock.overrides, ["@tscircuit/cli", "bun-match-svg"], "Packed consumer lock overrides");
+  keys(lock.overrides, ["@tscircuit/cli", "bun-match-svg", "bun-types"], "Packed consumer lock overrides");
   if (
     lock.overrides["@tscircuit/cli"] !== QUALIFIED_TSCIRCUIT_CLI_VERSION ||
-    lock.overrides["bun-match-svg"] !== QUALIFIED_BUN_MATCH_SVG_VERSION
+    lock.overrides["bun-match-svg"] !== QUALIFIED_BUN_MATCH_SVG_VERSION ||
+    lock.overrides["bun-types"] !== QUALIFIED_BUN_TYPES_VERSION
   ) throw new TypeError("Packed consumer lock overrides are not qualified");
   if (lock.lockfileVersion !== 1 || lock.configVersion !== 1) throw new TypeError("Packed consumer lock format is unsupported");
   record(lock.workspaces, "Packed consumer lock workspaces");

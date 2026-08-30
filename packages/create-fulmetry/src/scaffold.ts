@@ -100,12 +100,13 @@ async function projectFiles(options: ScaffoldOptions): Promise<Readonly<Record<s
       // A direct Node type pin also makes Bun's hoisting choice deterministic
       // for incompatible @types/node ranges inside the tscircuit closure.
       devDependencies: { "@types/bun": "1.3.14", "@types/node": "24.13.3" },
-      // tscircuit's runtime closure contains open ranges for both packages.
+      // tscircuit's runtime closure contains open ranges for these packages.
       // Pin the exact graph Fulmetry qualified so registry publication cannot
       // silently alter a newly scaffolded project's executable engine.
       overrides: {
         "@tscircuit/cli": "0.1.1858",
         "bun-match-svg": "0.0.15",
+        "bun-types": "1.3.14",
       },
       // Dependency install scripts can mutate authenticated package bytes.
       // Fulmetry's qualified closure therefore runs with none trusted by default.

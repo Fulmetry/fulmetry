@@ -227,15 +227,23 @@ export async function assertPerformanceDetachedExport(
 async function fetchObservedServerCircuit(
   url: URL,
   expected: Readonly<PerformanceFixtureIdentity>,
-): Promise<void> {
+): Promise<string> {
   const response = await fetch(new URL("/api/circuit", url));
   if (!response.ok) throw new Error(`Server circuit authority returned ${response.status}`);
-  const body = await response.json() as { elements?: unknown };
+  const body = await response.json() as {
+    elements?: unknown;
+    snapshot?: { circuitDigest?: unknown };
+  };
   assertPerformanceFixtureIdentity(
     observePerformanceFixture(body.elements),
     expected,
     "inspection server output",
   );
+  const circuitDigest = body.snapshot?.circuitDigest;
+  if (typeof circuitDigest !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(circuitDigest)) {
+    throw new Error("Inspection server omitted its circuit digest authority");
+  }
+  return circuitDigest;
 }
 
 async function runWorkload(
@@ -284,7 +292,7 @@ async function runWorkload(
     }
     const server = await startInspectionServer({ projectDirectory: prepared.root, watchDebounceMs: 10 });
     try {
-      await fetchObservedServerCircuit(server.url, identity);
+      const circuitDigest = await fetchObservedServerCircuit(server.url, identity);
       if (workload === "incremental-rebuild") {
         const projectUrl = new URL("/api/project", server.url);
         const initial = await (await fetch(projectUrl)).json() as { snapshot: { revision: number } };
@@ -301,13 +309,45 @@ async function runWorkload(
             (body.inspection[0] as Record<string, unknown> | undefined)?.type !== "source_component"
           ) throw new Error(`inspection-query returned invalid authority with status ${response.status}`);
         } else {
-          const response = await fetch(new URL("/pcb", server.url));
-          const body = await response.text();
+          const pageResponse = await fetch(new URL("/pcb", server.url));
+          const page = await pageResponse.text();
+          const scriptPath = page.match(
+            /src="(\/assets\/fulmetry-app-[a-z0-9]+\.js)"/u,
+          )?.[1];
           if (
-            !response.ok || !response.headers.get("content-type")?.startsWith("text/html") ||
-            !body.includes("<svg") || !body.includes("data-fulmetry-viewer") ||
-            !body.includes("circuit sha256:")
-          ) throw new Error(`pcb-render returned invalid rendered authority with status ${response.status}`);
+            !pageResponse.ok ||
+            !pageResponse.headers.get("content-type")?.startsWith("text/html") ||
+            !page.includes("<title>Fulmetry PCB</title>") ||
+            !page.includes('id="root"') ||
+            !page.includes('name="fulmetry-snapshot-state" content="ready"') ||
+            !page.includes(circuitDigest) ||
+            scriptPath === undefined
+          ) throw new Error(`pcb-render returned invalid application authority with status ${pageResponse.status}`);
+
+          const scriptResponse = await fetch(new URL(scriptPath, server.url));
+          const script = await scriptResponse.text();
+          if (
+            !scriptResponse.ok ||
+            !scriptResponse.headers.get("content-type")?.startsWith("text/javascript") ||
+            !script.includes("data-fulmetry-viewer")
+          ) throw new Error(`pcb-render returned invalid viewer authority with status ${scriptResponse.status}`);
+
+          const renderResponse = await fetch(new URL("/api/render/pcb", server.url));
+          const svg = await renderResponse.text();
+          const renderedCount = (type: string): number =>
+            svg.split(`data-type="${type}"`).length - 1;
+          if (
+            !renderResponse.ok ||
+            !renderResponse.headers.get("content-type")?.startsWith("image/svg+xml") ||
+            !svg.startsWith("<svg") ||
+            !svg.endsWith("</svg>") ||
+            !svg.includes('class="pcb-board"') ||
+            !svg.includes('data-pcb-layer="board"') ||
+            !svg.includes('data-pcb-layer="top"') ||
+            renderedCount("pcb_board") !== 1 ||
+            renderedCount("pcb_smtpad") !== identity.pads ||
+            renderedCount("pcb_trace") !== identity.traces
+          ) throw new Error(`pcb-render returned invalid SVG authority with status ${renderResponse.status}`);
         }
       }
     } finally {

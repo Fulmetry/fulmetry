@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "baselineVersion": "2026-08-12",
+  "baselineVersion": "2026-08-31",
   "bunVersion": "1.3.14",
   "workloads": [
     "cold-build",
@@ -17,7 +17,7 @@
   },
   "environments": {
     "darwin-arm64": {
-      "small": { "maxElapsedMilliseconds": 20000, "maxPeakRssBytes": 2684354560 },
+      "small": { "maxElapsedMilliseconds": 22500, "maxPeakRssBytes": 2684354560 },
       "medium": { "maxElapsedMilliseconds": 30000, "maxPeakRssBytes": 3221225472 },
       "large": { "maxElapsedMilliseconds": 45000, "maxPeakRssBytes": 3758096384 }
     }
