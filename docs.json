@@ -4,12 +4,12 @@
   "description": "Build circuits with your coding agent using composable TypeScript and reviewable evidence.",
   "socialPreview": false,
   "theme": {
-    "defaultTheme": "dark",
-    "primary": "#199b61",
-    "primaryLight": "#0f6f48",
-    "primaryDark": "#62b78d",
-    "backgroundLight": "#f4f7f5",
-    "backgroundDark": "#050706"
+    "defaultTheme": "light",
+    "primary": "#87ea5c",
+    "primaryLight": "#083400",
+    "primaryDark": "#87ea5c",
+    "backgroundLight": "#ffffff",
+    "backgroundDark": "#083400"
   },
   "header": {
     "showName": true,
